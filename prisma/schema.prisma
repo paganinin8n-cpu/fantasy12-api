@@ -1,0 +1,204 @@
+// ======================
+// PRISMA CONFIG
+// ======================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ======================
+// ENUMS
+// ======================
+
+enum UserRole {
+  ADMIN
+  PRO
+  NORMAL
+}
+
+enum RoundStatus {
+  DRAFT
+  PENDING
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum TicketStatus {
+  PENDING
+  WON
+  LOST
+}
+
+// ======================
+// USER
+// ======================
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         UserRole @default(NORMAL)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  nickname     String?  @unique
+  cpf          String?  @unique
+  profileImage String?
+  bio          String?
+  phone        String?
+
+  tickets        Ticket[]
+  rankings       RankingParticipant[]
+  auditLogs      AuditLog[]
+  scoreHistory   UserScoreHistory[]
+
+  @@map("users")
+}
+
+// ======================
+// ROUND
+// ======================
+model Round {
+  id          String      @id @default(uuid())
+  number      Int         @unique
+  status      RoundStatus @default(DRAFT)
+  openAt      DateTime?
+  closeAt     DateTime?
+  result      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tickets        Ticket[]
+  rankings       RankingRound[]
+  scoreHistory   UserScoreHistory[]
+
+  @@map("rounds")
+}
+
+// ======================
+// TICKET
+// ======================
+model Ticket {
+  id          String        @id @default(uuid())
+  userId      String
+  roundId     String
+  prediction  String
+  status      TicketStatus  @default(PENDING)
+  scoreRound  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round       Round         @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roundId])
+  @@index([userId])
+  @@index([roundId])
+  @@map("tickets")
+}
+
+// ======================
+// USER SCORE HISTORY
+// ======================
+model UserScoreHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  roundId     String
+  scoreRound  Int
+  scoreTotal  Int
+  createdAt   DateTime @default(now())
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round       Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roundId])
+  @@index([userId])
+  @@index([roundId])
+  @@map("user_score_history")
+}
+
+// ======================
+// RANKING
+// ======================
+model Ranking {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants RankingParticipant[]
+  rounds       RankingRound[]
+
+  @@map("rankings")
+}
+
+// ======================
+// RANKING PARTICIPANT
+// ======================
+model RankingParticipant {
+  id        String   @id @default(uuid())
+  rankingId String
+  userId    String
+  score     Int      @default(0)
+  position  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ranking   Ranking  @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([rankingId, userId])
+  @@index([rankingId])
+  @@index([userId])
+  @@map("ranking_participants")
+}
+
+// ======================
+// RANKING ROUND
+// ======================
+model RankingRound {
+  id        String   @id @default(uuid())
+  rankingId String
+  roundId   String
+  createdAt DateTime @default(now())
+
+  ranking   Ranking  @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([rankingId, roundId])
+  @@index([rankingId])
+  @@index([roundId])
+  @@map("ranking_rounds")
+}
+
+// ======================
+// AUDIT LOG
+// ======================
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
