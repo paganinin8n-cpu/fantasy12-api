@@ -36,6 +36,13 @@ enum TicketStatus {
   LOST
 }
 
+enum RankingType {
+  GLOBAL
+  PRO
+  BOLAO
+}
+
+
 // ======================
 // USER
 // ======================
@@ -131,6 +138,7 @@ model Ranking {
   id          String    @id @default(uuid())
   name        String    @unique
   description String?
+  type        RankingType
   startDate   DateTime  @default(now())
   endDate     DateTime?
   isActive    Boolean   @default(true)
