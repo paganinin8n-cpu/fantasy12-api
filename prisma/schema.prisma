@@ -147,13 +147,14 @@ model Ranking {
 // RANKING PARTICIPANT
 // ======================
 model RankingParticipant {
-  id        String   @id @default(uuid())
-  rankingId String
-  userId    String
-  score     Int      @default(0)
-  position  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  rankingId    String
+  userId       String
+  score        Int      @default(0)
+  scoreInitial Int      @default(0)
+  position     Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   ranking   Ranking  @relation(fields: [rankingId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
