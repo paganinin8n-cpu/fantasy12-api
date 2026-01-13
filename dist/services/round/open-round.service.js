@@ -23,4 +23,3 @@ class OpenRoundService {
     }
 }
 exports.OpenRoundService = OpenRoundService;
-//# sourceMappingURL=open-round.service.js.map

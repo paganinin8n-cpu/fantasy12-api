@@ -19,4 +19,3 @@ class CloseRoundService {
     }
 }
 exports.CloseRoundService = CloseRoundService;
-//# sourceMappingURL=close-round.service.js.map

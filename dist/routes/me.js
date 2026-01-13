@@ -9,4 +9,3 @@ router.get('/me', auth_1.authMiddleware, (req, res) => {
     return meController.handle(req, res);
 });
 exports.default = router;
-//# sourceMappingURL=me.js.map

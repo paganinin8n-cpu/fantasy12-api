@@ -8,4 +8,3 @@ router.get("/health", async (_req, res) => {
     return res.json({ api: "ok", db: "ok" });
 });
 exports.default = router;
-//# sourceMappingURL=health.js.map

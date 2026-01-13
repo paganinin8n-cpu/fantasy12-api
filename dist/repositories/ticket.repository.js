@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TicketRepository = void 0;
-// src/repositories/ticket.repository.ts
 const prisma_1 = require("../lib/prisma");
 const client_1 = require("@prisma/client");
 class TicketRepository {
@@ -13,6 +12,11 @@ class TicketRepository {
                     roundId
                 }
             }
+        });
+    }
+    async findByRound(roundId) {
+        return prisma_1.prisma.ticket.findMany({
+            where: { roundId }
         });
     }
     async create(data) {
@@ -40,6 +44,14 @@ class TicketRepository {
             data: { status }
         });
     }
+    async updateScore(ticketId, scoreRound) {
+        return prisma_1.prisma.ticket.update({
+            where: { id: ticketId },
+            data: {
+                scoreRound,
+                updatedAt: new Date()
+            }
+        });
+    }
 }
 exports.TicketRepository = TicketRepository;
-//# sourceMappingURL=ticket.repository.js.map

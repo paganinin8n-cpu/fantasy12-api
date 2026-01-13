@@ -10,4 +10,3 @@ exports.CreateUserSchema = zod_1.z.object({
     phone: zod_1.z.string().min(8),
     password: zod_1.z.string().min(6)
 });
-//# sourceMappingURL=createUser.validator.js.map

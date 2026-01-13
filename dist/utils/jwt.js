@@ -35,4 +35,3 @@ function verifyToken(token) {
         role: decoded.role
     };
 }
-//# sourceMappingURL=jwt.js.map

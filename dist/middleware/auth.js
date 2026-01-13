@@ -20,4 +20,3 @@ function authMiddleware(req, res, next) {
         return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
 }
-//# sourceMappingURL=auth.js.map

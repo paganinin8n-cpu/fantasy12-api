@@ -16,4 +16,3 @@ function requirePermission(permission) {
         next();
     };
 }
-//# sourceMappingURL=requirePermission.js.map

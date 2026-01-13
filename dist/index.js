@@ -10,11 +10,13 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const me_1 = __importDefault(require("./routes/me"));
 const ticket_routes_1 = __importDefault(require("./routes/ticket.routes"));
+const ranking_routes_1 = __importDefault(require("./routes/ranking.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use('/api', ticket_routes_1.default);
+app.use(ranking_routes_1.default);
 // 🔴 LOG GLOBAL — PROVA DEFINITIVA
 app.use((req, _res, next) => {
     console.log(`[REQ] ${req.method} ${req.url}`);
@@ -37,4 +39,3 @@ const PORT = Number(process.env.PORT ?? 3001);
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Fantasy12 API rodando na porta ${PORT}`);
 });
-//# sourceMappingURL=index.js.map

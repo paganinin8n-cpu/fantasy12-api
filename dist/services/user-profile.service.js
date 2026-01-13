@@ -27,4 +27,3 @@ class UserProfileService {
     }
 }
 exports.UserProfileService = UserProfileService;
-//# sourceMappingURL=user-profile.service.js.map

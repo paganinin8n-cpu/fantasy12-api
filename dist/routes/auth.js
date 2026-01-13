@@ -40,4 +40,3 @@ router.post('/login', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=auth.js.map

@@ -7,4 +7,3 @@ exports.RolePermissions = {
     PRO: ['USER_READ'],
     NORMAL: []
 };
-//# sourceMappingURL=permissions.js.map

@@ -14,4 +14,3 @@ router.post('/tickets', async (req, res) => {
     return res.json(ticket);
 });
 exports.default = router;
-//# sourceMappingURL=ticket.routes.js.map
