@@ -11,15 +11,21 @@ export class ScoreRoundService {
 
   /**
    * Apura a rodada:
+   * - bloqueia reapuração
    * - calcula score de cada ticket
    * - persiste scoreRound no ticket
    * - gera histórico cumulativo por usuário
+   * - marca a rodada como SCORED
    */
   async execute(roundId: string): Promise<void> {
     const round = await this.roundRepo.findById(roundId);
 
     if (!round) {
       throw new Error('Rodada não encontrada');
+    }
+
+    if (round.status === RoundStatus.SCORED) {
+      throw new Error('Rodada já apurada (SCORED)');
     }
 
     if (round.status !== RoundStatus.CLOSED) {
@@ -49,10 +55,10 @@ export class ScoreRoundService {
         await this.ticketRepo.updateScore(ticket.id, scoreRound);
 
         // Define status do ticket
-        const ticketStatus =
+        const status =
           scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST;
 
-        await this.ticketRepo.updateStatus(ticket.id, ticketStatus);
+        await this.ticketRepo.updateStatus(ticket.id, status);
 
         // Busca último score acumulado do usuário
         const lastHistory = await this.historyRepo.findLastByUser(ticket.userId);
@@ -67,8 +73,8 @@ export class ScoreRoundService {
         });
       }
 
-      // Mantemos CLOSED neste bloco (SCORED vem depois)
-      await this.roundRepo.updateStatus(roundId, RoundStatus.CLOSED);
+      // Marca rodada como apurada (estado final)
+      await this.roundRepo.updateStatus(roundId, RoundStatus.SCORED);
     });
   }
 }
