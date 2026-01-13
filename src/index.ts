@@ -5,6 +5,8 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user.routes';
 import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
+import rankingRoutes from './routes/ranking.routes';
+
 
 
 dotenv.config();
@@ -14,6 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api', ticketRoutes);
+app.use(rankingRoutes);
+
 
 // 🔴 LOG GLOBAL — PROVA DEFINITIVA
 app.use((req: Request, _res: Response, next: NextFunction) => {
