@@ -26,6 +26,7 @@ enum RoundStatus {
   PENDING
   OPEN
   CLOSED
+  SCORED
   CANCELLED
 }
 
