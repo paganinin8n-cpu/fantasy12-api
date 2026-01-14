@@ -7,10 +7,8 @@ export function internalJobAuth(
 ) {
   const token = req.headers['x-internal-job-token'];
 
-  if (!token || token !== process.env.INTERNAL_JOB_TOKEN) {
-    return res.status(401).json({
-      error: 'UNAUTHORIZED_INTERNAL_JOB'
-    });
+  if (!token || token !== process.env.INTERNAL_JOB_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized internal job' });
   }
 
   next();

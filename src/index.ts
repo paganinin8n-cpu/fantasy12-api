@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user.routes';
 import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
-import './services/ranking/close-expired-rankings.service';
 import internalJobsRoutes from './routes/internal-jobs.routes';
 
 
@@ -16,6 +16,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 app.use('/api', ticketRoutes);
 app.use(rankingRoutes);
 app.use('/internal', internalJobsRoutes);
@@ -27,15 +28,15 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.json({ api: 'ok', db: 'ok' });
 });
 
 app.use('/auth', authRoutes);
 app.use('/api', userRoutes);
-app.use(meRoutes); // /me
+app.use(meRoutes); 
 
-app.get('/', (_req: Request, res: Response) => {
+app.get('/', (_req, res) => {
   res.json({
     name: 'Fantasy12 API',
     status: 'running',

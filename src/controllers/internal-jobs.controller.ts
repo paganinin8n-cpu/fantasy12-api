@@ -1,20 +1,14 @@
-import { Router } from 'express';
-import { InternalJobsController } from '../controllers/internal-jobs.controller';
-import { internalJobAuth } from '../middleware/internalJobAuth';
+import { Request, Response } from 'express';
+import { CloseExpiredRankingsService } from '../services/ranking/close-expired-rankings.service';
 
-const router = Router();
-const controller = new InternalJobsController();
+export class InternalJobsController {
+  async closeExpiredRankings(req: Request, res: Response) {
+    const service = new CloseExpiredRankingsService();
+    const result = await service.execute();
 
-/**
- * ======================
- * INTERNAL JOBS
- * ======================
- * Uso exclusivo de infraestrutura / cron
- */
-router.post(
-  '/jobs/close-expired-rankings',
-  internalJobAuth,
-  controller.closeExpiredRankings
-);
-
-export default router;
+    return res.json({
+      success: true,
+      closed: result.closed
+    });
+  }
+}
