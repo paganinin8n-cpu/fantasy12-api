@@ -7,7 +7,7 @@ import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
 import './services/ranking/close-expired-rankings.service';
-
+import internalJobsRoutes from './routes/internal-jobs.routes';
 
 
 dotenv.config();
@@ -18,6 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api', ticketRoutes);
 app.use(rankingRoutes);
+app.use('/internal', internalJobsRoutes);
 
 
 // 🔴 LOG GLOBAL — PROVA DEFINITIVA
