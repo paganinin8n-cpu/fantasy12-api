@@ -6,6 +6,7 @@ import userRoutes from './routes/user.routes';
 import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
+import './services/ranking/close-expired-rankings.service';
 
 
 
