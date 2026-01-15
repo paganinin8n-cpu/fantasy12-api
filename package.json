@@ -2,13 +2,17 @@
   "name": "fantasy12-api",
   "version": "1.0.0",
   "private": true,
+  "type": "commonjs",
+
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js"
   },
+
   "prisma": {
-    "seed": "ts-node ./prisma/seed.ts"
+    "seed": "node prisma/seed.js"
   },
+
   "dependencies": {
     "@prisma/client": "^5.11.0",
     "bcryptjs": "^2.4.3",
@@ -19,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "zod": "^4.3.4"
   },
+
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
@@ -27,7 +32,6 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.11.30",
     "prisma": "^5.11.0",
-    "typescript": "^5.4.5",
-    "ts-node": "^10.9.2"
+    "typescript": "^5.4.5"
   }
 }
