@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { AppError } from '../../errors/AppError';
 
 interface AddParticipantInput {
   rankingId: string;
@@ -12,13 +13,16 @@ export class AddParticipantService {
     });
 
     if (!ranking) {
-      throw new Error('Ranking não encontrado');
+      throw new AppError('Ranking não encontrado', 404);
     }
 
     const now = new Date();
 
     if (now >= ranking.startDate) {
-      throw new Error('Ranking já iniciado. Não é possível adicionar participantes.');
+      throw new AppError(
+        'Ranking já iniciado. Não é possível adicionar participantes.',
+        409
+      );
     }
 
     const exists = await prisma.rankingParticipant.findUnique({
@@ -31,7 +35,7 @@ export class AddParticipantService {
     });
 
     if (exists) {
-      throw new Error('Usuário já participa do ranking');
+      throw new AppError('Usuário já participa do ranking', 409);
     }
 
     const lastScore = await prisma.userScoreHistory.findFirst({
