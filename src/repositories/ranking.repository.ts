@@ -5,7 +5,10 @@ export class RankingRepository {
   async listByRankingId(rankingId: string) {
     return prisma.rankingParticipant.findMany({
       where: { rankingId },
-      orderBy: { position: 'asc' },
+      orderBy: [
+        { position: 'asc' },
+        { createdAt: 'asc' } // fallback determinístico para evitar sort instável
+      ],
       select: {
         position: true,
         score: true,
@@ -21,4 +24,5 @@ export class RankingRepository {
       }
     });
   }
+
 }
