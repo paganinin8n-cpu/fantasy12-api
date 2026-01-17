@@ -1,5 +1,12 @@
-node_modules
-# Keep environment variables out of version control
+# Dependencies
+node_modules/
+
+# Build output (NUNCA versionar)
+dist/
+
+# Environment variables
 .env
 
+# Prisma generated
 /src/generated/prisma
+
