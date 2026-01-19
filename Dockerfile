@@ -46,8 +46,11 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 
-# Prisma Client runtime safety
+# Prisma Client runtime
 RUN npx prisma generate
+
+# 🔒 APLICAR MIGRATIONS (OBRIGATÓRIO)
+RUN npx prisma migrate deploy
 
 EXPOSE 3001
 
