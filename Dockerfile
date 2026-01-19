@@ -54,6 +54,6 @@ EXPOSE 3001
 # 🔒 Runtime startup:
 # 1️⃣ aplica migrations
 # 2️⃣ inicia a API
-//CMD sh -c "npx prisma migrate deploy && node dist/index.js"
+#CMD sh -c "npx prisma migrate deploy && node dist/index.js"
 CMD ["node", "dist/index.js"]
 
