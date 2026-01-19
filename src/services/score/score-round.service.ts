@@ -1,85 +1,87 @@
 import { prisma } from '../../lib/prisma';
 import { RoundStatus, TicketStatus } from '@prisma/client';
+import { CalculateTicketScoreService } from './calculate-ticket-score.service';
 
 export class ScoreRoundService {
-  async execute(roundId: string) {
-    const round = await prisma.round.findUnique({
-      where: { id: roundId },
-      include: { tickets: true }
-    });
+  private calculator = new CalculateTicketScoreService();
 
-    if (!round) {
-      throw new Error('Rodada não encontrada');
-    }
+  /**
+   * Executa a apuração oficial de uma rodada.
+   * ⚠️ Deve ser chamado EXCLUSIVAMENTE por job interno.
+   */
+  async execute(roundId: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      // 1️⃣ Carregar rodada e tickets
+      const round = await tx.round.findUnique({
+        where: { id: roundId },
+        include: {
+          tickets: true,
+        },
+      });
 
-    if (round.status !== RoundStatus.CLOSED) {
-      throw new Error('Somente rodadas CLOSED podem ser apuradas');
-    }
+      if (!round) {
+        throw new Error('Rodada não encontrada');
+      }
 
-    if (!round.result) {
-      throw new Error('Resultado da rodada não definido');
-    }
+      // 🔒 Idempotência absoluta
+      if (round.status === RoundStatus.SCORED) {
+        return;
+      }
 
-    // 🔒 Idempotência
-    if (round.status === RoundStatus.SCORED) {
-      return;
-    }
+      if (round.status !== RoundStatus.CLOSED) {
+        throw new Error('Somente rodadas CLOSED podem ser apuradas');
+      }
 
-    for (const ticket of round.tickets) {
-      const scoreRound = this.calculateScore(
-        ticket.prediction,
-        round.result
-      );
+      if (!round.result) {
+        throw new Error('Resultado da rodada não definido');
+      }
 
-      const status =
-        scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST;
+      // 2️⃣ Processar tickets
+      for (const ticket of round.tickets) {
+        const scoreRound = this.calculator.execute(
+          ticket.prediction,
+          round.result
+        );
 
-      // Atualiza ticket
-      await prisma.ticket.update({
-        where: { id: ticket.id },
+        const status =
+          scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST;
+
+        // 3️⃣ Atualizar ticket (resultado IMUTÁVEL)
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            scoreRound,
+            status,
+          },
+        });
+
+        // 4️⃣ Buscar último score acumulado
+        const lastHistory = await tx.userScoreHistory.findFirst({
+          where: { userId: ticket.userId },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const previousTotal = lastHistory?.scoreTotal ?? 0;
+        const scoreTotal = previousTotal + scoreRound;
+
+        // 5️⃣ Criar histórico (INSERT ONLY)
+        await tx.userScoreHistory.create({
+          data: {
+            userId: ticket.userId,
+            roundId,
+            scoreRound,
+            scoreTotal,
+          },
+        });
+      }
+
+      // 6️⃣ Finalizar rodada
+      await tx.round.update({
+        where: { id: roundId },
         data: {
-          scoreRound,
-          status
-        }
+          status: RoundStatus.SCORED,
+        },
       });
-
-      // Busca último score acumulado
-      const lastScore = await prisma.userScoreHistory.findFirst({
-        where: { userId: ticket.userId },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      const scoreTotal = (lastScore?.scoreTotal ?? 0) + scoreRound;
-
-      // Histórico imutável
-      await prisma.userScoreHistory.create({
-        data: {
-          userId: ticket.userId,
-          roundId,
-          scoreRound,
-          scoreTotal
-        }
-      });
-    }
-
-    // Finaliza rodada
-    await prisma.round.update({
-      where: { id: roundId },
-      data: { status: RoundStatus.SCORED }
     });
-  }
-
-  private calculateScore(prediction: string, result: string): number {
-    const isCorrect = prediction.startsWith(result);
-
-    if (prediction.endsWith('SD')) {
-      return isCorrect ? 4 : -4;
-    }
-
-    if (prediction.endsWith('D')) {
-      return isCorrect ? 2 : -2;
-    }
-
-    return isCorrect ? 1 : 0;
   }
 }
