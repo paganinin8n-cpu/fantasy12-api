@@ -49,9 +49,9 @@ COPY --from=build /app/prisma ./prisma
 # Prisma Client runtime
 RUN npx prisma generate
 
-# 🔒 APLICAR MIGRATIONS (OBRIGATÓRIO)
-RUN npx prisma migrate deploy
-
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+# 🔒 Runtime startup:
+# 1️⃣ aplica migrations
+# 2️⃣ inicia a API
+CMD sh -c "npx prisma migrate deploy && node dist/index.js"
