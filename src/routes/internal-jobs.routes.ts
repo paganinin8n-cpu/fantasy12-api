@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import { InternalJobsController } from '../controllers/internal-jobs.controller';
-import { InternalScoreController } from '../controllers/internal-score.controller';
+import { ScoreRoundJobController } from '../controllers/internal/score-round.job.controller';
 import { internalJobAuth } from '../middleware/internalJobAuth';
 
 const router = Router();
 
 //
- // Controllers
- //
+// Controllers
+//
 const jobsController = new InternalJobsController();
-const scoreController = new InternalScoreController();
+const scoreRoundJobController = new ScoreRoundJobController();
 
 //
- // 🔒 JOB — Fechar rankings expirados
- // Uso interno (cron / scheduler)
- //
+// 🔒 JOB — Fechar rankings expirados
+// Uso interno (cron / scheduler)
+//
 router.post(
   '/jobs/close-expired-rankings',
   internalJobAuth,
@@ -22,16 +22,16 @@ router.post(
 );
 
 //
- // 🔥 JOB — Apuração de rodada
- // Responsável por:
- // - Calcular score dos tickets
- // - Gerar UserScoreHistory
- // - Marcar rodada como SCORED
- //
+// 🔥 JOB — Apuração de rodada (OFICIAL)
+// Responsável por:
+// - Calcular score dos tickets
+// - Gerar UserScoreHistory
+// - Marcar rodada como SCORED
+//
 router.post(
   '/jobs/score-round',
   internalJobAuth,
-  scoreController.scoreRound.bind(scoreController)
+  (req, res) => scoreRoundJobController.execute(req, res)
 );
 
 export default router;
