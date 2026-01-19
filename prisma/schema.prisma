@@ -42,7 +42,6 @@ enum RankingType {
   BOLAO
 }
 
-
 // ======================
 // USER
 // ======================
@@ -65,6 +64,7 @@ model User {
   rankings       RankingParticipant[]
   auditLogs      AuditLog[]
   scoreHistory   UserScoreHistory[]
+  rankingSnapshots RankingSnapshot[]
 
   @@map("users")
 }
@@ -85,6 +85,7 @@ model Round {
   tickets        Ticket[]
   rankings       RankingRound[]
   scoreHistory   UserScoreHistory[]
+  rankingSnapshots RankingSnapshot[]
 
   @@map("rounds")
 }
@@ -211,4 +212,30 @@ model AuditLog {
   @@index([entity])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ======================
+// RANKING SNAPSHOT (v1.2)
+// ======================
+model RankingSnapshot {
+  id           String   @id @default(uuid())
+  roundId      String
+  userId       String
+
+  scoreTotal   Int
+  position     Int
+
+  snapshotType String
+  periodRef    String?
+
+  createdAt    DateTime @default(now())
+
+  round        Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, userId])
+  @@index([roundId])
+  @@index([userId])
+  @@index([roundId, scoreTotal])
+  @@map("ranking_snapshots")
 }
