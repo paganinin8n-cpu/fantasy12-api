@@ -1,3 +1,9 @@
 node_modules
 dist
 .git
+.env
+
+# 🔒 Prisma (garantir inclusão)
+!prisma
+!prisma/schema.prisma
+!prisma/migrations
