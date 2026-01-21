@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { InternalJobsController } from '../controllers/internal-jobs.controller';
 import { ScoreRoundJobController } from '../controllers/internal/score-round.job.controller';
-import { internalJobAuth } from '../middleware/internalJobAuth';
+import { GenerateRankingSnapshotController } from '../controllers/internal/generate-ranking-snapshot.controller';
+import { internalJobAuth } from '../middleware/internal-job-auth.middleware';
 
 const router = Router();
 
@@ -32,6 +33,15 @@ router.post(
   '/jobs/score-round',
   internalJobAuth,
   (req, res) => scoreRoundJobController.execute(req, res)
+);
+
+//
+// 🔹 JOB — Snapshot de Ranking v1.2
+//
+router.post(
+  '/jobs/generate-ranking-snapshot',
+  internalJobAuth,
+  GenerateRankingSnapshotController.handle
 );
 
 export default router;

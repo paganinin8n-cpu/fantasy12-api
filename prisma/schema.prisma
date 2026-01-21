@@ -1,7 +1,6 @@
 // ======================
 // PRISMA CONFIG
 // ======================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -42,29 +41,58 @@ enum RankingType {
   BOLAO
 }
 
+enum RankingStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
 // ======================
 // USER
 // ======================
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  password     String
-  role         UserRole @default(NORMAL)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  password         String
+  role             UserRole @default(NORMAL)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  nickname     String?  @unique
-  cpf          String?  @unique
-  profileImage String?
-  bio          String?
-  phone        String?
+  nickname         String?  @unique
+  cpf              String?  @unique
+  profileImage     String?
+  bio              String?
+  phone            String?
 
-  tickets        Ticket[]
-  rankings       RankingParticipant[]
-  auditLogs      AuditLog[]
-  scoreHistory   UserScoreHistory[]
+  tickets          Ticket[]
+  rankings         RankingParticipant[]
+  auditLogs        AuditLog[]
+  scoreHistory     UserScoreHistory[]
   rankingSnapshots RankingSnapshot[]
+
+  createdBolao     Ranking[] @relation("BolaoCreator")
+
+  subscription     Subscription?
+  wallet           Wallet?
+  roundBenefits    RoundBenefit[]
+  bolaoInvites     BolaoInvite[]
 
   @@map("users")
 }
@@ -73,19 +101,20 @@ model User {
 // ROUND
 // ======================
 model Round {
-  id          String      @id @default(uuid())
-  number      Int         @unique
-  status      RoundStatus @default(DRAFT)
-  openAt      DateTime?
-  closeAt     DateTime?
-  result      String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id               String      @id @default(uuid())
+  number           Int         @unique
+  status           RoundStatus @default(DRAFT)
+  openAt           DateTime?
+  closeAt          DateTime?
+  result           String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  tickets        Ticket[]
-  rankings       RankingRound[]
-  scoreHistory   UserScoreHistory[]
+  tickets          Ticket[]
+  rankings         RankingRound[]
+  scoreHistory     UserScoreHistory[]
   rankingSnapshots RankingSnapshot[]
+  roundBenefits    RoundBenefit[]
 
   @@map("rounds")
 }
@@ -94,17 +123,17 @@ model Round {
 // TICKET
 // ======================
 model Ticket {
-  id          String        @id @default(uuid())
+  id          String       @id @default(uuid())
   userId      String
   roundId     String
   prediction  String
-  status      TicketStatus  @default(PENDING)
-  scoreRound  Int           @default(0)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  status      TicketStatus @default(PENDING)
+  scoreRound  Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  round       Round         @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round       Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roundId])
   @@index([userId])
@@ -123,8 +152,8 @@ model UserScoreHistory {
   scoreTotal  Int
   createdAt   DateTime @default(now())
 
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  round       Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round       Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roundId])
   @@index([userId])
@@ -136,18 +165,32 @@ model UserScoreHistory {
 // RANKING
 // ======================
 model Ranking {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  description String?
-  type        RankingType
-  startDate   DateTime    @default(now())
-  endDate     DateTime?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                  String        @id @default(uuid())
+  name                String        @unique
+  description         String?
+  type                RankingType
+  status              RankingStatus @default(DRAFT)
 
-  participants RankingParticipant[]
-  rounds       RankingRound[]
+  startDate           DateTime?
+  endDate             DateTime?
+
+  maxParticipants     Int?
+  currentParticipants Int           @default(0)
+  durationDays        Int?
+
+  createdByUserId     String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  participants        RankingParticipant[]
+  rounds              RankingRound[]
+  invites             BolaoInvite[]
+
+  createdBy           User? @relation(
+    name: "BolaoCreator",
+    fields: [createdByUserId],
+    references: [id]
+  )
 
   @@map("rankings")
 }
@@ -165,8 +208,8 @@ model RankingParticipant {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  ranking   Ranking  @relation(fields: [rankingId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ranking      Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([rankingId, userId])
   @@index([rankingId])
@@ -183,8 +226,8 @@ model RankingRound {
   roundId   String
   createdAt DateTime @default(now())
 
-  ranking   Ranking  @relation(fields: [rankingId], references: [id], onDelete: Cascade)
-  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  ranking   Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  round     Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([rankingId, roundId])
   @@index([rankingId])
@@ -206,7 +249,7 @@ model AuditLog {
   userAgent String?
   createdAt DateTime @default(now())
 
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([entity])
@@ -215,7 +258,7 @@ model AuditLog {
 }
 
 // ======================
-// RANKING SNAPSHOT (v1.2)
+// RANKING SNAPSHOT
 // ======================
 model RankingSnapshot {
   id           String   @id @default(uuid())
@@ -223,6 +266,7 @@ model RankingSnapshot {
   userId       String
 
   scoreTotal   Int
+  scoreRound   Int
   position     Int
 
   snapshotType String
@@ -238,4 +282,107 @@ model RankingSnapshot {
   @@index([userId])
   @@index([roundId, scoreTotal])
   @@map("ranking_snapshots")
+}
+
+// ======================
+// SUBSCRIPTION
+// ======================
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  plan      SubscriptionPlan
+  status    SubscriptionStatus @default(ACTIVE)
+
+  startAt   DateTime
+  endAt     DateTime?
+
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+// ======================
+// WALLET
+// ======================
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledger    WalletLedger[]
+
+  @@map("wallets")
+}
+
+// ======================
+// WALLET LEDGER
+// ======================
+model WalletLedger {
+  id          String                  @id @default(uuid())
+  walletId    String
+  type        WalletTransactionType
+  amount      Int
+  description String?
+
+  createdAt   DateTime @default(now())
+
+  wallet      Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_ledger")
+}
+
+// ======================
+// ROUND BENEFITS (FREE)
+// ======================
+model RoundBenefit {
+  id               String   @id @default(uuid())
+  userId           String
+  roundId          String
+
+  freeDoubles      Int      @default(0)
+  freeSuperDoubles Int      @default(0)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round            Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roundId])
+  @@index([roundId])
+  @@map("round_benefits")
+}
+
+// ======================
+// BOLAO INVITE
+// ======================
+model BolaoInvite {
+  id              String   @id @default(uuid())
+  rankingId       String
+  code            String   @unique
+
+  maxUses         Int?
+  usedCount       Int      @default(0)
+
+  expiresAt       DateTime?
+  isActive        Boolean  @default(true)
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  ranking         Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  createdBy       User    @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([rankingId])
+  @@index([code])
+  @@map("bolao_invites")
 }

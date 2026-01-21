@@ -8,6 +8,8 @@ import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
 import internalJobsRoutes from './routes/internal-jobs.routes';
+import adminMonetizationRoutes from './routes/admin-monetization.routes';
+
 import { errorHandler } from './middleware/error-handler';
 
 dotenv.config();
@@ -33,8 +35,20 @@ app.use('/api', userRoutes);
 app.use('/api', rankingRoutes);
 app.use('/api', meRoutes);
 
+/**
+ * 🔐 AUTENTICAÇÃO
+ */
 app.use('/auth', authRoutes);
+
+/**
+ * ⚙️ JOBS INTERNOS
+ */
 app.use('/internal', internalJobsRoutes);
+
+/**
+ * 🛠️ ADMIN — MONETIZAÇÃO / OPERAÇÕES
+ */
+app.use('/api', adminMonetizationRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ api: 'ok', db: 'ok' });
@@ -44,7 +58,7 @@ app.get('/', (_req, res) => {
   res.json({
     name: 'Fantasy12 API',
     status: 'running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -53,7 +67,6 @@ const PORT = Number(process.env.PORT ?? 3001);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Fantasy12 API rodando na porta ${PORT}`);
 });
-
 
 // ⚠️ SEMPRE ÚLTIMO
 app.use(errorHandler);
