@@ -9,7 +9,11 @@ export class WalletService {
     });
   }
 
-  static async credit(userId: string, amount: Int, description?: string) {
+  static async credit(
+    userId: string,
+    amount: number,
+    description?: string
+  ) {
     return prisma.$transaction(async tx => {
       const wallet = await tx.wallet.upsert({
         where: { userId },
@@ -35,7 +39,11 @@ export class WalletService {
     });
   }
 
-  static async debit(userId: string, amount: Int, description?: string) {
+  static async debit(
+    userId: string,
+    amount: number,
+    description?: string
+  ) {
     return prisma.$transaction(async tx => {
       const wallet = await tx.wallet.findUnique({
         where: { userId },

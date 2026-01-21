@@ -11,11 +11,11 @@ export class GetRankingService {
         id: true,
         name: true,
         type: true,
-        isActive: true,
+        status: true,
         startDate: true,
         endDate: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     if (!ranking) {
@@ -24,16 +24,15 @@ export class GetRankingService {
 
     const participants = await this.rankingRepo.listByRankingId(rankingId);
 
-    // ✅ DTO PLANO — SEM PRISMA OBJECT
     return {
       id: ranking.id,
       name: ranking.name,
       type: ranking.type,
-      isActive: ranking.isActive,
+      isActive: ranking.status === 'ACTIVE',
       startDate: ranking.startDate,
       endDate: ranking.endDate,
       createdAt: ranking.createdAt,
-      participants
+      participants,
     };
   }
 }

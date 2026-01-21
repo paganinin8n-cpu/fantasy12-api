@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { internalJobAuth } from '../middleware/internalJobAuth';
-import { GenerateRankingSnapshotController } from '../controllers/internal/GenerateRankingSnapshotController';
+import { GenerateRankingSnapshotController } from '../controllers/internal/generate-ranking-snapshot.controller';
 
 const router = Router();
 

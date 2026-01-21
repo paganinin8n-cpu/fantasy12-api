@@ -6,16 +6,16 @@ export class CloseExpiredRankingsService {
 
     const result = await prisma.ranking.updateMany({
       where: {
-        isActive: true,
+        status: 'ACTIVE',
         endDate: {
           not: null,
-          lt: now
-        }
+          lt: now,
+        },
       },
       data: {
-        isActive: false,
-        updatedAt: now
-      }
+        status: 'CLOSED',
+        updatedAt: now,
+      },
     });
 
     return { closed: result.count };

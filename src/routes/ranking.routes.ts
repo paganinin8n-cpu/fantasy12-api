@@ -3,7 +3,7 @@ import { RankingController } from '../controllers/ranking.controller';
 import { MonthlyRankingController } from '../controllers/ranking/monthly-ranking.controller';
 import { SemesterRankingController } from '../controllers/ranking/semester-ranking.controller';
 import { WeeklyRankingController } from '../controllers/ranking/weekly-ranking.controller';
-import { JoinBolaoController } from '../controllers/bolao/join-bolao.controller';
+import { JoinBolaoController } from '../services/bolao/join-bolao.controller';
 import { BolaoRankingController } from '../controllers/bolao/bolao-ranking.controller';
 import { CreateBolaoInviteController } from '../controllers/bolao/create-bolao-invite.controller';
 import { UseBolaoInviteController } from '../controllers/bolao/use-bolao-invite.controller';

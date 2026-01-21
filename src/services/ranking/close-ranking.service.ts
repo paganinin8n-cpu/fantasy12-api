@@ -2,7 +2,6 @@ import { prisma } from '../../lib/prisma';
 
 export class CloseRankingService {
   async execute(rankingId: string) {
-    // 1️⃣ Buscar ranking
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
       include: {
@@ -14,7 +13,7 @@ export class CloseRankingService {
       throw new Error('Ranking não encontrado');
     }
 
-    if (!ranking.isActive) {
+    if (ranking.status !== 'ACTIVE') {
       throw new Error('Ranking já está encerrado');
     }
 
@@ -22,11 +21,14 @@ export class CloseRankingService {
       throw new Error('Ranking ainda não expirou');
     }
 
-    // 2️⃣ Para cada participante, calcular score final
-    const results = [];
+    const results: {
+      participantId: string;
+      userId: string;
+      scoreRanking: number;
+      scoreFinal: number;
+    }[] = [];
 
     for (const participant of ranking.participants) {
-      // último histórico ATÉ o fim do ranking
       const lastHistory = await prisma.userScoreHistory.findFirst({
         where: {
           userId: participant.userId,
@@ -48,22 +50,16 @@ export class CloseRankingService {
       });
     }
 
-    // 3️⃣ Ordenação + desempate (ordem já definida)
     results.sort((a, b) => {
-      // Critério 1 — maior score do ranking
       if (b.scoreRanking !== a.scoreRanking) {
         return b.scoreRanking - a.scoreRanking;
       }
-
-      // Critério 2 — maior scoreTotal geral
       if (b.scoreFinal !== a.scoreFinal) {
         return b.scoreFinal - a.scoreFinal;
       }
-
       return 0;
     });
 
-    // 4️⃣ Persistir posição e score
     await prisma.$transaction(async (tx) => {
       for (let i = 0; i < results.length; i++) {
         await tx.rankingParticipant.update({
@@ -75,11 +71,10 @@ export class CloseRankingService {
         });
       }
 
-      // 5️⃣ Encerrar ranking
       await tx.ranking.update({
         where: { id: rankingId },
         data: {
-          isActive: false,
+          status: 'CLOSED',
         },
       });
     });

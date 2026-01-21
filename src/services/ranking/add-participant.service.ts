@@ -9,7 +9,7 @@ interface AddParticipantInput {
 export class AddParticipantService {
   async execute(input: AddParticipantInput) {
     const ranking = await prisma.ranking.findUnique({
-      where: { id: input.rankingId }
+      where: { id: input.rankingId },
     });
 
     if (!ranking) {
@@ -18,7 +18,7 @@ export class AddParticipantService {
 
     const now = new Date();
 
-    if (now >= ranking.startDate) {
+    if (ranking.startDate && now >= ranking.startDate) {
       throw new AppError(
         'Ranking já iniciado. Não é possível adicionar participantes.',
         409
@@ -29,9 +29,9 @@ export class AddParticipantService {
       where: {
         rankingId_userId: {
           rankingId: input.rankingId,
-          userId: input.userId
-        }
-      }
+          userId: input.userId,
+        },
+      },
     });
 
     if (exists) {
@@ -41,11 +41,13 @@ export class AddParticipantService {
     const lastScore = await prisma.userScoreHistory.findFirst({
       where: {
         userId: input.userId,
-        createdAt: {
-          lt: ranking.startDate
-        }
+        ...(ranking.startDate && {
+          createdAt: {
+            lt: ranking.startDate,
+          },
+        }),
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     const scoreInitial = lastScore?.scoreTotal ?? 0;
@@ -55,8 +57,8 @@ export class AddParticipantService {
         rankingId: input.rankingId,
         userId: input.userId,
         scoreInitial,
-        score: 0
-      }
+        score: 0,
+      },
     });
   }
 }

@@ -12,7 +12,7 @@ export class CloseExpiredRankingsController {
 
     const expiredRankings = await prisma.ranking.findMany({
       where: {
-        isActive: true,
+        status: 'ACTIVE',
         endDate: {
           lt: new Date(),
         },
