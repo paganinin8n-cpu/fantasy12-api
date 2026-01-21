@@ -186,11 +186,7 @@ model Ranking {
   rounds              RankingRound[]
   invites             BolaoInvite[]
 
-  createdBy           User? @relation(
-    name: "BolaoCreator",
-    fields: [createdByUserId],
-    references: [id]
-  )
+  createdBy User? @relation("BolaoCreator", fields: [createdByUserId], references: [id])
 
   @@map("rankings")
 }
@@ -289,7 +285,7 @@ model RankingSnapshot {
 // ======================
 model Subscription {
   id        String             @id @default(uuid())
-  userId    String
+  userId    String             @unique
   plan      SubscriptionPlan
   status    SubscriptionStatus @default(ACTIVE)
 
