@@ -1,7 +1,7 @@
 -- 1️⃣ Criar tabela bolao_invites
 CREATE TABLE "bolao_invites" (
   "id" UUID PRIMARY KEY,
-  "rankingId" UUID NOT NULL,
+  "rankingId" TEXT NOT NULL,
   "code" TEXT NOT NULL UNIQUE,
 
   "maxUses" INTEGER,
