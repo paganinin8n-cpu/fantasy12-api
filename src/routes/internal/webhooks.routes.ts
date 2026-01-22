@@ -3,9 +3,6 @@ import { MercadoPagoWebhookController } from '../../controllers/internal/mercado
 
 const router = Router();
 
-router.post(
-  '/webhooks/mercado-pago',
-  MercadoPagoWebhookController.handle
-);
+router.post('/webhooks/mercado-pago', MercadoPagoWebhookController.handle);
 
 export default router;

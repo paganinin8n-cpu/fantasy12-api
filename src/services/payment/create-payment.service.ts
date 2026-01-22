@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
 
 export class CreatePaymentService {

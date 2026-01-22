@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../lib/prisma';
 import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 
 const PRICE_PLAN_MAP: Record<string, SubscriptionPlan> = {
