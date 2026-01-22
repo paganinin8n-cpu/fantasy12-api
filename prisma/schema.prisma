@@ -64,6 +64,27 @@ enum WalletTransactionType {
 }
 
 // ======================
+// ENUMS — PAGAMENTO
+// ======================
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CARD
+}
+
+enum PaymentProvider {
+  MERCADO_PAGO
+}
+
+// ======================
 // USER
 // ======================
 model User {
@@ -93,6 +114,7 @@ model User {
   wallet           Wallet?
   roundBenefits    RoundBenefit[]
   bolaoInvites     BolaoInvite[]
+  payments         Payment[]
 
   @@map("users")
 }
@@ -165,7 +187,7 @@ model UserScoreHistory {
 // RANKING
 // ======================
 model Ranking {
-  id                  String        @id @default(uuid())
+  id                  String        @id
   name                String        @unique
   description         String?
   type                RankingType
@@ -381,4 +403,47 @@ model BolaoInvite {
   @@index([rankingId])
   @@index([code])
   @@map("bolao_invites")
+}
+
+// ======================
+// PAYMENT
+// ======================
+model Payment {
+  id                String          @id @default(uuid())
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider          PaymentProvider
+  method            PaymentMethod
+  status            PaymentStatus   @default(PENDING)
+
+  amountCents       Int
+  coinsAmount       Int
+
+  externalPaymentId String?         @unique
+  externalReference String?         @unique
+
+  isCredited        Boolean         @default(false)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+// ======================
+// PAYMENT WEBHOOK EVENT
+// ======================
+model PaymentWebhookEvent {
+  id              String           @id @default(uuid())
+  provider        PaymentProvider
+  externalEventId String
+  payload         Json
+  receivedAt      DateTime         @default(now())
+
+  @@unique([provider, externalEventId])
+  @@map("payment_webhook_events")
 }
