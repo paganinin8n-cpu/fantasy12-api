@@ -9,7 +9,7 @@ import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
 import adminMonetizationRoutes from './routes/admin-monetization.routes';
 
-// ✅ ROUTER INTERNO UNIFICADO
+// 🔗 ROUTER INTERNO UNIFICADO (jobs + webhooks)
 import internalRoutes from './routes/internal';
 
 import { errorHandler } from './middleware/error-handler';
@@ -18,8 +18,13 @@ dotenv.config();
 
 const app = express();
 
+/**
+ * 🌐 MIDDLEWARES BÁSICOS
+ * (ordem importa)
+ */
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /**
  * 🔴 LOG GLOBAL — PRIMEIRO DE TUDO
@@ -43,8 +48,9 @@ app.use('/api', meRoutes);
 app.use('/auth', authRoutes);
 
 /**
- * ⚙️ ROTAS INTERNAS (JOBS + WEBHOOKS)
- * ⚠️ ESTE É O PONTO QUE ESTAVA QUEBRADO
+ * ⚙️ ROTAS INTERNAS
+ * - jobs
+ * - webhooks (Mercado Pago)
  */
 app.use('/internal', internalRoutes);
 
@@ -53,10 +59,16 @@ app.use('/internal', internalRoutes);
  */
 app.use('/api', adminMonetizationRoutes);
 
+/**
+ * ❤️ HEALTHCHECK
+ */
 app.get('/health', (_req, res) => {
   res.json({ api: 'ok', db: 'ok' });
 });
 
+/**
+ * 📍 ROOT
+ */
 app.get('/', (_req, res) => {
   res.json({
     name: 'Fantasy12 API',
@@ -71,5 +83,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Fantasy12 API rodando na porta ${PORT}`);
 });
 
-// ⚠️ SEMPRE ÚLTIMO
+/**
+ * ⚠️ ERROR HANDLER — SEMPRE ÚLTIMO
+ */
 app.use(errorHandler);
