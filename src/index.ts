@@ -7,8 +7,10 @@ import userRoutes from './routes/user.routes';
 import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
-import internalJobsRoutes from './routes/internal-jobs.routes';
 import adminMonetizationRoutes from './routes/admin-monetization.routes';
+
+// ✅ ROUTER INTERNO UNIFICADO
+import internalRoutes from './routes/internal';
 
 import { errorHandler } from './middleware/error-handler';
 
@@ -41,9 +43,10 @@ app.use('/api', meRoutes);
 app.use('/auth', authRoutes);
 
 /**
- * ⚙️ JOBS INTERNOS
+ * ⚙️ ROTAS INTERNAS (JOBS + WEBHOOKS)
+ * ⚠️ ESTE É O PONTO QUE ESTAVA QUEBRADO
  */
-app.use('/internal', internalJobsRoutes);
+app.use('/internal', internalRoutes);
 
 /**
  * 🛠️ ADMIN — MONETIZAÇÃO / OPERAÇÕES

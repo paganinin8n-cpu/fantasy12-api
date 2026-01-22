@@ -3,6 +3,9 @@ import { MercadoPagoWebhookController } from '../../controllers/internal/mercado
 
 const router = Router();
 
+/**
+ * 🔔 Webhook Mercado Pago
+ */
 router.post(
   '/webhooks/mercado-pago',
   MercadoPagoWebhookController.handle
