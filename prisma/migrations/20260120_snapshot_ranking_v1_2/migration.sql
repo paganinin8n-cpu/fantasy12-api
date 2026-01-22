@@ -1,22 +1,36 @@
-CREATE TABLE "RankingSnapshot" (
-  "id" UUID NOT NULL,
-  "roundId" UUID NOT NULL,
-  "userId" UUID NOT NULL,
+-- ================================
+-- RANKING SNAPSHOT (ALINHADO AO BANCO REAL)
+-- ================================
+
+CREATE TABLE "ranking_snapshots" (
+  "id" TEXT NOT NULL,
+  "roundId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+
   "scoreTotal" INTEGER NOT NULL,
   "scoreRound" INTEGER NOT NULL,
   "position" INTEGER NOT NULL,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT "RankingSnapshot_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "RankingSnapshot_roundId_fkey" FOREIGN KEY ("roundId") REFERENCES "Round"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "RankingSnapshot_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+
+  CONSTRAINT "ranking_snapshots_pkey" PRIMARY KEY ("id"),
+
+  CONSTRAINT "ranking_snapshots_roundId_fkey"
+    FOREIGN KEY ("roundId")
+    REFERENCES "rounds"("id")
+    ON DELETE CASCADE,
+
+  CONSTRAINT "ranking_snapshots_userId_fkey"
+    FOREIGN KEY ("userId")
+    REFERENCES "users"("id")
+    ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX "RankingSnapshot_roundId_userId_key"
-ON "RankingSnapshot"("roundId", "userId");
+CREATE UNIQUE INDEX "ranking_snapshots_roundId_userId_key"
+  ON "ranking_snapshots"("roundId", "userId");
 
-CREATE INDEX "RankingSnapshot_roundId_idx"
-ON "RankingSnapshot"("roundId");
+CREATE INDEX "ranking_snapshots_roundId_idx"
+  ON "ranking_snapshots"("roundId");
 
-CREATE INDEX "RankingSnapshot_userId_idx"
-ON "RankingSnapshot"("userId");
+CREATE INDEX "ranking_snapshots_userId_idx"
+  ON "ranking_snapshots"("userId");
