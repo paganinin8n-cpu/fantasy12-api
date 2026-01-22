@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { randomUUID } from 'crypto';
 
 type CreateBolaoInput = {
   name: string;
@@ -59,6 +60,7 @@ export class CreateBolaoService {
        */
       const bolao = await tx.ranking.create({
         data: {
+          id: randomUUID(), // ✅ INCREMENTO MÍNIMO
           name,
           description,
           type: 'BOLAO',

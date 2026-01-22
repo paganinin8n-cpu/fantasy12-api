@@ -1,38 +1,38 @@
 import { prisma } from '../../lib/prisma';
+import { randomUUID } from 'crypto';
 
 export class AdminBolaoService {
-  static async create(adminUserId: string, data: {
+  async createBolao(input: {
     name: string;
     description?: string;
+    startDate: Date;
+    endDate: Date;
     durationDays: number;
+    createdByUserId: string;
   }) {
-    const bolao = await prisma.ranking.create({
+    const {
+      name,
+      description,
+      startDate,
+      endDate,
+      durationDays,
+      createdByUserId,
+    } = input;
+
+    return prisma.ranking.create({
       data: {
-        name: data.name,
-        description: data.description,
+        id: randomUUID(), // ✅ EXPLÍCITO
+        name,
+        description,
         type: 'BOLAO',
         status: 'ACTIVE',
-        startDate: new Date(),
-        endDate: new Date(
-          Date.now() + data.durationDays * 86400000
-        ),
+        startDate,
+        endDate,
         maxParticipants: null,
-        currentParticipants: 0,
-        durationDays: data.durationDays,
-        createdByUserId: adminUserId,
+        currentParticipants: 1,
+        durationDays,
+        createdByUserId,
       },
     });
-
-    await prisma.auditLog.create({
-      data: {
-        userId: adminUserId,
-        action: 'ADMIN_CREATE_BOLAO',
-        entity: 'Ranking',
-        entityId: bolao.id,
-        metadata: data,
-      },
-    });
-
-    return bolao;
   }
 }

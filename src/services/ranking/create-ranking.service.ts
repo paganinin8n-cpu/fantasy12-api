@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { RankingType, UserRole } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 interface CreateRankingInput {
   name: string;
@@ -40,6 +41,7 @@ export class CreateRankingService {
     // 3️⃣ Criação do ranking
     const ranking = await prisma.ranking.create({
       data: {
+        id: randomUUID(), // ✅ INCREMENTO MÍNIMO
         name: input.name,
         description: input.description,
         type: input.type,
