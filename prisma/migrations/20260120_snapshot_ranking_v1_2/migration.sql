@@ -1,9 +1,9 @@
--- ================================
--- RANKING SNAPSHOT (ALINHADO AO BANCO REAL)
--- ================================
+-- ======================
+-- RANKING SNAPSHOT
+-- ======================
 
 CREATE TABLE "ranking_snapshots" (
-  "id" TEXT NOT NULL,
+  "id" UUID NOT NULL,
   "roundId" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
 
@@ -27,10 +27,10 @@ CREATE TABLE "ranking_snapshots" (
 );
 
 CREATE UNIQUE INDEX "ranking_snapshots_roundId_userId_key"
-  ON "ranking_snapshots"("roundId", "userId");
+  ON "ranking_snapshots" ("roundId", "userId");
 
 CREATE INDEX "ranking_snapshots_roundId_idx"
-  ON "ranking_snapshots"("roundId");
+  ON "ranking_snapshots" ("roundId");
 
 CREATE INDEX "ranking_snapshots_userId_idx"
-  ON "ranking_snapshots"("userId");
+  ON "ranking_snapshots" ("userId");
