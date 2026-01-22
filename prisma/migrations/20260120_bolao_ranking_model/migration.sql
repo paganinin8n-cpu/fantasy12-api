@@ -11,7 +11,7 @@ ADD COLUMN "status" "RankingStatus" NOT NULL DEFAULT 'DRAFT',
 ADD COLUMN "maxParticipants" INTEGER,
 ADD COLUMN "currentParticipants" INTEGER NOT NULL DEFAULT 0,
 ADD COLUMN "durationDays" INTEGER,
-ADD COLUMN "createdByUserId" UUID;
+ADD COLUMN "createdByUserId" TEXT;
 
 -- 3️⃣ Relacionamento com usuário criador do bolão
 ALTER TABLE "rankings"
