@@ -15,4 +15,17 @@ export class MercadoPagoClient {
 
     return response.data;
   }
+
+  async getSubscription(subscriptionId: string) {
+    const response = await axios.get(
+      `https://api.mercadopago.com/preapproval/${subscriptionId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      }
+    );
+
+    return response.data;
+  }
 }
