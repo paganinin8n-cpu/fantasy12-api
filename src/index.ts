@@ -2,16 +2,35 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+/**
+ * 🔐 AUTENTICAÇÃO
+ */
 import authRoutes from './routes/auth';
+
+/**
+ * 🟢 ROTAS PÚBLICAS
+ */
 import userRoutes from './routes/user.routes';
 import meRoutes from './routes/me';
 import ticketRoutes from './routes/ticket.routes';
 import rankingRoutes from './routes/ranking.routes';
-import adminMonetizationRoutes from './routes/admin-monetization.routes';
 
-// 🔗 ROUTER INTERNO UNIFICADO (jobs + webhooks)
+/**
+ * 🛠️ ADMIN
+ */
+import adminMonetizationRoutes from './routes/admin-monetization.routes';
+import adminSubscriptionsRoutes from './routes/admin-subscriptions.routes';
+
+/**
+ * ⚙️ ROTAS INTERNAS
+ * - Jobs
+ * - Webhooks (Mercado Pago)
+ */
 import internalRoutes from './routes/internal';
 
+/**
+ * ⚠️ ERROR HANDLER
+ */
 import { errorHandler } from './middleware/error-handler';
 
 dotenv.config();
@@ -20,7 +39,7 @@ const app = express();
 
 /**
  * 🌐 MIDDLEWARES BÁSICOS
- * (ordem importa)
+ * (ORDEM IMPORTA)
  */
 app.use(cors());
 app.use(express.json());
@@ -55,9 +74,14 @@ app.use('/auth', authRoutes);
 app.use('/internal', internalRoutes);
 
 /**
- * 🛠️ ADMIN — MONETIZAÇÃO / OPERAÇÕES
+ * 🛠️ ADMIN — MONETIZAÇÃO
  */
 app.use('/api', adminMonetizationRoutes);
+
+/**
+ * 🛠️ ADMIN — ASSINATURAS (v1.6)
+ */
+app.use('/api', adminSubscriptionsRoutes);
 
 /**
  * ❤️ HEALTHCHECK
