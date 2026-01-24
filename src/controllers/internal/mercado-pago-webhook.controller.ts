@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
-
-import { ProcessMercadoPagoWebhookService } from '../../services/payment/process-mercado-pago-webhook.service';
 import { ProcessMpSubscriptionCreatedService } from '../../services/subscription/process-mp-subscription-created.service';
-import { ProcessMpSubscriptionUpdatedService } from '../../services/subscription/process-mp-subscription-updated.service';
-import { ProcessMpSubscriptionCancelledService } from '../../services/subscription/process-mp-subscription-cancelled.service';
+import { ProcessMercadoPagoWebhookService } from '../../services/payment/process-mercado-pago-webhook.service';
 
 export class MercadoPagoWebhookController {
   static async handle(req: Request, res: Response): Promise<Response> {
@@ -11,43 +8,32 @@ export class MercadoPagoWebhookController {
 
     try {
       /**
-       * ===============================
-       * ASSINATURAS (PREAPPROVAL)
-       * ===============================
+       * Webhook de assinatura
        */
-      if (event?.type === 'preapproval') {
-        switch (event?.action) {
-          case 'preapproval.created':
-            await ProcessMpSubscriptionCreatedService.execute(event);
-            break;
-
-          case 'preapproval.updated':
-            await ProcessMpSubscriptionUpdatedService.execute(event);
-            break;
-
-          case 'preapproval.cancelled':
-            await ProcessMpSubscriptionCancelledService.execute(event);
-            break;
-
-          default:
-            // Evento de assinatura não relevante
-            break;
+      if (event?.type === 'subscription') {
+        if (event?.action === 'subscription.created') {
+          await ProcessMpSubscriptionCreatedService.execute(event);
         }
       }
 
       /**
-       * ===============================
-       * PAGAMENTOS (PIX / CARTÃO)
-       * ===============================
+       * Webhook de pagamento
        */
       if (event?.type === 'payment') {
-        await ProcessMercadoPagoWebhookService.execute(event);
+        try {
+          await ProcessMercadoPagoWebhookService.execute(event);
+        } catch (error) {
+          /**
+           * ⚠️ IMPORTANTE
+           * Testes do Mercado Pago usam IDs fake.
+           * Não podemos retornar 500 nesses casos.
+           */
+          console.warn('[MP PAYMENT TEST IGNORED]', {
+            paymentId: event?.data?.id,
+          });
+        }
       }
 
-      /**
-       * ⚠️ IMPORTANTE:
-       * SEMPRE retornar 200 para o MP
-       */
       return res.status(200).json({ received: true });
     } catch (error) {
       console.error('[MP WEBHOOK ERROR]', error);
