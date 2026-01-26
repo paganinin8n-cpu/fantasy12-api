@@ -5,38 +5,60 @@ import { ProcessMercadoPagoWebhookService } from '../../services/payment/process
 export class MercadoPagoWebhookController {
   static async handle(req: Request, res: Response): Promise<Response> {
     const event = req.body;
+    const timestamp = new Date().toISOString();
+
+    console.info({
+      level: 'INFO',
+      service: 'MercadoPagoWebhookController',
+      action: 'webhook.received',
+      provider: 'MERCADO_PAGO',
+      externalEventId: event?.id,
+      message: 'Webhook recebido',
+      timestamp,
+    });
 
     try {
-      /**
-       * Webhook de assinatura
-       */
       if (event?.type === 'subscription') {
         if (event?.action === 'subscription.created') {
+          console.info({
+            level: 'INFO',
+            service: 'MercadoPagoWebhookController',
+            action: 'subscription.created',
+            externalEventId: event?.id,
+            message: 'Processando subscription.created',
+            timestamp,
+          });
+
           await ProcessMpSubscriptionCreatedService.execute(event);
         }
       }
 
-      /**
-       * Webhook de pagamento
-       */
       if (event?.type === 'payment') {
         try {
           await ProcessMercadoPagoWebhookService.execute(event);
-        } catch (error) {
-          /**
-           * ⚠️ IMPORTANTE
-           * Testes do Mercado Pago usam IDs fake.
-           * Não podemos retornar 500 nesses casos.
-           */
-          console.warn('[MP PAYMENT TEST IGNORED]', {
+        } catch {
+          console.warn({
+            level: 'WARN',
+            service: 'MercadoPagoWebhookController',
+            action: 'payment.test_ignored',
             paymentId: event?.data?.id,
+            message: 'Pagamento de teste ignorado',
+            timestamp,
           });
         }
       }
 
       return res.status(200).json({ received: true });
     } catch (error) {
-      console.error('[MP WEBHOOK ERROR]', error);
+      console.error({
+        level: 'ERROR',
+        service: 'MercadoPagoWebhookController',
+        action: 'webhook.error',
+        message: 'Erro inesperado no webhook',
+        error,
+        timestamp,
+      });
+
       return res.status(500).json({ error: 'webhook_failed' });
     }
   }

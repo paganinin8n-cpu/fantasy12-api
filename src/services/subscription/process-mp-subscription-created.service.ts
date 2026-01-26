@@ -1,32 +1,23 @@
 import { prisma } from '../../lib/prisma';
 import { MercadoPagoClient } from '../../lib/mercado-pago.client';
 
-/**
- * Processa o evento subscription.created do Mercado Pago
- *
- * REGRAS ABSOLUTAS:
- * - Webhook é a única fonte da verdade
- * - Idempotente por externalEventId
- * - Não cria pagamentos
- * - Não credita wallet
- * - Apenas cria/atualiza assinatura
- * - Garante papel PRO
- */
 export class ProcessMpSubscriptionCreatedService {
   static async execute(event: any): Promise<void> {
-    /**
-     * 1️⃣ Validação mínima do evento
-     */
-    const externalEventId: string | undefined = event?.id;
-    const subscriptionId: string | undefined = event?.data?.id;
+    const timestamp = new Date().toISOString();
+    const externalEventId = event?.id;
+    const subscriptionId = event?.data?.id;
 
     if (!externalEventId || !subscriptionId) {
+      console.warn({
+        level: 'WARN',
+        service: 'ProcessMpSubscriptionCreatedService',
+        action: 'validation.failed',
+        message: 'Evento inválido',
+        timestamp,
+      });
       return;
     }
 
-    /**
-     * 2️⃣ Idempotência — evento já processado?
-     */
     const alreadyProcessed = await prisma.paymentWebhookEvent.findUnique({
       where: {
         provider_externalEventId: {
@@ -37,22 +28,22 @@ export class ProcessMpSubscriptionCreatedService {
     });
 
     if (alreadyProcessed) {
+      console.info({
+        level: 'INFO',
+        service: 'ProcessMpSubscriptionCreatedService',
+        action: 'idempotency.hit',
+        externalEventId,
+        message: 'Evento já processado',
+        timestamp,
+      });
       return;
     }
 
-    /**
-     * 3️⃣ Buscar assinatura real no Mercado Pago
-     */
-    if (!process.env.MP_ACCESS_TOKEN) {
-      return;
-    }
+    if (!process.env.MP_ACCESS_TOKEN) return;
 
     const mpClient = new MercadoPagoClient(process.env.MP_ACCESS_TOKEN);
     const mpSubscription = await mpClient.getSubscription(subscriptionId);
 
-    /**
-     * 4️⃣ Registrar evento bruto (append-only)
-     */
     await prisma.paymentWebhookEvent.create({
       data: {
         provider: 'MERCADO_PAGO',
@@ -61,33 +52,14 @@ export class ProcessMpSubscriptionCreatedService {
       },
     });
 
-    /**
-     * 5️⃣ Identificar usuário
-     *
-     * REGRA FIXA:
-     * external_reference = userId (Fantasy12)
-     */
-    const userId: string | undefined = mpSubscription.external_reference;
-    if (!userId) {
-      return;
-    }
+    const userId = mpSubscription.external_reference;
+    if (!userId) return;
 
-    /**
-     * 6️⃣ Determinar plano
-     * (Regra simples, desacoplada de MP)
-     */
     const plan =
-      mpSubscription.reason === 'Plano Anual'
-        ? 'ANNUAL'
-        : 'MONTHLY';
+      mpSubscription.reason === 'Plano Anual' ? 'ANNUAL' : 'MONTHLY';
 
-    /**
-     * 7️⃣ Criar ou atualizar assinatura local
-     */
     await prisma.subscription.upsert({
-      where: {
-        userId,
-      },
+      where: { userId },
       update: {
         plan,
         status: 'ACTIVE',
@@ -113,17 +85,19 @@ export class ProcessMpSubscriptionCreatedService {
       },
     });
 
-    /**
-     * 8️⃣ Garantir papel PRO
-     * (idempotente)
-     */
     await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        role: 'PRO',
-      },
+      where: { id: userId },
+      data: { role: 'PRO' },
+    });
+
+    console.info({
+      level: 'INFO',
+      service: 'ProcessMpSubscriptionCreatedService',
+      action: 'subscription.activated',
+      subscriptionId: mpSubscription.id,
+      userId,
+      message: 'Assinatura ativada com sucesso',
+      timestamp,
     });
   }
 }
