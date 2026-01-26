@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 
-import { DetectSubscriptionAnomaliesService } from '../../services/alerts/detect-subscription-anomalies.service';
-import { DetectPaymentAnomaliesService } from '../../services/alerts/detect-payment-anomalies.service';
-import { DetectWebhookAnomaliesService } from '../../services/alerts/detect-webhook-anomalies.service';
+import { DetectSubscriptionAlertsService } from '../../services/alerts/detect-subscription-anomalies.service';
+import { DetectPaymentAlertsService } from '../../services/alerts/detect-payment-anomalies.service';
+import { DetectWebhookAlertsService } from '../../services/alerts/detect-webhook-anomalies.service';
 import { DetectJobAnomaliesService } from '../../services/alerts/detect-job-anomalies.service';
 
 /**
@@ -29,9 +29,9 @@ export class AlertsJobsController {
     });
 
     try {
-      await DetectSubscriptionAnomaliesService.execute();
-      await DetectPaymentAnomaliesService.execute();
-      await DetectWebhookAnomaliesService.execute();
+      await DetectSubscriptionAlertsService.execute();
+      await DetectPaymentAlertsService.execute();
+      await DetectWebhookAlertsService.execute();
       await DetectJobAnomaliesService.execute();
 
       console.info({
