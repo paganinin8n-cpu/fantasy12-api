@@ -12,21 +12,16 @@ const router = Router();
 const controller = new RankingController();
 
 //
-// GET /rankings/:rankingId
-//
-router.get('/rankings/:rankingId', controller.show);
-
-//
-// POST /rankings/:rankingId/participants
-//
-router.post('/rankings/:rankingId/participants', controller.addParticipant);
-
-//
-// 🔹 Rankings por período
+// 🔹 Rankings por período (ROTAS ESPECÍFICAS PRIMEIRO)
 //
 router.get('/rankings/monthly', MonthlyRankingController.handle);
 router.get('/rankings/semester', SemesterRankingController.handle);
 router.get('/rankings/weekly', WeeklyRankingController.handle);
+
+//
+// 🔹 Ranking genérico por ID (SEMPRE POR ÚLTIMO)
+//
+router.get('/rankings/:rankingId', controller.show);
 
 //
 // 🔹 Entrada direta em bolão
