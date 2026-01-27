@@ -1,8 +1,8 @@
-import { prisma } from '../../lib/prisma';
-import { RankingRepository } from '../../repositories/ranking.repository';
+import { prisma } from '../../lib/prisma'
+import { RankingRepository } from '../../repositories/ranking.repository'
 
 export class GetRankingService {
-  private rankingRepo = new RankingRepository();
+  private rankingRepo = new RankingRepository()
 
   async execute(rankingId: string) {
     const ranking = await prisma.ranking.findUnique({
@@ -16,23 +16,33 @@ export class GetRankingService {
         endDate: true,
         createdAt: true,
       },
-    });
+    })
 
+    /**
+     * ⚠️ CONTRATO IMPORTANTE
+     * Ausência de ranking NÃO é erro técnico
+     * Deve retornar payload controlado
+     */
     if (!ranking) {
-      throw new Error('Ranking não encontrado');
+      return {
+        ranking: null,
+        participants: [],
+      }
     }
 
-    const participants = await this.rankingRepo.listByRankingId(rankingId);
+    const participants = await this.rankingRepo.listByRankingId(rankingId)
 
     return {
-      id: ranking.id,
-      name: ranking.name,
-      type: ranking.type,
-      isActive: ranking.status === 'ACTIVE',
-      startDate: ranking.startDate,
-      endDate: ranking.endDate,
-      createdAt: ranking.createdAt,
+      ranking: {
+        id: ranking.id,
+        name: ranking.name,
+        type: ranking.type,
+        status: ranking.status,
+        startDate: ranking.startDate,
+        endDate: ranking.endDate,
+        createdAt: ranking.createdAt,
+      },
       participants,
-    };
+    }
   }
 }
