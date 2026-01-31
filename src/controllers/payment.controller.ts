@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CreatePaymentService } from '../services/payment/create-payment.service'; // 👈 Maiúscula
+import { CreatePaymentService } from '../services/payment/create-payment.service';
 import { prisma } from '../lib/prisma';
 
 export class PaymentController {
@@ -24,7 +24,7 @@ export class PaymentController {
         return res.status(400).json({ error: 'Invalid or inactive package' });
       }
 
-      const payment = await CreatePaymentService({ // 👈 Maiúscula
+      const payment = await CreatePaymentService.execute({ // 👈 .execute()
         userId,
         packageId: pkg.id,
         amountCents: pkg.amountCents,
