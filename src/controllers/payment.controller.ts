@@ -1,24 +1,38 @@
 import { Request, Response } from 'express';
-import { CreatePaymentService } from '../services/payment/create-payment.service';
+import { createPaymentService } from '../services/payment/create-payment.service';
+import { prisma } from '../lib/prisma'; // 👈 Importe o prisma
 
 export class PaymentController {
   static async create(req: Request, res: Response) {
     const userId = (req as any).user?.id;
-    const { amountCents, coinsAmount, method } = req.body;
+    const { packageId, method } = req.body; // 👈 EXTRAIA packageId e method do body
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    if (!amountCents || !coinsAmount || !method) {
-      return res.status(400).json({ error: 'Invalid payload' });
+    if (!packageId || !method) {
+      return res.status(400).json({ error: 'packageId and method are required' });
     }
 
     try {
-      const payment = await CreatePaymentService.execute({
+      // 👇 BUSQUE O PACOTE NO BANCO
+      const pkg = await prisma.paymentPackage.findUnique({
+        where: { id: packageId },
+      });
+
+      // 👇 VALIDE SE O PACOTE EXISTE E ESTÁ ATIVO
+      if (!pkg || !pkg.isActive) {
+        return res.status(400).json({ error: 'Invalid or inactive package' });
+      }
+
+      // 👇 AGORA SIM, CRIE O PAGAMENTO COM OS DADOS DO PACOTE
+      const payment = await createPaymentService({
         userId,
-        amountCents,
-        coinsAmount,
+        packageId: pkg.id,
+        amountCents: pkg.amountCents,
+        coinsAmount: pkg.coinsAmount,
+        bonusCoins: pkg.bonusCoins,
         method,
       });
 
