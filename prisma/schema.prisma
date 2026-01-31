@@ -411,6 +411,24 @@ model BolaoInvite {
 }
 
 // ======================
+// PAYMENT PACKAGE
+// ======================
+model PaymentPackage {
+  id          String   @id @db.Text
+  label       String
+  coinsAmount Int
+  amountCents Int
+  bonusCoins  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  payments    Payment[]
+
+  @@map("PaymentPackage")
+}
+
+
+// ======================
 // PAYMENT
 // ======================
 model Payment {
