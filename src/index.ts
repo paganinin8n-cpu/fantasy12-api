@@ -41,7 +41,15 @@ const app = express();
  * 🌐 MIDDLEWARES BÁSICOS
  * (ORDEM IMPORTA)
  */
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      'https://f12-banco-frontend-f12.x18arx.easypanel.host',
+      'http://localhost:5173',
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
