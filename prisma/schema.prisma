@@ -318,6 +318,9 @@ model Subscription {
   provider                PaymentProvider?
   externalSubscriptionId  String?
   externalCustomerId      String?
+  
+  packageId               String?          @db.Text
+  package                 PaymentPackage?  @relation(fields: [packageId], references: [id])
 
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
