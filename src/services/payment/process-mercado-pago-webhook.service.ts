@@ -8,6 +8,7 @@ import {
   SubscriptionPlan,
 } from '@prisma/client';
 import { RenewSubscriptionFromPaymentService } from '../subscription/renew-subscription-from-payment.service';
+import { randomUUID } from "crypto";
 
 /**
  * Processa eventos de webhook do Mercado Pago.
@@ -62,6 +63,7 @@ export class ProcessMercadoPagoWebhookService {
      */
     await prisma.paymentWebhookEvent.create({
       data: {
+      id: randomUUID(),
         provider: PaymentProvider.MERCADO_PAGO,
         externalEventId,
         payload: mpPayment,

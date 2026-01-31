@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { MercadoPagoClient } from '../../lib/mercado-pago.client';
+import { randomUUID } from "crypto";
 
 export class ProcessMpSubscriptionCreatedService {
   static async execute(event: any): Promise<void> {
@@ -46,6 +47,7 @@ export class ProcessMpSubscriptionCreatedService {
 
     await prisma.paymentWebhookEvent.create({
       data: {
+        id: randomUUID(),
         provider: 'MERCADO_PAGO',
         externalEventId,
         payload: mpSubscription,

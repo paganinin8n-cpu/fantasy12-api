@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { MercadoPagoClient } from '../../lib/mercado-pago.client';
+import { randomUUID } from "crypto";
 
 /**
  * Processa o evento subscription.cancelled do Mercado Pago
@@ -56,6 +57,7 @@ export class ProcessMpSubscriptionCancelledService {
      */
     await prisma.paymentWebhookEvent.create({
       data: {
+      id: randomUUID( ),
         provider: 'MERCADO_PAGO',
         externalEventId,
         payload: mpSubscription,

@@ -4,8 +4,10 @@ import { randomUUID } from 'crypto';
 export class CreatePaymentService {
   static async execute(params: {
     userId: string;
+    packageId: string;        // ✅ obrigatório
     amountCents: number;
     coinsAmount: number;
+    bonusCoins?: number;      // ✅ opcional
     method: 'PIX' | 'CARD';
   }) {
     const paymentId = randomUUID();
@@ -15,11 +17,16 @@ export class CreatePaymentService {
       data: {
         id: paymentId,
         userId: params.userId,
+
         provider: 'MERCADO_PAGO',
         method: params.method,
         status: 'PENDING',
+
+        packageId: params.packageId,          // ✅ CORREÇÃO
         amountCents: params.amountCents,
         coinsAmount: params.coinsAmount,
+        bonusCoins: params.bonusCoins ?? 0,   // ✅ CORREÇÃO
+
         externalReference,
       },
     });
