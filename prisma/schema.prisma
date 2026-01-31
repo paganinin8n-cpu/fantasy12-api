@@ -414,20 +414,25 @@ model BolaoInvite {
 // PAYMENT
 // ======================
 model Payment {
-  id                String          @id @default(uuid())
+  id                String          @id @db.Text
 
-  userId            String
+  userId            String          @db.Text
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   provider          PaymentProvider
   method            PaymentMethod
   status            PaymentStatus   @default(PENDING)
 
+  packageId         String        @db.Text
+  package           PaymentPackage @relation(fields: [packageId], references: [id])
+
+
   amountCents       Int
   coinsAmount       Int
+  bonusCoins        Int           @default(0)
 
-  externalPaymentId String?         @unique
-  externalReference String?         @unique
+  externalPaymentId String?         @unique @db.Text
+  externalReference String?         @unique @db.Text
 
   isCredited        Boolean         @default(false)
 
@@ -436,6 +441,7 @@ model Payment {
 
   @@index([userId])
   @@index([status])
+  @@index([packageId])
   @@map("payments")
 }
 
@@ -443,9 +449,9 @@ model Payment {
 // PAYMENT WEBHOOK EVENT
 // ======================
 model PaymentWebhookEvent {
-  id              String           @id @default(uuid())
+  id              String           @id @db.Text
   provider        PaymentProvider
-  externalEventId String
+  externalEventId String           @db.Text
   payload         Json
   receivedAt      DateTime         @default(now())
 
