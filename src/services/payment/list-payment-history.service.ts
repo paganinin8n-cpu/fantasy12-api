@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../lib/prisma'
 
 export class ListPaymentHistoryService {
   static async execute(userId: string) {
@@ -17,7 +17,7 @@ export class ListPaymentHistoryService {
       },
     })
 
-    return payments.map(payment => ({
+    return payments.map((payment) => ({
       id: payment.id,
       status: payment.status,
       amountCents: payment.amountCents,
