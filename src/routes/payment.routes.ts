@@ -1,7 +1,9 @@
-import { Router } from 'express';
-import { PaymentController } from '../controllers/payment.controller';
+import { Router } from 'express'
+import { PaymentsController } from '@/controllers/PaymentsController'
 
-const router = Router();
-router.post('/payments', PaymentController.create);
+const router = Router()
 
-export default router;
+router.post('/api/payments', PaymentsController.create)
+router.get('/api/payments/history', PaymentsController.history)
+
+export default router
