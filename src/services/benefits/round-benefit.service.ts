@@ -1,5 +1,4 @@
 import { prisma } from '../../lib/prisma';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 export class RoundBenefitService {
   static async grantForRound(roundId: string) {
