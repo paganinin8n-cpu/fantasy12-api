@@ -1,4 +1,5 @@
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma'
+import { WalletTransactionType } from '@prisma/client'
 
 export class WalletService {
   static async getOrCreateWallet(userId: string) {
@@ -6,9 +7,14 @@ export class WalletService {
       where: { userId },
       update: {},
       create: { userId },
-    });
+    })
   }
 
+  /**
+   * ⚠️ Uso restrito:
+   * - Webhook de pagamento
+   * - Consumo autorizado
+   */
   static async credit(
     userId: string,
     amount: number,
@@ -19,26 +25,31 @@ export class WalletService {
         where: { userId },
         update: {},
         create: { userId },
-      });
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: amount } },
-      });
+      })
 
       await tx.walletLedger.create({
         data: {
           walletId: wallet.id,
-          type: 'CREDIT',
+          type: WalletTransactionType.CREDIT,
           amount,
           description,
         },
-      });
+      })
 
-      return wallet;
-    });
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: amount } },
+      })
+
+      return wallet
+    })
   }
 
+  /**
+   * ⚠️ Uso restrito:
+   * - Criação de ticket
+   * - Ações pagas
+   */
   static async debit(
     userId: string,
     amount: number,
@@ -47,27 +58,27 @@ export class WalletService {
     return prisma.$transaction(async tx => {
       const wallet = await tx.wallet.findUnique({
         where: { userId },
-      });
+      })
 
       if (!wallet || wallet.balance < amount) {
-        throw new Error('Insufficient wallet balance');
+        throw new Error('Insufficient wallet balance')
       }
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { decrement: amount } },
-      });
 
       await tx.walletLedger.create({
         data: {
           walletId: wallet.id,
-          type: 'DEBIT',
+          type: WalletTransactionType.DEBIT,
           amount,
           description,
         },
-      });
+      })
 
-      return wallet;
-    });
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { decrement: amount } },
+      })
+
+      return wallet
+    })
   }
 }
