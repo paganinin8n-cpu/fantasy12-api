@@ -4,9 +4,7 @@ export class CloseRankingService {
   async execute(rankingId: string) {
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
-      include: {
-        participants: true,
-      },
+      include: { participants: true },
     });
 
     if (!ranking) {
@@ -32,9 +30,7 @@ export class CloseRankingService {
       const lastHistory = await prisma.userScoreHistory.findFirst({
         where: {
           userId: participant.userId,
-          createdAt: {
-            lte: ranking.endDate,
-          },
+          createdAt: { lte: ranking.endDate },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -57,7 +53,7 @@ export class CloseRankingService {
       if (b.scoreFinal !== a.scoreFinal) {
         return b.scoreFinal - a.scoreFinal;
       }
-      return 0;
+      return a.userId.localeCompare(b.userId);
     });
 
     await prisma.$transaction(async (tx) => {
@@ -73,9 +69,7 @@ export class CloseRankingService {
 
       await tx.ranking.update({
         where: { id: rankingId },
-        data: {
-          status: 'CLOSED',
-        },
+        data: { status: 'CLOSED' },
       });
     });
   }
