@@ -1,10 +1,12 @@
-import { Router } from 'express';
-import mercadoPagoRoutes from './mercado-pago.routes';
-import subscriptionJobsRoutes from './subscription-jobs.routes';
+import { Router } from 'express'
+import webhooksRoutes from './webhooks.routes'
+import jobsRoutes from './jobs.routes'
+import subscriptionJobsRoutes from './subscription-jobs.routes'
 
-const router = Router();
+const router = Router()
 
-router.use(mercadoPagoRoutes);
-router.use(subscriptionJobsRoutes);
+router.use(webhooksRoutes)
+router.use(jobsRoutes)
+router.use(subscriptionJobsRoutes)
 
-export default router;
+export default router

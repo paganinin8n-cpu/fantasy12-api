@@ -1,39 +1,50 @@
-import { prisma } from '../../lib/prisma';
-import { randomUUID } from 'crypto';
+import { prisma } from '../../lib/prisma'
+import { randomUUID } from 'crypto'
+import {
+  PaymentMethod,
+  PaymentProvider,
+  PaymentStatus,
+} from '@prisma/client'
+
+interface CreatePaymentParams {
+  userId: string
+  packageId: string
+  method: PaymentMethod
+}
 
 export class CreatePaymentService {
-  static async execute(params: {
-    userId: string;
-    packageId: string;        // ✅ obrigatório
-    amountCents: number;
-    coinsAmount: number;
-    bonusCoins?: number;      // ✅ opcional
-    method: 'PIX' | 'CARD';
-  }) {
-    const paymentId = randomUUID();
-    const externalReference = `f12_${paymentId}`;
+  static async execute(params: CreatePaymentParams) {
+    const pkg = await prisma.paymentPackage.findUnique({
+      where: { id: params.packageId },
+    })
+
+    if (!pkg || !pkg.isActive) {
+      throw new Error('Invalid or inactive package')
+    }
+
+    const paymentId = randomUUID()
+    const externalReference = `f12_${paymentId}`
 
     const payment = await prisma.payment.create({
       data: {
         id: paymentId,
         userId: params.userId,
-
-        provider: 'MERCADO_PAGO',
+        provider: PaymentProvider.MERCADO_PAGO,
         method: params.method,
-        status: 'PENDING',
-
-        packageId: params.packageId,          // ✅ CORREÇÃO
-        amountCents: params.amountCents,
-        coinsAmount: params.coinsAmount,
-        bonusCoins: params.bonusCoins ?? 0,   // ✅ CORREÇÃO
-
+        status: PaymentStatus.PENDING,
+        packageId: pkg.id,
+        amountCents: pkg.amountCents,
+        coinsAmount: pkg.coinsAmount,
+        bonusCoins: pkg.bonusCoins,
         externalReference,
       },
-    });
+    })
 
     return {
       paymentId: payment.id,
-      externalReference,
-    };
+      externalPaymentId: payment.externalPaymentId,
+      status: payment.status,
+      checkoutUrl: null,
+    }
   }
 }

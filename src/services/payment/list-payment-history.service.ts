@@ -1,7 +1,19 @@
 import { prisma } from '../../lib/prisma'
+import { PaymentMethod, PaymentProvider, PaymentStatus } from '@prisma/client'
+
+interface PaymentHistoryItem {
+  id: string
+  status: PaymentStatus
+  amountCents: number
+  coinsAmount: number
+  bonusCoins: number
+  method: PaymentMethod
+  provider: PaymentProvider
+  createdAt: string
+}
 
 export class ListPaymentHistoryService {
-  static async execute(userId: string) {
+  static async execute(userId: string): Promise<PaymentHistoryItem[]> {
     const payments = await prisma.payment.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -17,7 +29,7 @@ export class ListPaymentHistoryService {
       },
     })
 
-    return payments.map((payment) => ({
+    return payments.map(payment => ({
       id: payment.id,
       status: payment.status,
       amountCents: payment.amountCents,
