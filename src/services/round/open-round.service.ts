@@ -1,26 +1,53 @@
-import { RoundRepository } from '../../repositories/round.repository';
+import { prisma } from '../../lib/prisma';
 import { RoundStatus } from '@prisma/client';
+import { GrantRoundBenefitsService } from '../benefits/grant-round-benefits.service';
 
+/**
+ * Abre oficialmente uma rodada.
+ *
+ * RESPONSABILIDADES:
+ * - Validar estado da rodada
+ * - Mudar status para OPEN
+ * - Delegar concessão de benefícios FREE
+ *
+ * REGRAS:
+ * - Idempotente
+ * - Executado somente via job interno
+ */
 export class OpenRoundService {
-  private repository = new RoundRepository();
+  static async execute(roundId: string): Promise<void> {
+    await prisma.$transaction(async tx => {
+      const round = await tx.round.findUnique({
+        where: { id: roundId },
+        select: { id: true, status: true },
+      });
 
-  async execute(roundId: string) {
-    const openRound = await this.repository.findOpenRound();
+      if (!round) {
+        throw new Error('Round not found');
+      }
 
-    if (openRound) {
-      throw new Error('Já existe uma rodada aberta');
-    }
+      if (round.status === RoundStatus.OPEN) {
+        // Idempotência absoluta
+        return;
+      }
 
-    const round = await this.repository.findById(roundId);
+      if (round.status !== RoundStatus.DRAFT) {
+        throw new Error('Only DRAFT rounds can be opened');
+      }
 
-    if (!round) {
-      throw new Error('Rodada não encontrada');
-    }
+      await tx.round.update({
+        where: { id: roundId },
+        data: {
+          status: RoundStatus.OPEN,
+          openAt: new Date(),
+        },
+      });
+    });
 
-    if (round.status !== RoundStatus.CLOSED) {
-      throw new Error('Somente rodadas CLOSED podem ser reabertas');
-    }
-
-    return this.repository.updateStatus(roundId, RoundStatus.OPEN);
+    /**
+     * Benefícios FREE são concedidos fora da transaction da rodada,
+     * mas de forma determinística e idempotente
+     */
+    await GrantRoundBenefitsService.execute(roundId);
   }
 }

@@ -5,7 +5,7 @@ type CreateTicketInput = {
   userId: string;
   roundId: string;
   prediction: string;
-  useBenefit?: 'NONE' | 'DOUBLE' | 'SUPER_DOUBLE';
+  betType?: 'NONE' | 'DOUBLE' | 'SUPER_DOUBLE';
 };
 
 export class CreateTicketService {
@@ -13,56 +13,66 @@ export class CreateTicketService {
     userId,
     roundId,
     prediction,
-    useBenefit = 'NONE',
+    betType = 'NONE',
   }: CreateTicketInput) {
-    /**
-     * 1️⃣ Validar rodada
-     */
-    const round = await prisma.round.findUnique({
-      where: { id: roundId },
-      select: { id: true, status: true },
-    });
-
-    if (!round || round.status !== 'OPEN') {
-      throw new Error('Round is not open');
-    }
-
-    /**
-     * 2️⃣ Consumir benefício (se solicitado)
-     */
-    if (useBenefit !== 'NONE') {
-      await ConsumeBenefitsService.execute({
-        userId,
-        roundId,
-        type: useBenefit,
+    return prisma.$transaction(async tx => {
+      /**
+       * 1️⃣ Validar rodada
+       */
+      const round = await tx.round.findUnique({
+        where: { id: roundId },
+        select: { id: true, status: true },
       });
-    }
 
-    /**
-     * 3️⃣ Criar ou atualizar bilhete
-     */
-    const ticket = await prisma.ticket.upsert({
-      where: {
-        userId_roundId: {
+      if (!round || round.status !== 'OPEN') {
+        throw new Error('Round is not open');
+      }
+
+      /**
+       * 2️⃣ Verificar ticket existente (IMUTÁVEL)
+       */
+      const existing = await tx.ticket.findUnique({
+        where: {
+          userId_roundId: {
+            userId,
+            roundId,
+          },
+        },
+      });
+
+      if (existing) {
+        throw new Error('Ticket already created for this round');
+      }
+
+      /**
+       * 3️⃣ Consumir benefício (se houver)
+       */
+      if (betType !== 'NONE') {
+        await ConsumeBenefitsService.execute({
           userId,
           roundId,
-        },
-      },
-      update: {
-        prediction,
-      },
-      create: {
-        userId,
-        roundId,
-        prediction,
-      },
-    });
+          type: betType,
+        });
+      }
 
-    return {
-      id: ticket.id,
-      roundId: ticket.roundId,
-      useBenefit,
-      createdAt: ticket.createdAt,
-    };
+      /**
+       * 4️⃣ Criar ticket (imutável)
+       */
+      const ticket = await tx.ticket.create({
+        data: {
+          userId,
+          roundId,
+          prediction,
+          betType,
+        },
+      });
+
+      return {
+        id: ticket.id,
+        roundId: ticket.roundId,
+        betType: ticket.betType,
+        createdAt: ticket.createdAt,
+      };
+    });
   }
 }

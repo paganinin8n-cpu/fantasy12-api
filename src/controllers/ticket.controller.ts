@@ -4,7 +4,7 @@ import { CreateTicketService } from '../services/ticket/create-ticket.service';
 export class TicketController {
   static async create(req: Request, res: Response) {
     const userId = (req as any).user?.id;
-    const { roundId, prediction, useBenefit } = req.body;
+    const { roundId, prediction, betType } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -21,7 +21,7 @@ export class TicketController {
         userId,
         roundId,
         prediction,
-        useBenefit,
+        betType,
       });
 
       return res.status(201).json(ticket);

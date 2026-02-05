@@ -34,6 +34,11 @@ enum TicketStatus {
   WON
   LOST
 }
+enum TicketBetType {
+  NONE
+  DOUBLE
+  SUPER_DOUBLE
+}
 
 enum RankingType {
   GLOBAL
@@ -145,14 +150,17 @@ model Round {
 // TICKET
 // ======================
 model Ticket {
-  id          String       @id @default(uuid())
+  id          String        @id @default(uuid())
   userId      String
   roundId     String
   prediction  String
-  status      TicketStatus @default(PENDING)
-  scoreRound  Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  betType     TicketBetType @default(NONE)
+
+  status      TicketStatus  @default(PENDING)
+  scoreRound  Int           @default(0)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   round       Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
