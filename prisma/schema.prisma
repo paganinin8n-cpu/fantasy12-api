@@ -40,6 +40,12 @@ enum TicketBetType {
   SUPER_DOUBLE
 }
 
+enum BetType {
+  NONE
+  DOUBLE
+  SUPER_DOUBLE
+}
+
 enum RankingType {
   GLOBAL
   PRO
@@ -150,26 +156,30 @@ model Round {
 // TICKET
 // ======================
 model Ticket {
-  id          String        @id @default(uuid())
-  userId      String
-  roundId     String
-  prediction  String
-  betType     TicketBetType @default(NONE)
+  id             String       @id @default(uuid())
+  userId         String
+  roundId        String
 
-  status      TicketStatus  @default(PENDING)
-  scoreRound  Int           @default(0)
+  prediction     String
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  betType        BetType      @default(NONE)
+  betMultiplier  Int          @default(1)
 
-  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  round       Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  status         TicketStatus @default(PENDING)
+  scoreRound     Int          @default(0)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round          Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roundId])
   @@index([userId])
   @@index([roundId])
   @@map("tickets")
 }
+
 
 // ======================
 // USER SCORE HISTORY

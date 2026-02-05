@@ -1,11 +1,12 @@
 import { prisma } from '../../lib/prisma';
 import { ConsumeBenefitsService } from '../benefits/consume-benefits.service';
+import { BetType } from '@prisma/client';
 
 type CreateTicketInput = {
   userId: string;
   roundId: string;
   prediction: string;
-  betType?: 'NONE' | 'DOUBLE' | 'SUPER_DOUBLE';
+  betType?: BetType;
 };
 
 export class CreateTicketService {
@@ -13,7 +14,7 @@ export class CreateTicketService {
     userId,
     roundId,
     prediction,
-    betType = 'NONE',
+    betType = BetType.NONE,
   }: CreateTicketInput) {
     return prisma.$transaction(async tx => {
       /**
@@ -21,7 +22,7 @@ export class CreateTicketService {
        */
       const round = await tx.round.findUnique({
         where: { id: roundId },
-        select: { id: true, status: true },
+        select: { status: true },
       });
 
       if (!round || round.status !== 'OPEN') {
@@ -29,14 +30,11 @@ export class CreateTicketService {
       }
 
       /**
-       * 2️⃣ Verificar ticket existente (IMUTÁVEL)
+       * 2️⃣ Garantir imutabilidade
        */
       const existing = await tx.ticket.findUnique({
         where: {
-          userId_roundId: {
-            userId,
-            roundId,
-          },
+          userId_roundId: { userId, roundId },
         },
       });
 
@@ -45,9 +43,9 @@ export class CreateTicketService {
       }
 
       /**
-       * 3️⃣ Consumir benefício (se houver)
+       * 3️⃣ Consumir benefício (SE houver)
        */
-      if (betType !== 'NONE') {
+      if (betType !== BetType.NONE) {
         await ConsumeBenefitsService.execute({
           userId,
           roundId,
@@ -56,7 +54,15 @@ export class CreateTicketService {
       }
 
       /**
-       * 4️⃣ Criar ticket (imutável)
+       * 4️⃣ Definir multiplicador
+       */
+      const betMultiplier =
+        betType === BetType.DOUBLE ? 2 :
+        betType === BetType.SUPER_DOUBLE ? 4 :
+        1;
+
+      /**
+       * 5️⃣ Criar ticket (imutável)
        */
       const ticket = await tx.ticket.create({
         data: {
@@ -64,6 +70,7 @@ export class CreateTicketService {
           roundId,
           prediction,
           betType,
+          betMultiplier,
         },
       });
 
@@ -71,6 +78,7 @@ export class CreateTicketService {
         id: ticket.id,
         roundId: ticket.roundId,
         betType: ticket.betType,
+        betMultiplier: ticket.betMultiplier,
         createdAt: ticket.createdAt,
       };
     });
