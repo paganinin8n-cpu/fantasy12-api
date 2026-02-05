@@ -1,13 +1,13 @@
-import { prisma } from '../../lib/prisma';
-import { ConsumeBenefitsService } from '../benefits/consume-benefits.service';
-import { BetType } from '@prisma/client';
+import { prisma } from '../../lib/prisma'
+import { BetType } from '@prisma/client'
+import { ConsumeBenefitsService } from '../benefits/consume-benefits.service'
 
 type CreateTicketInput = {
-  userId: string;
-  roundId: string;
-  prediction: string;
-  betType?: BetType;
-};
+  userId: string
+  roundId: string
+  prediction: string
+  betType?: BetType
+}
 
 export class CreateTicketService {
   static async execute({
@@ -23,46 +23,29 @@ export class CreateTicketService {
       const round = await tx.round.findUnique({
         where: { id: roundId },
         select: { status: true },
-      });
+      })
 
       if (!round || round.status !== 'OPEN') {
-        throw new Error('Round is not open');
+        throw new Error('Round is not open')
       }
 
       /**
-       * 2️⃣ Garantir imutabilidade
+       * 2️⃣ Consumir benefício (FREE → PAID)
        */
-      const existing = await tx.ticket.findUnique({
-        where: {
-          userId_roundId: { userId, roundId },
-        },
-      });
+      let betMultiplier = 1
 
-      if (existing) {
-        throw new Error('Ticket already created for this round');
-      }
-
-      /**
-       * 3️⃣ Consumir benefício (SE houver)
-       */
       if (betType !== BetType.NONE) {
         await ConsumeBenefitsService.execute({
           userId,
           roundId,
           type: betType,
-        });
+        })
+
+        betMultiplier = betType === BetType.DOUBLE ? 2 : 4
       }
 
       /**
-       * 4️⃣ Definir multiplicador
-       */
-      const betMultiplier =
-        betType === BetType.DOUBLE ? 2 :
-        betType === BetType.SUPER_DOUBLE ? 4 :
-        1;
-
-      /**
-       * 5️⃣ Criar ticket (imutável)
+       * 3️⃣ Criar ticket (IMUTÁVEL)
        */
       const ticket = await tx.ticket.create({
         data: {
@@ -72,7 +55,7 @@ export class CreateTicketService {
           betType,
           betMultiplier,
         },
-      });
+      })
 
       return {
         id: ticket.id,
@@ -80,7 +63,7 @@ export class CreateTicketService {
         betType: ticket.betType,
         betMultiplier: ticket.betMultiplier,
         createdAt: ticket.createdAt,
-      };
-    });
+      }
+    })
   }
 }
