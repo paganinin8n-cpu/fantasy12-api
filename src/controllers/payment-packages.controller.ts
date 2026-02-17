@@ -1,32 +1,15 @@
-import { Request, Response } from 'express'
-import { prisma } from '../lib/prisma'
+import { Request, Response } from 'express';
+import { ListPaymentPackagesService } from '../services/payment/list-payment-packages.service';
 
-/**
- * PaymentPackagesController
- *
- * Responsável exclusivamente por:
- * - Expor pacotes de pagamento ativos
- *
- * Regras:
- * - Read-only
- * - Nenhuma lógica financeira
- */
 class PaymentPackagesController {
   static async list(req: Request, res: Response) {
-    const packages = await prisma.paymentPackage.findMany({
-      where: { isActive: true },
-      orderBy: { amountCents: 'asc' },
-      select: {
-        id: true,
-        label: true,
-        coinsAmount: true,
-        bonusCoins: true,
-        amountCents: true,
-      },
-    })
-
-    return res.status(200).json(packages)
+    try {
+      const packages = await ListPaymentPackagesService.execute();
+      return res.status(200).json(packages);
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to fetch payment packages' });
+    }
   }
 }
 
-export default PaymentPackagesController
+export default PaymentPackagesController;
