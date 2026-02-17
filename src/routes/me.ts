@@ -1,14 +1,10 @@
-import { Router } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
-import { MeController } from '../controllers/me.controller';
+import { Router } from 'express'
+import { authMiddleware } from '../middleware/auth.middleware'
+import MeController from '../controllers/me.controller'
 
-const router = Router();
-const meController = new MeController();
+const router = Router()
 
-router.get('/me', authMiddleware, (req, res) => {
-  return meController.handle(req, res);
-});
+router.get('/me', authMiddleware, MeController.handle)
 
 export default router;
-
 
