@@ -4,8 +4,9 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "npx vite build",
+    "dev": "npx vite",
+    "preview": "npx vite preview"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -13,10 +14,12 @@
   "dependencies": {
     "@prisma/client": "^5.11.0",
     "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-session": "^1.19.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "zod": "^4.3.4"
@@ -25,6 +28,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.2",
     "@types/helmet": "^0.0.48",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.11.30",

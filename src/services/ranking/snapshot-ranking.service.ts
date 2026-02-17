@@ -8,132 +8,148 @@ type SnapshotRow = {
 
 export class SnapshotRankingService {
   static async execute(roundId: string): Promise<void> {
-    /**
-     * 1️⃣ Validar rodada
-     */
-    const round = await prisma.round.findUnique({
-      where: { id: roundId },
-      select: { id: true, status: true },
-    });
+    await prisma.$transaction(async (tx) => {
+      /**
+       * 1️⃣ Validar rodada e obter número
+       */
+      const round = await tx.round.findUnique({
+        where: { id: roundId },
+        select: { id: true, status: true, number: true },
+      });
 
-    if (!round) {
-      throw new Error('Round not found');
-    }
+      if (!round) {
+        throw new Error('Round not found');
+      }
 
-    if (round.status !== 'SCORED') {
-      throw new Error('Snapshot can only be generated for SCORED rounds');
-    }
+      if (round.status !== 'SCORED') {
+        throw new Error('Snapshot can only be generated for SCORED rounds');
+      }
 
-    /**
-     * 2️⃣ Garantir idempotência
-     * (snapshot nunca pode ser gerado duas vezes)
-     */
-    const snapshotExists = await prisma.rankingSnapshot.findFirst({
-      where: { roundId },
-      select: { id: true },
-    });
+      /**
+       * 2️⃣ Idempotência
+       */
+      const snapshotExists = await tx.rankingSnapshot.findFirst({
+        where: { roundId },
+        select: { id: true },
+      });
 
-    if (snapshotExists) {
-      throw new Error('Snapshot already generated for this round');
-    }
+      if (snapshotExists) {
+        throw new Error('Snapshot already generated for this round');
+      }
 
-    /**
-     * 3️⃣ Buscar score acumulado por usuário ATÉ esta rodada
-     */
-    const history = await prisma.userScoreHistory.groupBy({
-      by: ['userId'],
-      where: {
-        roundId: {
-          lte: roundId,
+      /**
+       * 3️⃣ Buscar todas as rodadas até esta (por número, NÃO UUID)
+       */
+      const validRounds = await tx.round.findMany({
+        where: {
+          number: { lte: round.number },
+          status: 'SCORED',
         },
-      },
-      _max: {
-        scoreTotal: true,
-      },
-    });
+        select: { id: true },
+      });
 
-    if (history.length === 0) {
-      return;
-    }
+      const validRoundIds = validRounds.map(r => r.id);
 
-    /**
-     * 4️⃣ Buscar score da rodada atual (para desempate)
-     */
-    const roundScores = await prisma.userScoreHistory.findMany({
-      where: { roundId },
-      select: {
-        userId: true,
-        scoreRound: true,
-      },
-    });
-
-    const roundScoreMap = new Map<string, number>();
-    roundScores.forEach(r => {
-      roundScoreMap.set(r.userId, r.scoreRound);
-    });
-
-    /**
-     * 5️⃣ Normalizar dados
-     */
-    const rows: SnapshotRow[] = history.map(h => ({
-      userId: h.userId,
-      scoreTotal: h._max.scoreTotal ?? 0,
-      scoreRound: roundScoreMap.get(h.userId) ?? 0,
-    }));
-
-    /**
-     * 6️⃣ Ordenação + desempates (CONGELADO)
-     */
-    rows.sort((a, b) => {
-      if (b.scoreTotal !== a.scoreTotal) {
-        return b.scoreTotal - a.scoreTotal;
+      if (validRoundIds.length === 0) {
+        return;
       }
 
-      if (b.scoreRound !== a.scoreRound) {
-        return b.scoreRound - a.scoreRound;
+      /**
+       * 4️⃣ Buscar score acumulado até esta rodada
+       */
+      const history = await tx.userScoreHistory.groupBy({
+        by: ['userId'],
+        where: {
+          roundId: { in: validRoundIds },
+        },
+        _max: {
+          scoreTotal: true,
+        },
+      });
+
+      if (history.length === 0) {
+        return;
       }
 
-      return a.userId.localeCompare(b.userId);
-    });
+      /**
+       * 5️⃣ Buscar score da rodada atual (desempate)
+       */
+      const roundScores = await tx.userScoreHistory.findMany({
+        where: { roundId },
+        select: {
+          userId: true,
+          scoreRound: true,
+        },
+      });
 
-    /**
-     * 7️⃣ Calcular posições (empate real)
-     */
-    let currentPosition = 1;
-    let lastScoreTotal: number | null = null;
-    let lastScoreRound: number | null = null;
-    let index = 0;
+      const roundScoreMap = new Map<string, number>();
+      roundScores.forEach(r => {
+        roundScoreMap.set(r.userId, r.scoreRound);
+      });
 
-    const snapshots = rows.map(row => {
-      index++;
+      /**
+       * 6️⃣ Normalizar
+       */
+      const rows: SnapshotRow[] = history.map(h => ({
+        userId: h.userId,
+        scoreTotal: h._max.scoreTotal ?? 0,
+        scoreRound: roundScoreMap.get(h.userId) ?? 0,
+      }));
 
-      if (
-        lastScoreTotal !== null &&
-        (row.scoreTotal !== lastScoreTotal ||
-          row.scoreRound !== lastScoreRound)
-      ) {
-        currentPosition = index;
-      }
+      /**
+       * 7️⃣ Ordenação oficial (CONGELADA)
+       */
+      rows.sort((a, b) => {
+        if (b.scoreTotal !== a.scoreTotal) {
+          return b.scoreTotal - a.scoreTotal;
+        }
 
-      lastScoreTotal = row.scoreTotal;
-      lastScoreRound = row.scoreRound;
+        if (b.scoreRound !== a.scoreRound) {
+          return b.scoreRound - a.scoreRound;
+        }
 
-      return {
-        roundId,
-        userId: row.userId,
-        scoreTotal: row.scoreTotal,
-        scoreRound: row.scoreRound,
-        position: currentPosition,
-        snapshotType: 'GLOBAL',
-        periodRef: null,
-      };
-    });
+        return a.userId.localeCompare(b.userId);
+      });
 
-    /**
-     * 8️⃣ Persistir snapshot (INSERT ONLY)
-     */
-    await prisma.rankingSnapshot.createMany({
-      data: snapshots,
+      /**
+       * 8️⃣ Calcular posições com empate real
+       */
+      let currentPosition = 1;
+      let lastScoreTotal: number | null = null;
+      let lastScoreRound: number | null = null;
+      let index = 0;
+
+      const snapshots = rows.map(row => {
+        index++;
+
+        if (
+          lastScoreTotal !== null &&
+          (row.scoreTotal !== lastScoreTotal ||
+            row.scoreRound !== lastScoreRound)
+        ) {
+          currentPosition = index;
+        }
+
+        lastScoreTotal = row.scoreTotal;
+        lastScoreRound = row.scoreRound;
+
+        return {
+          roundId,
+          userId: row.userId,
+          scoreTotal: row.scoreTotal,
+          scoreRound: row.scoreRound,
+          position: currentPosition,
+          snapshotType: 'GLOBAL', // futura migração para enum
+          periodRef: null,
+        };
+      });
+
+      /**
+       * 9️⃣ Persistência (INSERT ONLY)
+       */
+      await tx.rankingSnapshot.createMany({
+        data: snapshots,
+      });
     });
   }
 }

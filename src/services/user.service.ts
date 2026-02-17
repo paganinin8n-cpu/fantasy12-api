@@ -35,4 +35,26 @@ export class UserService {
       createdAt: user.createdAt
     };
   }
+
+  // ✅ USADO PELO LOGIN
+  async findByEmail(email: string) {
+    return this.repository.findByEmail(email);
+  }
+
+  // ✅ LOGIN CANÔNICO (sem JWT, sem invenção)
+  async login(email: string, password: string) {
+    const user = await this.repository.findByEmail(email);
+
+    if (!user) {
+      throw new Error("Credenciais inválidas");
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      throw new Error("Credenciais inválidas");
+    }
+
+    return user;
+  }
 }

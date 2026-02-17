@@ -1,6 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import session from 'express-session';
+
 
 /**
  * 🔐 AUTENTICAÇÃO
@@ -52,6 +54,21 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  session({
+    name: 'f12.session',
+    secret: process.env.JWT_SECRET || 'f12-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // true apenas com HTTPS
+      sameSite: 'lax',
+    },
+  })
+);
+
 
 /**
  * 🔴 LOG GLOBAL — PRIMEIRO DE TUDO

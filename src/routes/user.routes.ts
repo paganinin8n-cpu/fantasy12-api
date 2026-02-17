@@ -6,4 +6,7 @@ const controller = new UserController();
 
 router.post("/users", (req, res) => controller.create(req, res));
 
+// ✅ LOGIN
+router.post("/login", (req, res) => controller.login(req, res));
+
 export default router;

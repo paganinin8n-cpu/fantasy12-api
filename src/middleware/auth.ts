@@ -1,30 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
 
+/**
+ * AuthRequest
+ * - Extende Request
+ * - user vem da sessão
+ */
 export interface AuthRequest extends Request {
-  user?: JWTPayload;
+  user?: {
+    id: string;
+    role: string;
+    email: string;
+  };
 }
 
+/**
+ * authMiddleware
+ *
+ * Regras canônicas:
+ * - Backend é soberano
+ * - Autenticação via SESSION (cookie)
+ * - JWT NÃO é usado neste projeto
+ */
 export function authMiddleware(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'Token não informado' });
+  // sessão criada no login
+  const sessionUser = (req as any).session?.user;
+
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
   }
 
-  const [, token] = authHeader.split(' ');
-  if (!token) {
-    return res.status(401).json({ error: 'Token malformado' });
-  }
+  // injeta user no request
+  req.user = sessionUser;
 
-  try {
-    const decoded = verifyToken(token);
-    req.user = decoded;
-    return next();
-  } catch {
-    return res.status(401).json({ error: 'Token inválido ou expirado' });
-  }
+  return next();
 }

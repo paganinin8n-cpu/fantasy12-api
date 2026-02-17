@@ -2,74 +2,87 @@ import { prisma } from '../../lib/prisma';
 
 export class CloseRankingService {
   async execute(rankingId: string) {
-    const ranking = await prisma.ranking.findUnique({
-      where: { id: rankingId },
-      include: { participants: true },
-    });
-
-    if (!ranking) {
-      throw new Error('Ranking não encontrado');
-    }
-
-    if (ranking.status !== 'ACTIVE') {
-      throw new Error('Ranking já está encerrado');
-    }
-
-    if (!ranking.endDate || ranking.endDate > new Date()) {
-      throw new Error('Ranking ainda não expirou');
-    }
-
-    const results: {
-      participantId: string;
-      userId: string;
-      scoreRanking: number;
-      scoreFinal: number;
-    }[] = [];
-
-    for (const participant of ranking.participants) {
-      const lastHistory = await prisma.userScoreHistory.findFirst({
-        where: {
-          userId: participant.userId,
-          createdAt: { lte: ranking.endDate },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const scoreFinal = lastHistory?.scoreTotal ?? participant.scoreInitial;
-      const scoreRanking = scoreFinal - participant.scoreInitial;
-
-      results.push({
-        participantId: participant.id,
-        userId: participant.userId,
-        scoreRanking,
-        scoreFinal,
-      });
-    }
-
-    results.sort((a, b) => {
-      if (b.scoreRanking !== a.scoreRanking) {
-        return b.scoreRanking - a.scoreRanking;
-      }
-      if (b.scoreFinal !== a.scoreFinal) {
-        return b.scoreFinal - a.scoreFinal;
-      }
-      return a.userId.localeCompare(b.userId);
-    });
-
     await prisma.$transaction(async (tx) => {
-      for (let i = 0; i < results.length; i++) {
+      /**
+       * 1️⃣ Buscar ranking
+       */
+      const ranking = await tx.ranking.findUnique({
+        where: { id: rankingId },
+        include: {
+          participants: true,
+          rounds: {
+            include: {
+              round: true,
+            },
+          },
+        },
+      });
+
+      if (!ranking) {
+        throw new Error('Ranking não encontrado');
+      }
+
+      if (ranking.status !== 'ACTIVE') {
+        throw new Error('Ranking já está encerrado');
+      }
+
+      if (!ranking.endDate || ranking.endDate > new Date()) {
+        throw new Error('Ranking ainda não expirou');
+      }
+
+      /**
+       * 2️⃣ Encontrar última rodada SCORED vinculada ao ranking
+       */
+      const scoredRounds = ranking.rounds
+        .filter(r => r.round.status === 'SCORED')
+        .map(r => r.round);
+
+      if (scoredRounds.length === 0) {
+        throw new Error('Nenhuma rodada pontuada encontrada para este ranking');
+      }
+
+      const lastRound = scoredRounds.sort(
+        (a, b) => b.number - a.number
+      )[0];
+
+      /**
+       * 3️⃣ Buscar snapshot da última rodada
+       */
+      const snapshots = await tx.rankingSnapshot.findMany({
+        where: {
+          roundId: lastRound.id,
+        },
+      });
+
+      if (snapshots.length === 0) {
+        throw new Error('Snapshot não encontrado para a rodada final');
+      }
+
+      /**
+       * 4️⃣ Atualizar rankingParticipant com base no snapshot
+       */
+      for (const participant of ranking.participants) {
+        const snapshot = snapshots.find(s => s.userId === participant.userId);
+
+        if (!snapshot) continue;
+
         await tx.rankingParticipant.update({
-          where: { id: results[i].participantId },
+          where: { id: participant.id },
           data: {
-            score: results[i].scoreRanking,
-            position: i + 1,
+            score: snapshot.scoreTotal - participant.scoreInitial,
+            position: snapshot.position,
           },
         });
       }
 
+      /**
+       * 5️⃣ Fechar ranking
+       */
       await tx.ranking.update({
         where: { id: rankingId },
-        data: { status: 'CLOSED' },
+        data: {
+          status: 'CLOSED',
+        },
       });
     });
   }

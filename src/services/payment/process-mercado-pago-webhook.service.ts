@@ -3,27 +3,15 @@ import { MercadoPagoClient } from '../../lib/mercado-pago.client';
 import {
   PaymentProvider,
   PaymentStatus,
-  WalletTransactionType,
-  Prisma,
   SubscriptionPlan,
+  Prisma,
 } from '@prisma/client';
 import { RenewSubscriptionFromPaymentService } from '../subscription/renew-subscription-from-payment.service';
-import { randomUUID } from "crypto";
+import { WalletService } from '../wallet/wallet.service';
+import { randomUUID } from 'crypto';
 
-/**
- * Processa eventos de webhook do Mercado Pago.
- *
- * Regras:
- * - Webhook é a única fonte de verdade
- * - Idempotência obrigatória
- * - Crédito financeiro ocorre uma única vez
- * - Renovação de assinatura ocorre somente após crédito confirmado
- */
 export class ProcessMercadoPagoWebhookService {
   static async execute(event: any): Promise<void> {
-    /**
-     * 1️⃣ Validação mínima do evento
-     */
     const externalEventId = event?.id;
     const mpPaymentId = event?.data?.id;
 
@@ -31,26 +19,6 @@ export class ProcessMercadoPagoWebhookService {
       return;
     }
 
-    /**
-     * 2️⃣ Idempotência
-     */
-    const alreadyProcessed =
-      await prisma.paymentWebhookEvent.findUnique({
-        where: {
-          provider_externalEventId: {
-            provider: PaymentProvider.MERCADO_PAGO,
-            externalEventId,
-          },
-        },
-      });
-
-    if (alreadyProcessed) {
-      return;
-    }
-
-    /**
-     * 3️⃣ Buscar pagamento no Mercado Pago
-     */
     if (!process.env.MP_ACCESS_TOKEN) {
       return;
     }
@@ -58,68 +26,78 @@ export class ProcessMercadoPagoWebhookService {
     const mpClient = new MercadoPagoClient(process.env.MP_ACCESS_TOKEN);
     const mpPayment = await mpClient.getPayment(mpPaymentId);
 
-    /**
-     * 4️⃣ Registrar evento (append-only)
-     */
-    await prisma.paymentWebhookEvent.create({
-      data: {
-      id: randomUUID(),
-        provider: PaymentProvider.MERCADO_PAGO,
-        externalEventId,
-        payload: mpPayment,
-      },
-    });
-
-    /**
-     * 5️⃣ Localizar Payment interno
-     */
-    const payment = await prisma.payment.findFirst({
-      where: {
-        externalReference: mpPayment.external_reference ?? undefined,
-      },
-    });
-
-    if (!payment || payment.isCredited) {
-      return;
-    }
-
-    /**
-     * 6️⃣ Pagamento não aprovado → apenas refletir status
-     */
-    if (mpPayment.status !== 'approved') {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: this.mapMpStatus(mpPayment.status),
-          externalPaymentId: mpPayment.id?.toString(),
-        },
-      });
-      return;
-    }
-
-    /**
-     * 7️⃣ Pagamento aprovado → transação atômica
-     */
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Ledger (append-only)
-      await tx.walletLedger.create({
+      /**
+       * 1️⃣ Idempotência (com lock transacional)
+       */
+      const alreadyProcessed =
+        await tx.paymentWebhookEvent.findUnique({
+          where: {
+            provider_externalEventId: {
+              provider: PaymentProvider.MERCADO_PAGO,
+              externalEventId,
+            },
+          },
+        });
+
+      if (alreadyProcessed) {
+        return;
+      }
+
+      /**
+       * 2️⃣ Registrar evento (append-only)
+       */
+      await tx.paymentWebhookEvent.create({
         data: {
-          wallet: { connect: { userId: payment.userId } },
-          type: WalletTransactionType.CREDIT,
-          amount: payment.coinsAmount,
-          description: 'Pagamento aprovado via Mercado Pago',
+          id: randomUUID(),
+          provider: PaymentProvider.MERCADO_PAGO,
+          externalEventId,
+          payload: mpPayment,
         },
       });
 
-      // Wallet
-      await tx.wallet.update({
-        where: { userId: payment.userId },
-        data: {
-          balance: { increment: payment.coinsAmount },
+      /**
+       * 3️⃣ Localizar Payment interno
+       */
+      const payment = await tx.payment.findFirst({
+        where: {
+          externalReference: mpPayment.external_reference ?? undefined,
         },
       });
 
-      // Payment
+      if (!payment || payment.isCredited) {
+        return;
+      }
+
+      /**
+       * 4️⃣ Atualizar status se não aprovado
+       */
+      if (mpPayment.status !== 'approved') {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: this.mapMpStatus(mpPayment.status),
+            externalPaymentId: mpPayment.id?.toString(),
+          },
+        });
+        return;
+      }
+
+      /**
+       * 5️⃣ Crédito financeiro via WalletService
+       */
+      const totalCredit = payment.coinsAmount + payment.bonusCoins;
+
+      await WalletService.credit(
+        payment.userId,
+        totalCredit,
+        'Pagamento aprovado via Mercado Pago',
+        tx
+      );
+
+      /**
+       * 6️⃣ Atualizar Payment
+       */
       await tx.payment.update({
         where: { id: payment.id },
         data: {
@@ -131,21 +109,21 @@ export class ProcessMercadoPagoWebhookService {
     });
 
     /**
-     * 8️⃣ Renovação automática da assinatura (v1.5)
+     * 7️⃣ Renovação fora da transação principal
      */
     const plan = mpPayment.metadata?.plan as SubscriptionPlan | undefined;
 
-    if (plan === SubscriptionPlan.MONTHLY || plan === SubscriptionPlan.ANNUAL) {
+    if (
+      plan === SubscriptionPlan.MONTHLY ||
+      plan === SubscriptionPlan.ANNUAL
+    ) {
       await RenewSubscriptionFromPaymentService.execute({
-        userId: payment.userId,
+        userId: mpPayment.metadata?.userId,
         plan,
       });
     }
   }
 
-  /**
-   * Mapeia status do Mercado Pago → PaymentStatus interno
-   */
   private static mapMpStatus(mpStatus: string): PaymentStatus {
     switch (mpStatus) {
       case 'approved':
