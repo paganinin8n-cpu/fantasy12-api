@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { AuthRequest } from "../middleware/auth";  
+import { AuthRequest } from '../middleware/auth.middleware';  
 import { UserProfileService } from "../services/user-profile.service";
 
 export class MeController {

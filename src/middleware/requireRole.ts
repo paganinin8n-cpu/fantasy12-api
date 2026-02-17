@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
-import { AuthRequest } from './auth';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 type Role = 'ADMIN' | 'PRO' | 'NORMAL';
 

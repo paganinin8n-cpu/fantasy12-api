@@ -1,29 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Interface do usuário autenticado via sessão
- */
-export interface SessionUser {
-  id: string;
-  role: string;
-  email: string;
-}
-
-/**
- * Request tipado com usuário autenticado
+ * Tipagem do request autenticado
  */
 export interface AuthRequest extends Request {
-  user?: SessionUser;
-  session?: {
-    user?: SessionUser;
+  user?: {
+    id: string;
+    role: string;
+    email: string;
   };
 }
 
 /**
- * authMiddleware
- *
- * Autenticação baseada em SESSION (cookie).
- * Backend é soberano.
+ * Middleware de autenticação via SESSION
  */
 export function authMiddleware(
   req: AuthRequest,
