@@ -1,37 +1,55 @@
 {
   "compilerOptions": {
-    /* Linguagem alvo */
+    /* =========================
+       TARGET E AMBIENTE NODE
+       ========================= */
     "target": "ES2020",
-
-    /* Sistema de módulos */
+    "lib": ["ES2020"],
     "module": "CommonJS",
 
-    /* Diretórios */
-    "rootDir": "src",
-    "outDir": "dist",
+    /* =========================
+       ESTRUTURA DE PASTAS
+       ========================= */
+    "rootDir": "./src",
+    "outDir": "./dist",
 
-    /* Resolução de módulos */
+    /* =========================
+       RESOLUÇÃO DE MÓDULOS
+       ========================= */
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
 
-    /* Qualidade e segurança */
+    /* =========================
+       QUALIDADE E SEGURANÇA
+       ========================= */
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
 
-    /* Debug controlado */
-    "sourceMap": false
+    /* =========================
+       PERFORMANCE E BUILD
+       ========================= */
+    "incremental": false,
+    "sourceMap": false,
+    "removeComments": true,
+
+    /* =========================
+       TIPAGEM NODE
+       ========================= */
+    "types": ["node"]
   },
 
-  /* Runtime real da aplicação */
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
 
-  /* Nunca compilar */
   "exclude": [
     "node_modules",
     "dist",
-    "prisma"
+    "prisma",
+    "**/*.spec.ts",
+    "**/*.test.ts"
   ]
 }
+
