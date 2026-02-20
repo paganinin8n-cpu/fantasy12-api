@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
+//import cors from 'cors';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import adminRoundRoutes from './routes/admin-round.routes';
@@ -37,49 +37,26 @@ dotenv.config();
 
 const app = express();
 
-/**
- * 🌐 CORS DEFINITIVO PRODUÇÃO
- */
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Permite requests sem origin (curl, healthcheck)
-      if (!origin) return callback(null, true);
+app.use((req, res, next) => {
+  const allowedOrigin = 'https://f12-banco-frontend-f12.x18arx.easypanel.host'
 
-      const allowedOrigins = [
-        'https://f12-banco-frontend-f12.x18arx.easypanel.host',
-        'http://localhost:5173'
-      ];
+  res.header('Access-Control-Allow-Origin', allowedOrigin)
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+  )
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization'
+  )
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204)
+  }
 
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
-
-// 🔥 IMPORTANTÍSSIMO PARA PREFLIGHT
-app.options('*', cors());
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  session({
-    name: 'f12.session',
-    secret: process.env.JWT_SECRET || 'f12-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    },
-  })
-);
+  next()
+})
 
 /**
  * 🔴 LOG GLOBAL
