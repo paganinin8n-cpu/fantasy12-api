@@ -38,17 +38,31 @@ dotenv.config();
 const app = express();
 
 /**
- * 🌐 MIDDLEWARES BÁSICOS
+ * 🌐 CORS DEFINITIVO PRODUÇÃO
  */
 app.use(
   cors({
-    origin: [
-      'https://f12-banco-frontend-f12.x18arx.easypanel.host',
-      'http://localhost:5173',
-    ],
+    origin: (origin, callback) => {
+      // Permite requests sem origin (curl, healthcheck)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        'https://f12-banco-frontend-f12.x18arx.easypanel.host',
+        'http://localhost:5173'
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
+
+// 🔥 IMPORTANTÍSSIMO PARA PREFLIGHT
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -61,9 +75,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,        // 🔥 obrigatório em HTTPS
-      sameSite: 'none',    // 🔥 obrigatório cross-domain
-      domain: '.x18arx.easypanel.host' // 🔥 CRÍTICO
+      secure: true,
+      sameSite: 'none',
     },
   })
 );
@@ -77,7 +90,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 /**
- * 🟢 ROTAS PÚBLICAS / API
+ * 🟢 ROTAS PÚBLICAS
  */
 app.use('/api', ticketRoutes);
 app.use('/api', userRoutes);
@@ -85,12 +98,12 @@ app.use('/api', rankingRoutes);
 app.use('/api', meRoutes);
 
 /**
- * 🔐 AUTENTICAÇÃO
+ * 🔐 AUTH
  */
 app.use('/auth', authRoutes);
 
 /**
- * ⚙️ ROTAS INTERNAS
+ * ⚙️ INTERNAS
  */
 app.use('/internal', internalRoutes);
 
@@ -99,17 +112,17 @@ app.use('/internal', internalRoutes);
  */
 app.use('/api', adminMonetizationRoutes);
 app.use('/api', adminSubscriptionsRoutes);
-app.use('/api', adminRoundRoutes); // 🔥 NOVA ROTA ADMIN DE RODADA
+app.use('/api', adminRoundRoutes);
 
 /**
- * ❤️ HEALTHCHECK
+ * ❤️ HEALTH
  */
 app.get('/health', (_req, res) => {
   res.json({ api: 'ok', db: 'ok' });
 });
 
 /**
- * 📍 ROOT
+ * ROOT
  */
 app.get('/', (_req, res) => {
   res.json({
@@ -119,9 +132,6 @@ app.get('/', (_req, res) => {
   });
 });
 
-/**
- * ⚠️ ERROR HANDLER (melhor antes do listen)
- */
 app.use(errorHandler);
 
 const PORT = Number(process.env.PORT ?? 3001);
