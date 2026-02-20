@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import session from 'express-session';
-
 import adminRoundRoutes from './routes/admin-round.routes';
 
 /**
@@ -64,6 +63,7 @@ app.use(
       httpOnly: true,
       secure: true,        // 🔥 obrigatório em HTTPS
       sameSite: 'none',    // 🔥 obrigatório cross-domain
+      domain: '.x18arx.easypanel.host' // 🔥 CRÍTICO
     },
   })
 );
