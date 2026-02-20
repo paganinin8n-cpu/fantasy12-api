@@ -46,16 +46,17 @@ export class CloseRankingService {
       )[0];
 
       /**
-       * 3️⃣ Buscar snapshot da última rodada
+       * 3️⃣ Buscar snapshot GLOBAL da última rodada
        */
       const snapshots = await tx.rankingSnapshot.findMany({
         where: {
           roundId: lastRound.id,
+          snapshotType: 'GLOBAL', // Snapshot soberano único
         },
       });
 
       if (snapshots.length === 0) {
-        throw new Error('Snapshot não encontrado para a rodada final');
+        throw new Error('Snapshot GLOBAL não encontrado para a rodada final');
       }
 
       /**

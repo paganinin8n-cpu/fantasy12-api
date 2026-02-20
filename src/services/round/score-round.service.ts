@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { RoundRepository } from '../../repositories/round.repository';
 import { TicketRepository } from '../../repositories/ticket.repository';
 import { UserScoreHistoryRepository } from '../../repositories/user-score-history.repository';
+import { SnapshotRankingService } from '../ranking/snapshot-ranking.service';
 import { RoundStatus, TicketStatus } from '@prisma/client';
 
 export class ScoreRoundService {
@@ -16,6 +17,7 @@ export class ScoreRoundService {
    * - persiste scoreRound no ticket
    * - gera histórico cumulativo por usuário
    * - marca a rodada como SCORED
+   * - gera snapshot oficial do ranking
    */
   async execute(roundId: string): Promise<void> {
     const round = await this.roundRepo.findById(roundId);
@@ -39,6 +41,9 @@ export class ScoreRoundService {
     const tickets = await this.ticketRepo.findByRound(roundId);
     const resultArray = round.result.split('-');
 
+    /**
+     * 🔒 TRANSAÇÃO DE PONTUAÇÃO
+     */
     await prisma.$transaction(async () => {
       for (const ticket of tickets) {
         const predictionArray = ticket.prediction.split('-');
@@ -69,12 +74,18 @@ export class ScoreRoundService {
           userId: ticket.userId,
           roundId,
           scoreRound,
-          scoreTotal: lastTotal + scoreRound
+          scoreTotal: lastTotal + scoreRound,
         });
       }
 
       // Marca rodada como apurada (estado final)
       await this.roundRepo.updateStatus(roundId, RoundStatus.SCORED);
     });
+
+    /**
+     * 🏆 Geração do snapshot oficial do ranking
+     * Executado somente após commit da pontuação
+     */
+    await SnapshotRankingService.execute(roundId);
   }
 }
