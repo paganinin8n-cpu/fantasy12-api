@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import session from 'express-session';
 
+import adminRoundRoutes from './routes/admin-round.routes';
 
 /**
  * 🔐 AUTENTICAÇÃO
@@ -25,8 +26,6 @@ import adminSubscriptionsRoutes from './routes/admin-subscriptions.routes';
 
 /**
  * ⚙️ ROTAS INTERNAS
- * - Jobs
- * - Webhooks (Mercado Pago)
  */
 import internalRoutes from './routes/internal';
 
@@ -41,7 +40,6 @@ const app = express();
 
 /**
  * 🌐 MIDDLEWARES BÁSICOS
- * (ORDEM IMPORTA)
  */
 app.use(
   cors({
@@ -52,6 +50,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -63,15 +62,14 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // true apenas com HTTPS
-      sameSite: 'lax',
+      secure: true,        // 🔥 obrigatório em HTTPS
+      sameSite: 'none',    // 🔥 obrigatório cross-domain
     },
   })
 );
 
-
 /**
- * 🔴 LOG GLOBAL — PRIMEIRO DE TUDO
+ * 🔴 LOG GLOBAL
  */
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[REQ] ${req.method} ${req.url}`);
@@ -93,20 +91,15 @@ app.use('/auth', authRoutes);
 
 /**
  * ⚙️ ROTAS INTERNAS
- * - jobs
- * - webhooks (Mercado Pago)
  */
 app.use('/internal', internalRoutes);
 
 /**
- * 🛠️ ADMIN — MONETIZAÇÃO
+ * 🛠️ ADMIN
  */
 app.use('/api', adminMonetizationRoutes);
-
-/**
- * 🛠️ ADMIN — ASSINATURAS (v1.6)
- */
 app.use('/api', adminSubscriptionsRoutes);
+app.use('/api', adminRoundRoutes); // 🔥 NOVA ROTA ADMIN DE RODADA
 
 /**
  * ❤️ HEALTHCHECK
@@ -126,13 +119,13 @@ app.get('/', (_req, res) => {
   });
 });
 
+/**
+ * ⚠️ ERROR HANDLER (melhor antes do listen)
+ */
+app.use(errorHandler);
+
 const PORT = Number(process.env.PORT ?? 3001);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Fantasy12 API rodando na porta ${PORT}`);
 });
-
-/**
- * ⚠️ ERROR HANDLER — SEMPRE ÚLTIMO
- */
-app.use(errorHandler);
