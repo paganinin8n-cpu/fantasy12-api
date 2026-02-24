@@ -37,15 +37,15 @@ dotenv.config()
 
 const app = express()
 
-/**
- * 🔥 BODY PARSER (CRÍTICO)
- */
+/* ======================================================
+   🔥 BODY PARSER (OBRIGATÓRIO PARA LOGIN FUNCIONAR)
+====================================================== */
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-/**
- * 🌍 CORS MANUAL (PRODUÇÃO EASY PANEL)
- */
+/* ======================================================
+   🌍 CORS PRODUÇÃO (EasyPanel + Front separado)
+====================================================== */
 app.use((req, res, next) => {
   const allowedOrigin =
     'https://f12-banco-frontend-f12.x18arx.easypanel.host'
@@ -68,9 +68,9 @@ app.use((req, res, next) => {
   next()
 })
 
-/**
- * 🔐 SESSION
- */
+/* ======================================================
+   🔐 SESSION (COOKIE CROSS DOMAIN)
+====================================================== */
 app.use(
   session({
     name: 'f12.session',
@@ -79,55 +79,55 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,       // obrigatório em HTTPS
+      secure: true,       // obrigatório HTTPS
       sameSite: 'none',   // obrigatório cross-domain
     },
   })
 )
 
-/**
- * 🔴 REQUEST LOG
- */
+/* ======================================================
+   🔴 LOG GLOBAL
+====================================================== */
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[REQ] ${req.method} ${req.url}`)
   next()
 })
 
-/**
- * 🟢 PUBLIC ROUTES
- */
+/* ======================================================
+   🟢 PUBLIC ROUTES
+====================================================== */
 app.use('/api', ticketRoutes)
 app.use('/api', userRoutes)
 app.use('/api', rankingRoutes)
 app.use('/api', meRoutes)
 
-/**
- * 🔐 AUTH ROUTES
- */
+/* ======================================================
+   🔐 AUTH ROUTES
+====================================================== */
 app.use('/auth', authRoutes)
 
-/**
- * ⚙️ INTERNAL ROUTES
- */
+/* ======================================================
+   ⚙️ INTERNAL ROUTES
+====================================================== */
 app.use('/internal', internalRoutes)
 
-/**
- * 🛠️ ADMIN ROUTES
- */
+/* ======================================================
+   🛠️ ADMIN ROUTES
+====================================================== */
 app.use('/api', adminMonetizationRoutes)
 app.use('/api', adminSubscriptionsRoutes)
 app.use('/api', adminRoundRoutes)
 
-/**
- * ❤️ HEALTH
- */
+/* ======================================================
+   ❤️ HEALTH
+====================================================== */
 app.get('/health', (_req, res) => {
   res.json({ api: 'ok', db: 'ok' })
 })
 
-/**
- * ROOT
- */
+/* ======================================================
+   ROOT
+====================================================== */
 app.get('/', (_req, res) => {
   res.json({
     name: 'Fantasy12 API',
@@ -136,9 +136,9 @@ app.get('/', (_req, res) => {
   })
 })
 
-/**
- * ⚠️ ERROR HANDLER (SEMPRE NO FINAL)
- */
+/* ======================================================
+   ⚠️ ERROR HANDLER (SEMPRE POR ÚLTIMO)
+====================================================== */
 app.use(errorHandler)
 
 const PORT = Number(process.env.PORT ?? 3001)
