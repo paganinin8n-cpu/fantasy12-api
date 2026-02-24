@@ -38,6 +38,11 @@ dotenv.config()
 const app = express()
 
 /* ======================================================
+   🔥 PROXY TRUST (OBRIGATÓRIO NO EASYPANEL)
+====================================================== */
+app.set('trust proxy', 1)
+
+/* ======================================================
    🔥 BODY PARSER (OBRIGATÓRIO PARA LOGIN FUNCIONAR)
 ====================================================== */
 app.use(express.json())
@@ -69,7 +74,7 @@ app.use((req, res, next) => {
 })
 
 /* ======================================================
-   🔐 SESSION (COOKIE CROSS DOMAIN)
+   🔐 SESSION (COOKIE CROSS DOMAIN + PROXY SAFE)
 ====================================================== */
 app.use(
   session({
@@ -77,10 +82,11 @@ app.use(
     secret: process.env.SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // 🔥 ESSENCIAL ATRÁS DE PROXY
     cookie: {
       httpOnly: true,
-      secure: true,       // obrigatório HTTPS
-      sameSite: 'none',   // obrigatório cross-domain
+      secure: true,     // obrigatório em HTTPS
+      sameSite: 'none', // obrigatório cross-domain
     },
   })
 )
