@@ -1,0 +1,2 @@
+-- Baseline recovery migration
+-- Banco já existente. Nenhuma alteração.
