@@ -542,8 +542,10 @@ model UserAdminRole {
 
   createdAt DateTime @default(now())
 
+  @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
+  
 }
 
 //////////////////////////////////////////////////////
