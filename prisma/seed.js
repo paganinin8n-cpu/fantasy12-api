@@ -1,28 +1,38 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-  const passwordHash = await bcrypt.hash('123456', 10);
+  const passwordHash = await bcrypt.hash('123456', 10)
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: 'Admin',
       email: 'admin@fantasy12.com',
       password: passwordHash,
       role: 'ADMIN',
     },
-  });
+  })
 
-  console.log('Seed executado com sucesso');
+  const adminRole = await prisma.adminRole.findUnique({
+    where: { name: 'ADMIN' }
+  })
+
+  if (adminRole) {
+    await prisma.userAdminRole.create({
+      data: {
+        userId: user.id,
+        roleId: adminRole.id
+      }
+    })
+  }
+
+  console.log('Seed executado com sucesso')
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
+  .catch(console.error)
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })
