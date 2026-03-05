@@ -1,6 +1,7 @@
 // ======================
 // PRISMA CONFIG
 // ======================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -26,6 +27,12 @@ enum RoundStatus {
   OPEN
   CLOSED
   SCORED
+  CANCELLED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  FINISHED
   CANCELLED
 }
 
@@ -99,6 +106,7 @@ enum PaymentProvider {
 // ======================
 // USER
 // ======================
+
 model User {
   id        String   @id @default(uuid())
   name      String
@@ -136,15 +144,21 @@ model User {
 // ======================
 // ROUND
 // ======================
+
 model Round {
   id        String      @id @default(uuid())
   number    Int         @unique
   status    RoundStatus @default(DRAFT)
+
   openAt    DateTime?
   closeAt   DateTime?
+
   result    String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matches Match[]
 
   tickets          Ticket[]
   rankings         RankingRound[]
@@ -156,8 +170,37 @@ model Round {
 }
 
 // ======================
+// MATCH (NOVO)
+// ======================
+
+model Match {
+  id String @id @default(uuid())
+
+  roundId String
+  round   Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  position Int
+
+  homeTeam String
+  awayTeam String
+
+  homeScore Int?
+  awayScore Int?
+
+  status MatchStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roundId, position])
+  @@index([roundId])
+  @@map("matches")
+}
+
+// ======================
 // TICKET
 // ======================
+
 model Ticket {
   id      String @id @default(uuid())
   userId  String
@@ -186,6 +229,7 @@ model Ticket {
 // ======================
 // USER SCORE HISTORY
 // ======================
+
 model UserScoreHistory {
   id         String   @id @default(uuid())
   userId     String
@@ -206,6 +250,7 @@ model UserScoreHistory {
 // ======================
 // RANKING
 // ======================
+
 model Ranking {
   id          String        @id
   name        String        @unique
@@ -236,6 +281,7 @@ model Ranking {
 // ======================
 // RANKING PARTICIPANT
 // ======================
+
 model RankingParticipant {
   id           String   @id @default(uuid())
   rankingId    String
@@ -243,8 +289,9 @@ model RankingParticipant {
   score        Int      @default(0)
   scoreInitial Int      @default(0)
   position     Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   ranking Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -258,6 +305,7 @@ model RankingParticipant {
 // ======================
 // RANKING ROUND
 // ======================
+
 model RankingRound {
   id        String   @id @default(uuid())
   rankingId String
@@ -271,338 +319,4 @@ model RankingRound {
   @@index([rankingId])
   @@index([roundId])
   @@map("ranking_rounds")
-}
-
-// ======================
-// AUDIT LOG
-// ======================
-model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  entity    String
-  entityId  String?
-  metadata  Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([entity])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
-// ======================
-// RANKING SNAPSHOT
-// ======================
-model RankingSnapshot {
-  id      String @id @default(uuid())
-  roundId String
-  userId  String
-
-  scoreTotal Int
-  scoreRound Int
-  position   Int
-
-  snapshotType String
-  periodRef    String?
-
-  createdAt DateTime @default(now())
-
-  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, userId])
-  @@index([roundId])
-  @@index([userId])
-  @@index([roundId, scoreTotal])
-  @@map("ranking_snapshots")
-}
-
-// ======================
-// SUBSCRIPTION
-// ======================
-model Subscription {
-  id     String             @id @default(uuid())
-  userId String             @unique
-  plan   SubscriptionPlan
-  status SubscriptionStatus @default(ACTIVE)
-
-  startAt DateTime
-  endAt   DateTime?
-
-  // 🔹 v1.5 — recorrência
-  provider               PaymentProvider?
-  externalSubscriptionId String?
-  externalCustomerId     String?
-
-  packageId String?         @db.Text
-  package   PaymentPackage? @relation(fields: [packageId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("subscriptions")
-}
-
-// ======================
-// WALLET
-// ======================
-model Wallet {
-  id      String @id @default(uuid())
-  userId  String @unique
-  balance Int    @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ledger WalletLedger[]
-
-  @@map("wallets")
-}
-
-// ======================
-// WALLET LEDGER
-// ======================
-model WalletLedger {
-  id          String                @id @default(uuid())
-  walletId    String
-  type        WalletTransactionType
-  amount      Int
-  description String?
-
-  createdAt DateTime @default(now())
-
-  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-
-  @@index([walletId])
-  @@map("wallet_ledger")
-}
-
-// ======================
-// ROUND BENEFITS (FREE)
-// ======================
-model RoundBenefit {
-  id      String @id @default(uuid())
-  userId  String
-  roundId String
-
-  freeDoubles      Int @default(0)
-  freeSuperDoubles Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roundId])
-  @@index([roundId])
-  @@map("round_benefits")
-}
-
-// ======================
-// BOLAO INVITE
-// ======================
-model BolaoInvite {
-  id        String @id @default(uuid())
-  rankingId String
-  code      String @unique
-
-  maxUses   Int?
-  usedCount Int  @default(0)
-
-  expiresAt DateTime?
-  isActive  Boolean   @default(true)
-
-  createdByUserId String
-  createdAt       DateTime @default(now())
-
-  ranking   Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
-  createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-
-  @@index([rankingId])
-  @@index([code])
-  @@map("bolao_invites")
-}
-
-// ======================
-// PAYMENT PACKAGE
-// ======================
-model PaymentPackage {
-  id          String   @id @db.Text
-  label       String
-  coinsAmount Int
-  amountCents Int
-  bonusCoins  Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  payments      Payment[]
-  subscriptions Subscription[]
-
-  @@map("PaymentPackage")
-}
-
-// ======================
-// PAYMENT
-// ======================
-model Payment {
-  id String @id @db.Text
-
-  userId String @db.Text
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  provider PaymentProvider
-  method   PaymentMethod
-  status   PaymentStatus   @default(PENDING)
-
-  packageId String         @db.Text
-  package   PaymentPackage @relation(fields: [packageId], references: [id])
-
-  amountCents Int
-  coinsAmount Int
-  bonusCoins  Int @default(0)
-
-  externalPaymentId String? @unique @db.Text
-  externalReference String? @unique @db.Text
-
-  isCredited Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([status])
-  @@index([packageId])
-  @@map("payments")
-}
-
-// ======================
-// PAYMENT WEBHOOK EVENT
-// ======================
-model PaymentWebhookEvent {
-  id              String          @id @db.Text
-  provider        PaymentProvider
-  externalEventId String          @db.Text
-  payload         Json
-  receivedAt      DateTime        @default(now())
-
-  @@unique([provider, externalEventId])
-  @@map("payment_webhook_events")
-}
-
-//////////////////////////////////////////////////////
-// ADMIN v2.1 — RBAC + AUDITORIA + GOVERNANÇA
-//////////////////////////////////////////////////////
-
-model AdminRole {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-
-  permissions AdminRolePermission[]
-  users       UserAdminRole[]
-}
-
-model AdminPermission {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-
-  roles AdminRolePermission[]
-}
-
-model AdminRolePermission {
-  roleId       String
-  permissionId String
-
-  role       AdminRole       @relation(fields: [roleId], references: [id])
-  permission AdminPermission @relation(fields: [permissionId], references: [id])
-
-  @@id([roleId, permissionId])
-}
-
-model UserAdminRole {
-  id     String @id @default(cuid())
-  userId String
-  roleId String
-
-  user User      @relation(fields: [userId], references: [id])
-  role AdminRole @relation(fields: [roleId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
-  
-}
-
-//////////////////////////////////////////////////////
-// ADMIN AUDIT LOG
-//////////////////////////////////////////////////////
-
-model AdminAuditLog {
-  id        String   @id @default(cuid())
-  adminId   String
-  action    String
-  entity    String
-  entityId  String?
-  payload   Json?
-  ipAddress String?
-  createdAt DateTime @default(now())
-
-  admin User @relation(fields: [adminId], references: [id])
-
-  @@index([adminId])
-  @@index([entity])
-}
-
-//////////////////////////////////////////////////////
-// INTERNAL JOB EXECUTION TRACKING
-//////////////////////////////////////////////////////
-
-model InternalJobExecution {
-  id          String    @id @default(cuid())
-  jobName     String
-  referenceId String?
-  status      String
-  startedAt   DateTime  @default(now())
-  finishedAt  DateTime?
-  error       String?
-
-  @@index([jobName])
-  @@index([referenceId])
-}
-
-//////////////////////////////////////////////////////
-// SYSTEM LOCKS
-//////////////////////////////////////////////////////
-
-model SystemLock {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  enabled   Boolean  @default(false)
-  updatedAt DateTime @updatedAt
-}
-
-//////////////////////////////////////////////////////
-// FEATURE FLAGS
-//////////////////////////////////////////////////////
-
-model FeatureFlag {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  enabled   Boolean  @default(false)
-  createdAt DateTime @default(now())
 }
