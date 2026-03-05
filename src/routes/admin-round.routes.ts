@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { RoundAdminController } from '../controllers/admin/round-admin.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
-import { requireAdmin } from '../middleware/require-admin.middleware'
 import { authorize } from '../middleware/authorize.middleware'
 
 const router = Router()
@@ -9,7 +8,6 @@ const router = Router()
 router.post(
   '/admin/rounds/:roundId/close',
   authMiddleware,
-  requireAdmin,
   authorize('COMPETITION_EXECUTE', {
     audit: true,
     entity: 'ROUND',

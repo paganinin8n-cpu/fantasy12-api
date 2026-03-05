@@ -24,27 +24,53 @@ export const authorize = (
 
       const userId = req.user.id
 
-      const adminRole = await prisma.userAdminRole.findFirst({
+      // 🔹 Buscar roles administrativas do usuário
+      const roles = await prisma.userAdminRole.findMany({
         where: { userId },
         include: {
-          role: {
+          role: true
+        }
+      })
+
+      if (!roles.length) {
+        return res.status(403).json({
+          error: 'Permissão administrativa não encontrada'
+        })
+      }
+
+      // 🔹 SUPERADMIN bypass
+      const isSuperAdmin = roles.some(
+        (r) => r.role.name === 'SUPERADMIN'
+      )
+
+      if (isSuperAdmin) {
+        return next()
+      }
+
+      // 🔹 Buscar permissão específica
+      const permission = await prisma.adminPermission.findUnique({
+        where: { code: permissionCode },
+        include: {
+          roles: {
             include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
+              role: true
             }
           }
         }
       })
 
-      if (!adminRole) {
-        return res.status(403).json({ error: 'Permissão administrativa não encontrada' })
+      if (!permission) {
+        return res.status(500).json({
+          error: `Permissão ${permissionCode} não encontrada`
+        })
       }
 
-      const hasPermission = adminRole.role.permissions.some(
-        (p) => p.permission.code === permissionCode
+      const allowedRoleIds = permission.roles.map(
+        (r) => r.roleId
+      )
+
+      const hasPermission = roles.some(
+        (r) => allowedRoleIds.includes(r.roleId)
       )
 
       if (!hasPermission) {
@@ -65,9 +91,12 @@ export const authorize = (
           })
         }
 
-        return res.status(403).json({ error: 'Permissão insuficiente' })
+        return res.status(403).json({
+          error: 'Permissão insuficiente'
+        })
       }
 
+      // 🔹 Auditoria de sucesso
       if (options?.audit) {
         await prisma.adminAuditLog.create({
           data: {
@@ -88,7 +117,9 @@ export const authorize = (
       return next()
     } catch (error) {
       console.error('[AUTHORIZE ERROR]', error)
-      return res.status(500).json({ error: 'Erro interno de autorização' })
+      return res.status(500).json({
+        error: 'Erro interno de autorização'
+      })
     }
   }
 }
