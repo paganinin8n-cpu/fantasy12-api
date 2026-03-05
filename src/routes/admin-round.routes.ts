@@ -1,10 +1,27 @@
 import { Router } from 'express'
 import { RoundAdminController } from '../controllers/admin/round-admin.controller'
+import { CreateRoundController } from '../controllers/admin/create-round.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { authorize } from '../middleware/authorize.middleware'
 
 const router = Router()
 
+/**
+ * ADMIN — Criar nova rodada
+ */
+router.post(
+  '/admin/rounds',
+  authMiddleware,
+  authorize('COMPETITION_WRITE', {
+    audit: true,
+    entity: 'ROUND'
+  }),
+  CreateRoundController.handle
+)
+
+/**
+ * ADMIN — Fechar rodada
+ */
 router.post(
   '/admin/rounds/:roundId/close',
   authMiddleware,
