@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { RoundAdminController } from '../controllers/admin/round-admin.controller'
 import { CreateRoundController } from '../controllers/admin/create-round.controller'
+import { OpenRoundController } from '../controllers/admin/open-round.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { authorize } from '../middleware/authorize.middleware'
 
@@ -17,6 +18,20 @@ router.post(
     entity: 'ROUND'
   }),
   CreateRoundController.handle
+)
+
+/**
+ * ADMIN — Abrir rodada
+ */
+router.post(
+  '/admin/rounds/:roundId/open',
+  authMiddleware,
+  authorize('COMPETITION_EXECUTE', {
+    audit: true,
+    entity: 'ROUND',
+    getEntityId: (req) => req.params.roundId
+  }),
+  OpenRoundController.handle
 )
 
 /**
