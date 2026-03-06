@@ -16,6 +16,7 @@ import userRoutes from './routes/user.routes'
 import meRoutes from './routes/me'
 import ticketRoutes from './routes/ticket.routes'
 import rankingRoutes from './routes/ranking.routes'
+import roundRoutes from './routes/round.routes'
 
 /**
  * 🛠️ ADMIN
@@ -82,11 +83,11 @@ app.use(
     secret: process.env.SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
-    proxy: true, // 🔥 ESSENCIAL ATRÁS DE PROXY
+    proxy: true,
     cookie: {
       httpOnly: true,
-      secure: true,     // obrigatório em HTTPS
-      sameSite: 'none', // obrigatório cross-domain
+      secure: true,
+      sameSite: 'none',
     },
   })
 )
@@ -106,6 +107,7 @@ app.use('/api', ticketRoutes)
 app.use('/api', userRoutes)
 app.use('/api', rankingRoutes)
 app.use('/api', meRoutes)
+app.use('/api', roundRoutes)
 
 /* ======================================================
    🔐 AUTH ROUTES
