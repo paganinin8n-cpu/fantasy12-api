@@ -1,18 +1,20 @@
 export class CalculateTicketScoreService {
   execute(prediction: string, result: string): number {
-    const isCorrect = prediction.startsWith(result);
+    const predictionArr = prediction.split(',');
+    const resultArr = result.split(',');
 
-    // Super Dupla
-    if (prediction.endsWith('SD')) {
-      return isCorrect ? 4 : -4;
+    if (predictionArr.length !== resultArr.length) {
+      throw new Error('Prediction and result length mismatch');
     }
 
-    // Dupla
-    if (prediction.endsWith('D')) {
-      return isCorrect ? 2 : -2;
+    let correct = 0;
+
+    for (let i = 0; i < predictionArr.length; i++) {
+      if (predictionArr[i] === resultArr[i]) {
+        correct++;
+      }
     }
 
-    // Simples
-    return isCorrect ? 1 : 0;
+    return correct;
   }
 }
