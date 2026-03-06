@@ -1,16 +1,8 @@
-import { prisma } from '../../lib/prisma'
-
 export class GetRoundMatchesService {
-  static async execute(roundId: string) {
-    const matches = await prisma.match.findMany({
-      where: {
-        roundId
-      },
-      orderBy: {
-        position: 'asc'
-      }
-    })
+  static async execute(_roundId: string) {
+    // Sistema atual usa apenas prediction vs result
+    // portanto não há tabela de matches no Prisma
 
-    return matches
+    return []
   }
 }
