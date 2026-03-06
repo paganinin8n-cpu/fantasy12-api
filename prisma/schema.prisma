@@ -1,6 +1,6 @@
-// ======================
+//////////////////////////////////////////////////////
 // PRISMA CONFIG
-// ======================
+//////////////////////////////////////////////////////
 
 generator client {
   provider = "prisma-client-js"
@@ -102,13 +102,11 @@ enum PaymentProvider {
 //////////////////////////////////////////////////////
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole @default(NORMAL)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole @default(NORMAL)
 
   nickname     String? @unique
   cpf          String? @unique
@@ -116,19 +114,20 @@ model User {
   bio          String?
   phone        String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   tickets          Ticket[]
   rankings         RankingParticipant[]
   auditLogs        AuditLog[]
   scoreHistory     UserScoreHistory[]
   rankingSnapshots RankingSnapshot[]
-
-  createdBolao Ranking[] @relation("BolaoCreator")
-
-  subscription  Subscription?
-  wallet        Wallet?
-  roundBenefits RoundBenefit[]
-  bolaoInvites  BolaoInvite[]
-  payments      Payment[]
+  createdBolao     Ranking[]            @relation("BolaoCreator")
+  subscription     Subscription?
+  wallet           Wallet?
+  roundBenefits    RoundBenefit[]
+  bolaoInvites     BolaoInvite[]
+  payments         Payment[]
 
   UserAdminRole UserAdminRole[]
   AdminAuditLog AdminAuditLog[]
@@ -141,14 +140,16 @@ model User {
 //////////////////////////////////////////////////////
 
 model Round {
-  id        String      @id @default(uuid())
-  number    Int         @unique
-  status    RoundStatus @default(DRAFT)
-  openAt    DateTime?
-  closeAt   DateTime?
-  result    String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id     String      @id @default(uuid())
+  number Int         @unique
+  status RoundStatus @default(DRAFT)
+
+  openAt  DateTime?
+  closeAt DateTime?
+  result  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tickets          Ticket[]
   rankings         RankingRound[]
@@ -168,8 +169,7 @@ model Ticket {
   userId  String
   roundId String
 
-  prediction String
-
+  prediction    String
   betType       BetType @default(NONE)
   betMultiplier Int     @default(1)
 
@@ -193,12 +193,14 @@ model Ticket {
 //////////////////////////////////////////////////////
 
 model UserScoreHistory {
-  id         String   @id @default(uuid())
-  userId     String
-  roundId    String
+  id      String @id @default(uuid())
+  userId  String
+  roundId String
+
   scoreRound Int
   scoreTotal Int
-  createdAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
@@ -228,8 +230,9 @@ model Ranking {
   durationDays        Int?
 
   createdByUserId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   participants RankingParticipant[]
   rounds       RankingRound[]
@@ -245,11 +248,12 @@ model Ranking {
 //////////////////////////////////////////////////////
 
 model RankingParticipant {
-  id           String   @id @default(uuid())
-  rankingId    String
-  userId       String
-  score        Int      @default(0)
-  scoreInitial Int      @default(0)
+  id        String @id @default(uuid())
+  rankingId String
+  userId    String
+
+  score        Int  @default(0)
+  scoreInitial Int  @default(0)
   position     Int?
 
   createdAt DateTime @default(now())
@@ -269,9 +273,10 @@ model RankingParticipant {
 //////////////////////////////////////////////////////
 
 model RankingRound {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   rankingId String
   roundId   String
+
   createdAt DateTime @default(now())
 
   ranking Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
@@ -288,14 +293,17 @@ model RankingRound {
 //////////////////////////////////////////////////////
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  entity    String
-  entityId  String?
+  id     String  @id @default(uuid())
+  userId String?
+
+  action   String
+  entity   String
+  entityId String?
+
   metadata  Json?
   ipAddress String?
   userAgent String?
+
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -352,7 +360,7 @@ model Subscription {
   externalSubscriptionId String?
   externalCustomerId     String?
 
-  packageId String? @db.Text
+  packageId String?         @db.Text
   package   PaymentPackage? @relation(fields: [packageId], references: [id])
 
   createdAt DateTime @default(now())
@@ -369,9 +377,10 @@ model Subscription {
 //////////////////////////////////////////////////////
 
 model Wallet {
-  id      String @id @default(uuid())
-  userId  String @unique
-  balance Int    @default(0)
+  id     String @id @default(uuid())
+  userId String @unique
+
+  balance Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -387,8 +396,9 @@ model Wallet {
 //////////////////////////////////////////////////////
 
 model WalletLedger {
-  id          String @id @default(uuid())
-  walletId    String
+  id       String @id @default(uuid())
+  walletId String
+
   type        WalletTransactionType
   amount      Int
   description String?
@@ -429,7 +439,8 @@ model RoundBenefit {
 //////////////////////////////////////////////////////
 
 model BolaoInvite {
-  id        String @id @default(uuid())
+  id String @id @default(uuid())
+
   rankingId String
   code      String @unique
 
@@ -440,7 +451,8 @@ model BolaoInvite {
   isActive  Boolean   @default(true)
 
   createdByUserId String
-  createdAt       DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   ranking   Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
   createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
@@ -455,13 +467,16 @@ model BolaoInvite {
 //////////////////////////////////////////////////////
 
 model PaymentPackage {
-  id          String   @id @db.Text
+  id String @id @db.Text
+
   label       String
   coinsAmount Int
   amountCents Int
-  bonusCoins  Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  bonusCoins  Int    @default(0)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
 
   payments      Payment[]
   subscriptions Subscription[]
@@ -481,7 +496,8 @@ model Payment {
 
   provider PaymentProvider
   method   PaymentMethod
-  status   PaymentStatus   @default(PENDING)
+
+  status PaymentStatus @default(PENDING)
 
   packageId String         @db.Text
   package   PaymentPackage @relation(fields: [packageId], references: [id])
@@ -509,11 +525,14 @@ model Payment {
 //////////////////////////////////////////////////////
 
 model PaymentWebhookEvent {
-  id              String          @id @db.Text
+  id String @id @db.Text
+
   provider        PaymentProvider
   externalEventId String          @db.Text
-  payload         Json
-  receivedAt      DateTime        @default(now())
+
+  payload Json
+
+  receivedAt DateTime @default(now())
 
   @@unique([provider, externalEventId])
   @@map("payment_webhook_events")
@@ -524,20 +543,24 @@ model PaymentWebhookEvent {
 //////////////////////////////////////////////////////
 
 model AdminRole {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id String @id @default(cuid())
+
+  name        String  @unique
   description String?
-  createdAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   permissions AdminRolePermission[]
   users       UserAdminRole[]
 }
 
 model AdminPermission {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id String @id @default(cuid())
+
+  code        String  @unique
   description String?
-  createdAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   roles AdminRolePermission[]
 }
@@ -553,7 +576,8 @@ model AdminRolePermission {
 }
 
 model UserAdminRole {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
   userId String
   roleId String
 
@@ -571,13 +595,17 @@ model UserAdminRole {
 //////////////////////////////////////////////////////
 
 model AdminAuditLog {
-  id        String   @id @default(cuid())
-  adminId   String
-  action    String
-  entity    String
-  entityId  String?
+  id String @id @default(cuid())
+
+  adminId String
+
+  action   String
+  entity   String
+  entityId String?
+
   payload   Json?
   ipAddress String?
+
   createdAt DateTime @default(now())
 
   admin User @relation(fields: [adminId], references: [id])
@@ -587,30 +615,36 @@ model AdminAuditLog {
 }
 
 //////////////////////////////////////////////////////
-// INTERNAL JOB EXECUTION
+// INTERNAL JOB EXECUTION TRACKING
 //////////////////////////////////////////////////////
 
 model InternalJobExecution {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
+
   jobName     String
   referenceId String?
-  status      String
-  startedAt   DateTime  @default(now())
-  finishedAt  DateTime?
-  error       String?
+
+  status String
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  error String?
 
   @@index([jobName])
   @@index([referenceId])
 }
 
 //////////////////////////////////////////////////////
-// SYSTEM LOCK
+// SYSTEM LOCKS
 //////////////////////////////////////////////////////
 
 model SystemLock {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  enabled   Boolean  @default(false)
+  id String @id @default(cuid())
+
+  code    String  @unique
+  enabled Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 }
 
@@ -619,8 +653,10 @@ model SystemLock {
 //////////////////////////////////////////////////////
 
 model FeatureFlag {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  enabled   Boolean  @default(false)
+  id String @id @default(cuid())
+
+  code    String  @unique
+  enabled Boolean @default(false)
+
   createdAt DateTime @default(now())
 }
