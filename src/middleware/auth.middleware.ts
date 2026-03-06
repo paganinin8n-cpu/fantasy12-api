@@ -26,6 +26,6 @@ export function authMiddleware(
       error: 'Usuário não autenticado',
     });
   }
-  req.user = sessionUser;
+  req.user = sessionUser as { id: string; role: UserRole; email?: string };
   return next();
 }
