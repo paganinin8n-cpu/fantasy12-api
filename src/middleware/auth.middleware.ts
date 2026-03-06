@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { UserRole } from '@prisma/client';
 
 /**
  * Tipagem do request autenticado
@@ -6,8 +7,8 @@ import { Request, Response, NextFunction } from 'express';
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    role: string;
-    email: string;
+    role: UserRole;
+    email?: string;
   };
 }
 
@@ -20,14 +21,11 @@ export function authMiddleware(
   next: NextFunction
 ) {
   const sessionUser = req.session?.user;
-
   if (!sessionUser) {
     return res.status(401).json({
       error: 'Usuário não autenticado',
     });
   }
-
   req.user = sessionUser;
-
   return next();
 }

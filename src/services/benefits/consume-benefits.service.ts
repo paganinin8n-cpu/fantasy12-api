@@ -12,6 +12,10 @@ type ConsumeInput = {
 export class ConsumeBenefitsService {
   static async execute({ userId, roundId, type }: ConsumeInput) {
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+
+      /**
+       * 1️⃣ Consumir FREE da rodada
+       */
       const benefit = await tx.roundBenefit.findUnique({
         where: { userId_roundId: { userId, roundId } },
       })
@@ -20,14 +24,12 @@ export class ConsumeBenefitsService {
         throw new Error('Round benefits not found')
       }
 
-      /**
-       * 1️⃣ Consumir FREE primeiro
-       */
       if (type === 'DOUBLE' && benefit.freeDoubles > 0) {
         await tx.roundBenefit.update({
           where: { id: benefit.id },
           data: { freeDoubles: { decrement: 1 } },
         })
+
         return { consumed: 'FREE_DOUBLE' }
       }
 
@@ -36,11 +38,35 @@ export class ConsumeBenefitsService {
           where: { id: benefit.id },
           data: { freeSuperDoubles: { decrement: 1 } },
         })
+
         return { consumed: 'FREE_SUPER_DOUBLE' }
       }
 
       /**
-       * 2️⃣ Consumir PAID (coins)
+       * 2️⃣ Consumir INVENTÁRIO
+       */
+      const inventory = await tx.userBenefitInventory.findUnique({
+        where: {
+          userId_type: {
+            userId,
+            type,
+          },
+        },
+      })
+
+      if (inventory && inventory.quantity > 0) {
+        await tx.userBenefitInventory.update({
+          where: { id: inventory.id },
+          data: {
+            quantity: { decrement: 1 },
+          },
+        })
+
+        return { consumed: 'INVENTORY' }
+      }
+
+      /**
+       * 3️⃣ Consumir COINS
        */
       const cost = BENEFIT_COST[type]
 
