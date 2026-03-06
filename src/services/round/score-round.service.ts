@@ -6,6 +6,7 @@ import { SnapshotRankingService } from '../ranking/snapshot-ranking.service';
 import { RoundStatus, TicketStatus } from '@prisma/client';
 
 export class ScoreRoundService {
+
   private roundRepo = new RoundRepository();
   private ticketRepo = new TicketRepository();
   private historyRepo = new UserScoreHistoryRepository();
@@ -20,6 +21,7 @@ export class ScoreRoundService {
    * - gera snapshot oficial do ranking
    */
   async execute(roundId: string): Promise<void> {
+
     const round = await this.roundRepo.findById(roundId);
 
     if (!round) {
@@ -45,16 +47,25 @@ export class ScoreRoundService {
      * 🔒 TRANSAÇÃO DE PONTUAÇÃO
      */
     await prisma.$transaction(async () => {
+
       for (const ticket of tickets) {
+
         const predictionArray = ticket.prediction.split('-');
 
         let scoreRound = 0;
 
-        predictionArray.forEach((prediction: string, index: number) => {
-          if (prediction === resultArray[index]) {
-            scoreRound += 1;
-          }
-        });
+        for (let i = 0; i < predictionArray.length; i++) {
+
+          const prediction = predictionArray[i];
+          const result = resultArray[i];
+
+          scoreRound += this.calculateGameScore(
+            prediction,
+            result,
+            ticket.betType
+          );
+
+        }
 
         // Atualiza score do ticket
         await this.ticketRepo.updateScore(ticket.id, scoreRound);
@@ -66,8 +77,12 @@ export class ScoreRoundService {
         await this.ticketRepo.updateStatus(ticket.id, status);
 
         // Busca último score acumulado do usuário
-        const lastHistory = await this.historyRepo.findLastByUser(ticket.userId);
-        const lastTotal = lastHistory ? lastHistory.scoreTotal : 0;
+        const lastHistory =
+          await this.historyRepo.findLastByUser(ticket.userId);
+
+        const lastTotal = lastHistory
+          ? lastHistory.scoreTotal
+          : 0;
 
         // Cria histórico cumulativo
         await this.historyRepo.create({
@@ -76,16 +91,56 @@ export class ScoreRoundService {
           scoreRound,
           scoreTotal: lastTotal + scoreRound,
         });
+
       }
 
-      // Marca rodada como apurada (estado final)
-      await this.roundRepo.updateStatus(roundId, RoundStatus.SCORED);
+      // Marca rodada como apurada
+      await this.roundRepo.updateStatus(
+        roundId,
+        RoundStatus.SCORED
+      );
+
     });
 
     /**
-     * 🏆 Geração do snapshot oficial do ranking
-     * Executado somente após commit da pontuação
+     * 🏆 Snapshot oficial do ranking
      */
     await SnapshotRankingService.execute(roundId);
+
   }
+
+  /**
+   * Calcula pontuação de um jogo individual
+   */
+  private calculateGameScore(
+    prediction: string,
+    result: string,
+    betType: string
+  ): number {
+
+    const hit = prediction === result;
+
+    const isDouble = betType === 'DOUBLE';
+    const isSuperDouble = betType === 'SUPER_DOUBLE';
+
+    if (hit) {
+
+      if (isSuperDouble) return 4;
+
+      if (isDouble) return 2;
+
+      return 1;
+
+    } else {
+
+      if (isSuperDouble) return -4;
+
+      if (isDouble) return -2;
+
+      return 0;
+
+    }
+
+  }
+
 }
