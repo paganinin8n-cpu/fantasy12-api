@@ -55,10 +55,10 @@ export class ScoreRoundService {
           },
         });
 
-        // 4️⃣ Buscar último score acumulado
+        // 4️⃣ Buscar último score acumulado (ordenado pelo maior total)
         const lastHistory = await tx.userScoreHistory.findFirst({
           where: { userId: ticket.userId },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { scoreTotal: 'desc' },
         });
 
         const previousTotal = lastHistory?.scoreTotal ?? 0;
