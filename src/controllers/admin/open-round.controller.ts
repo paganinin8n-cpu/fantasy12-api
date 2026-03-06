@@ -12,12 +12,11 @@ export class OpenRoundController {
         })
       }
 
-      const service = new OpenRoundService()
-      const round = await service.execute(roundId)
+      await OpenRoundService.execute(roundId)
 
       return res.status(200).json({
         status: 'ok',
-        round
+        message: 'Round opened successfully'
       })
 
     } catch (error: any) {
