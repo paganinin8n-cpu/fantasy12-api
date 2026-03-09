@@ -11,15 +11,6 @@ export class ScoreRoundService {
   private ticketRepo = new TicketRepository();
   private historyRepo = new UserScoreHistoryRepository();
 
-  /**
-   * Apura a rodada:
-   * - bloqueia reapuração
-   * - calcula score de cada ticket
-   * - persiste scoreRound no ticket
-   * - gera histórico cumulativo por usuário
-   * - marca a rodada como SCORED
-   * - gera snapshot oficial do ranking
-   */
   async execute(roundId: string): Promise<void> {
 
     const round = await this.roundRepo.findById(roundId);
@@ -43,9 +34,6 @@ export class ScoreRoundService {
     const tickets = await this.ticketRepo.findByRound(roundId);
     const resultArray = round.result.split('-');
 
-    /**
-     * 🔒 TRANSAÇÃO DE PONTUAÇÃO
-     */
     await prisma.$transaction(async () => {
 
       for (const ticket of tickets) {
@@ -67,16 +55,13 @@ export class ScoreRoundService {
 
         }
 
-        // Atualiza score do ticket
         await this.ticketRepo.updateScore(ticket.id, scoreRound);
 
-        // Define status do ticket
         const status =
           scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST;
 
         await this.ticketRepo.updateStatus(ticket.id, status);
 
-        // Busca último score acumulado do usuário
         const lastHistory =
           await this.historyRepo.findLastByUser(ticket.userId);
 
@@ -84,7 +69,6 @@ export class ScoreRoundService {
           ? lastHistory.scoreTotal
           : 0;
 
-        // Cria histórico cumulativo
         await this.historyRepo.create({
           userId: ticket.userId,
           roundId,
@@ -94,7 +78,6 @@ export class ScoreRoundService {
 
       }
 
-      // Marca rodada como apurada
       await this.roundRepo.updateStatus(
         roundId,
         RoundStatus.SCORED
@@ -103,15 +86,18 @@ export class ScoreRoundService {
     });
 
     /**
-     * 🏆 Snapshot oficial do ranking
+     * 🔥 NOVO PASSO
+     * recalcula posições do ranking
+     */
+    await this.recalculateRankingPositions();
+
+    /**
+     * snapshot final
      */
     await SnapshotRankingService.execute(roundId);
 
   }
 
-  /**
-   * Calcula pontuação de um jogo individual
-   */
   private calculateGameScore(
     prediction: string,
     result: string,
@@ -126,7 +112,6 @@ export class ScoreRoundService {
     if (hit) {
 
       if (isSuperDouble) return 4;
-
       if (isDouble) return 2;
 
       return 1;
@@ -134,10 +119,39 @@ export class ScoreRoundService {
     } else {
 
       if (isSuperDouble) return -4;
-
       if (isDouble) return -2;
 
       return 0;
+
+    }
+
+  }
+
+  /**
+   * recalcula ranking global baseado no scoreTotal
+   */
+  private async recalculateRankingPositions() {
+
+    const users = await prisma.userScoreHistory.findMany({
+      orderBy: {
+        scoreTotal: 'desc'
+      }
+    });
+
+    let position = 1;
+
+    for (const user of users) {
+
+      await prisma.rankingParticipant.updateMany({
+        where: {
+          userId: user.userId
+        },
+        data: {
+          position
+        }
+      });
+
+      position++;
 
     }
 
