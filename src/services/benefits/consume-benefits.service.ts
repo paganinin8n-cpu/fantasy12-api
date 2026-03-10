@@ -7,17 +7,28 @@ type ConsumeInput = {
   userId: string
   roundId: string
   type: PaidBenefitType
+  quantity?: number
 }
 
 export class ConsumeBenefitsService {
-  static async execute({ userId, roundId, type }: ConsumeInput) {
+
+  static async execute({
+    userId,
+    roundId,
+    type,
+    quantity = 1
+  }: ConsumeInput) {
+
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
+      let remaining = quantity
+
       /**
-       * 1️⃣ Consumir FREE da rodada
+       * 1️⃣ CONSUMIR BENEFÍCIOS FREE DA RODADA
        */
+
       const benefit = await tx.roundBenefit.findUnique({
-        where: { userId_roundId: { userId, roundId } },
+        where: { userId_roundId: { userId, roundId } }
       })
 
       if (!benefit) {
@@ -25,59 +36,97 @@ export class ConsumeBenefitsService {
       }
 
       if (type === 'DOUBLE' && benefit.freeDoubles > 0) {
+
+        const used = Math.min(benefit.freeDoubles, remaining)
+
         await tx.roundBenefit.update({
           where: { id: benefit.id },
-          data: { freeDoubles: { decrement: 1 } },
+          data: {
+            freeDoubles: { decrement: used }
+          }
         })
 
-        return { consumed: 'FREE_DOUBLE' }
+        remaining -= used
+
       }
 
       if (type === 'SUPER_DOUBLE' && benefit.freeSuperDoubles > 0) {
+
+        const used = Math.min(benefit.freeSuperDoubles, remaining)
+
         await tx.roundBenefit.update({
           where: { id: benefit.id },
-          data: { freeSuperDoubles: { decrement: 1 } },
-        })
-
-        return { consumed: 'FREE_SUPER_DOUBLE' }
-      }
-
-      /**
-       * 2️⃣ Consumir INVENTÁRIO
-       */
-      const inventory = await tx.userBenefitInventory.findUnique({
-        where: {
-          userId_type: {
-            userId,
-            type,
-          },
-        },
-      })
-
-      if (inventory && inventory.quantity > 0) {
-        await tx.userBenefitInventory.update({
-          where: { id: inventory.id },
           data: {
-            quantity: { decrement: 1 },
-          },
+            freeSuperDoubles: { decrement: used }
+          }
         })
 
-        return { consumed: 'INVENTORY' }
+        remaining -= used
+
       }
 
       /**
-       * 3️⃣ Consumir COINS
+       * 2️⃣ CONSUMIR INVENTÁRIO
        */
-      const cost = BENEFIT_COST[type]
 
-      await WalletService.debit(
-        userId,
-        cost,
-        `Consume ${type} on round ${roundId}`,
-        tx
-      )
+      if (remaining > 0) {
 
-      return { consumed: 'PAID', cost }
+        const inventory = await tx.userBenefitInventory.findUnique({
+          where: {
+            userId_type: {
+              userId,
+              type
+            }
+          }
+        })
+
+        if (inventory && inventory.quantity > 0) {
+
+          const used = Math.min(inventory.quantity, remaining)
+
+          await tx.userBenefitInventory.update({
+            where: { id: inventory.id },
+            data: {
+              quantity: { decrement: used }
+            }
+          })
+
+          remaining -= used
+
+        }
+
+      }
+
+      /**
+       * 3️⃣ CONSUMIR COINS
+       */
+
+      if (remaining > 0) {
+
+        const cost = BENEFIT_COST[type] * remaining
+
+        await WalletService.debit(
+          userId,
+          cost,
+          `Consume ${remaining} ${type} on round ${roundId}`,
+          tx
+        )
+
+        return {
+          consumed: 'PAID',
+          quantity,
+          cost
+        }
+
+      }
+
+      return {
+        consumed: 'FREE_OR_INVENTORY',
+        quantity
+      }
+
     })
+
   }
+
 }
