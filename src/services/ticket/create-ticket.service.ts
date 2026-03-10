@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { ConsumeBenefitsService } from '../benefits/consume-benefits.service'
+import { BetType } from '@prisma/client'
 
 type CreateTicketInput = {
   userId: string
@@ -71,7 +72,7 @@ export class CreateTicketService {
         await ConsumeBenefitsService.execute({
           userId,
           roundId,
-          type: 'DOUBLE',
+          type: BetType.DOUBLE,
           quantity: doubles
         })
       }
@@ -80,7 +81,7 @@ export class CreateTicketService {
         await ConsumeBenefitsService.execute({
           userId,
           roundId,
-          type: 'SUPER_DOUBLE',
+          type: BetType.SUPER_DOUBLE,
           quantity: superDoubles
         })
       }
