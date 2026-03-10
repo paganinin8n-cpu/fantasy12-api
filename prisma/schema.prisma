@@ -171,9 +171,8 @@ model Ticket {
   userId  String
   roundId String
 
-  prediction    String
-  betType       BetType @default(NONE)
-  betMultiplier Int     @default(1)
+  prediction  String
+  multipliers Int[]
 
   status     TicketStatus @default(PENDING)
   scoreRound Int          @default(0)

@@ -1,34 +1,45 @@
-import { Request, Response } from 'express';
-import { CreateTicketService } from '../services/ticket/create-ticket.service';
+import { Request, Response } from 'express'
+import { CreateTicketService } from '../services/ticket/create-ticket.service'
 
 export class TicketController {
+
   static async create(req: Request, res: Response) {
-    const userId = (req as any).user?.id;
-    const { roundId, prediction, betType } = req.body;
+
+    const userId = (req as any).user?.id
+
+    const { roundId, prediction, multipliers } = req.body
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      return res.status(401).json({
+        error: 'User not authenticated'
+      })
     }
 
-    if (!roundId || !prediction) {
+    if (!roundId || !prediction || !multipliers) {
       return res.status(400).json({
-        error: 'roundId and prediction are required',
-      });
+        error: 'roundId, prediction and multipliers are required'
+      })
     }
 
     try {
+
       const ticket = await CreateTicketService.execute({
         userId,
         roundId,
         prediction,
-        betType,
-      });
+        multipliers
+      })
 
-      return res.status(201).json(ticket);
+      return res.status(201).json(ticket)
+
     } catch (error: any) {
+
       return res.status(400).json({
-        error: error.message ?? 'Failed to create ticket',
-      });
+        error: error.message ?? 'Failed to create ticket'
+      })
+
     }
+
   }
+
 }

@@ -40,7 +40,8 @@ export class ScoreRoundService {
       for (const ticket of round.tickets) {
         const scoreRound = this.calculator.execute(
           ticket.prediction,
-          round.result
+          round.result,
+     ticket.multipliers
         );
 
         const status =
