@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma'
 import { RoundStatus, TicketStatus } from '@prisma/client'
 import { CalculateTicketScoreService } from './calculate-ticket-score.service'
 import { RecalculateRankingService } from '../ranking/recalculate-ranking.service'
+import { SnapshotRankingService } from '../ranking/snapshot-ranking.service'
 
 export class ScoreRoundService {
 
@@ -23,7 +24,7 @@ export class ScoreRoundService {
       }
 
       /**
-       * idempotência absoluta
+       * idempotência
        */
       if (round.status === RoundStatus.SCORED) {
         return
@@ -72,7 +73,7 @@ export class ScoreRoundService {
         const scoreTotal = previousTotal + scoreRound
 
         /**
-         * inserir histórico da rodada
+         * inserir histórico
          */
         await tx.userScoreHistory.create({
           data: {
@@ -98,9 +99,14 @@ export class ScoreRoundService {
     })
 
     /**
-     * 🔥 RECALCULAR RANKING (fora da transação)
+     * 🔥 atualizar ranking
      */
     await RecalculateRankingService.execute()
+
+    /**
+     * 📸 gerar snapshot
+     */
+    await SnapshotRankingService.execute(roundId)
 
   }
 
