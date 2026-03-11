@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { RoundStatus, TicketStatus } from '@prisma/client'
 import { CalculateTicketScoreService } from './calculate-ticket-score.service'
+import { RecalculateRankingService } from '../ranking/recalculate-ranking.service'
 
 export class ScoreRoundService {
 
@@ -21,6 +22,9 @@ export class ScoreRoundService {
         throw new Error('Rodada não encontrada')
       }
 
+      /**
+       * idempotência absoluta
+       */
       if (round.status === RoundStatus.SCORED) {
         return
       }
@@ -44,6 +48,9 @@ export class ScoreRoundService {
         const status =
           scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST
 
+        /**
+         * atualizar ticket
+         */
         await tx.ticket.update({
           where: { id: ticket.id },
           data: {
@@ -52,6 +59,9 @@ export class ScoreRoundService {
           }
         })
 
+        /**
+         * buscar último histórico
+         */
         const lastHistory = await tx.userScoreHistory.findFirst({
           where: { userId: ticket.userId },
           orderBy: { scoreTotal: 'desc' }
@@ -61,6 +71,9 @@ export class ScoreRoundService {
 
         const scoreTotal = previousTotal + scoreRound
 
+        /**
+         * inserir histórico da rodada
+         */
         await tx.userScoreHistory.create({
           data: {
             userId: ticket.userId,
@@ -72,6 +85,9 @@ export class ScoreRoundService {
 
       }
 
+      /**
+       * finalizar rodada
+       */
       await tx.round.update({
         where: { id: roundId },
         data: {
@@ -80,6 +96,11 @@ export class ScoreRoundService {
       })
 
     })
+
+    /**
+     * 🔥 RECALCULAR RANKING (fora da transação)
+     */
+    await RecalculateRankingService.execute()
 
   }
 
