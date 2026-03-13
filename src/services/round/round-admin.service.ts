@@ -13,7 +13,7 @@ export class RoundAdminService {
    * 2️⃣ Validar resultado informado
    * 3️⃣ Validar estado permitido
    * 4️⃣ Se OPEN → mover para CLOSED
-   * 5️⃣ Disparar RoundScoringService
+   * 5️⃣ Se CLOSED → executar ScoreRoundService
    *
    * IMPORTANTE:
    * - Apenas rodadas CLOSED podem virar SCORED
@@ -41,10 +41,16 @@ export class RoundAdminService {
       throw new Error('Resultado da rodada não informado');
     }
 
+    /**
+     * Rodada já foi apurada
+     */
     if (round.status === RoundStatus.SCORED) {
       throw new Error('Rodada já foi apurada');
     }
 
+    /**
+     * Estados permitidos
+     */
     if (
       round.status !== RoundStatus.OPEN &&
       round.status !== RoundStatus.CLOSED
@@ -53,7 +59,7 @@ export class RoundAdminService {
     }
 
     /**
-     * Se ainda estiver OPEN, primeiro fechar oficialmente
+     * Se estiver OPEN → primeiro fechar
      */
     if (round.status === RoundStatus.OPEN) {
       await prisma.round.update({
@@ -66,14 +72,19 @@ export class RoundAdminService {
     }
 
     /**
+     * Executa apuração apenas se estiver CLOSED
+     */
+    const roundAfterClose = await prisma.round.findUnique({
+      where: { id: roundId },
+      select: { status: true },
+    });
+
+    if (roundAfterClose?.status !== RoundStatus.CLOSED) {
+      throw new Error('Rodada não está pronta para apuração');
+    }
+
+    /**
      * Dispara apuração oficial
-     *
-     * RoundScoringService:
-     * - valida estado CLOSED
-     * - calcula score
-     * - atualiza user_score_history
-     * - marca rodada como SCORED
-     * - chama SnapshotRankingService
      */
     await this.scoringService.execute(roundId);
   }
