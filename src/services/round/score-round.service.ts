@@ -34,6 +34,8 @@ export class ScoreRoundService {
       throw new Error('Resultado da rodada não informado')
     }
 
+    const result = round.result as string
+
     const tickets = await this.ticketRepo.findByRound(roundId)
 
     await prisma.$transaction(async () => {
@@ -42,7 +44,7 @@ export class ScoreRoundService {
 
         const scoreRound = this.scoreCalculator.execute(
           ticket.prediction,
-          round.result,
+          result,
           ticket.multipliers
         )
 
@@ -77,14 +79,8 @@ export class ScoreRoundService {
 
     })
 
-    /**
-     * recalcula ranking oficial
-     */
     await RecalculateRankingService.execute()
 
-    /**
-     * gera snapshot da rodada
-     */
     await SnapshotRankingService.execute(roundId)
 
   }
