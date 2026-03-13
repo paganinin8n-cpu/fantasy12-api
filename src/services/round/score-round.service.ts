@@ -3,6 +3,8 @@ import { RoundRepository } from '../../repositories/round.repository'
 import { TicketRepository } from '../../repositories/ticket.repository'
 import { UserScoreHistoryRepository } from '../../repositories/user-score-history.repository'
 import { SnapshotRankingService } from '../ranking/snapshot-ranking.service'
+import { RecalculateRankingService } from '../ranking/recalculate-ranking.service'
+import { CalculateTicketScoreService } from '../score/calculate-ticket-score.service'
 import { RoundStatus, TicketStatus } from '@prisma/client'
 
 export class ScoreRoundService {
@@ -10,6 +12,7 @@ export class ScoreRoundService {
   private roundRepo = new RoundRepository()
   private ticketRepo = new TicketRepository()
   private historyRepo = new UserScoreHistoryRepository()
+  private scoreCalculator = new CalculateTicketScoreService()
 
   async execute(roundId: string): Promise<void> {
 
@@ -33,42 +36,22 @@ export class ScoreRoundService {
 
     const tickets = await this.ticketRepo.findByRound(roundId)
 
-    const resultArray = round.result.split(',')
-
     await prisma.$transaction(async () => {
 
       for (const ticket of tickets) {
 
-        const predictionArray = ticket.prediction.split(',')
-
-        let scoreRound = 0
-
-        for (let i = 0; i < predictionArray.length; i++) {
-
-          const prediction = predictionArray[i]
-          const result = resultArray[i]
-
-          const multiplier = ticket.multipliers[i]
-
-          const hit = prediction === result
-
-          if (hit) {
-
-            scoreRound += multiplier
-
-          } else {
-
-            if (multiplier === 2) scoreRound -= 2
-            if (multiplier === 4) scoreRound -= 4
-
-          }
-
-        }
+        const scoreRound = this.scoreCalculator.execute(
+          ticket.prediction,
+          round.result,
+          ticket.multipliers
+        )
 
         await this.ticketRepo.updateScore(ticket.id, scoreRound)
 
         const status =
-          scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST
+          scoreRound > 0
+            ? TicketStatus.WON
+            : TicketStatus.LOST
 
         await this.ticketRepo.updateStatus(ticket.id, status)
 
@@ -94,30 +77,15 @@ export class ScoreRoundService {
 
     })
 
-    await this.recalculateRankingPositions()
+    /**
+     * recalcula ranking oficial
+     */
+    await RecalculateRankingService.execute()
 
+    /**
+     * gera snapshot da rodada
+     */
     await SnapshotRankingService.execute(roundId)
-
-  }
-
-  private async recalculateRankingPositions() {
-
-    const users = await prisma.userScoreHistory.findMany({
-      orderBy: { scoreTotal: 'desc' }
-    })
-
-    let position = 1
-
-    for (const user of users) {
-
-      await prisma.rankingParticipant.updateMany({
-        where: { userId: user.userId },
-        data: { position }
-      })
-
-      position++
-
-    }
 
   }
 
