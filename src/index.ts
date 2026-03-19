@@ -44,13 +44,13 @@ const app = express()
 app.set('trust proxy', 1)
 
 /* ======================================================
-   🔥 BODY PARSER (OBRIGATÓRIO PARA LOGIN FUNCIONAR)
+   🔥 BODY PARSER
 ====================================================== */
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 /* ======================================================
-   🌍 CORS PRODUÇÃO (EasyPanel + Front separado)
+   🌍 CORS
 ====================================================== */
 app.use((req, res, next) => {
   const allowedOrigin =
@@ -75,7 +75,7 @@ app.use((req, res, next) => {
 })
 
 /* ======================================================
-   🔐 SESSION (COOKIE CROSS DOMAIN + PROXY SAFE)
+   🔐 SESSION
 ====================================================== */
 app.use(
   session({
@@ -110,9 +110,9 @@ app.use('/api', meRoutes)
 app.use('/api', roundRoutes)
 
 /* ======================================================
-   🔐 AUTH ROUTES
+   🔐 AUTH ROUTES (CORRIGIDO)
 ====================================================== */
-app.use('/auth', authRoutes)
+app.use('/api/auth', authRoutes)
 
 /* ======================================================
    ⚙️ INTERNAL ROUTES
@@ -145,7 +145,7 @@ app.get('/', (_req, res) => {
 })
 
 /* ======================================================
-   ⚠️ ERROR HANDLER (SEMPRE POR ÚLTIMO)
+   ⚠️ ERROR HANDLER
 ====================================================== */
 app.use(errorHandler)
 
