@@ -2,8 +2,6 @@ import { prisma } from '../../lib/prisma'
 import { RoundRepository } from '../../repositories/round.repository'
 import { TicketRepository } from '../../repositories/ticket.repository'
 import { UserScoreHistoryRepository } from '../../repositories/user-score-history.repository'
-import { SnapshotRankingService } from '../ranking/snapshot-ranking.service'
-import { RecalculateRankingService } from '../ranking/recalculate-ranking.service'
 import { CalculateTicketScoreService } from '../score/calculate-ticket-score.service'
 import { RoundStatus, TicketStatus } from '@prisma/client'
 
@@ -38,9 +36,14 @@ export class ScoreRoundService {
 
     const tickets = await this.ticketRepo.findByRound(roundId)
 
-    await prisma.$transaction(async () => {
+    await prisma.$transaction(async (tx) => {
 
       for (const ticket of tickets) {
+
+        /**
+         * 🔒 IDPOTÊNCIA
+         */
+        if (ticket.scoreRound > 0) continue
 
         const scoreRound = this.scoreCalculator.execute(
           ticket.prediction,
@@ -48,14 +51,20 @@ export class ScoreRoundService {
           ticket.multipliers
         )
 
-        await this.ticketRepo.updateScore(ticket.id, scoreRound)
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: { scoreRound }
+        })
 
         const status =
           scoreRound > 0
             ? TicketStatus.WON
             : TicketStatus.LOST
 
-        await this.ticketRepo.updateStatus(ticket.id, status)
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: { status }
+        })
 
         const lastHistory =
           await this.historyRepo.findLastByUser(ticket.userId)
@@ -63,25 +72,23 @@ export class ScoreRoundService {
         const lastTotal =
           lastHistory ? lastHistory.scoreTotal : 0
 
-        await this.historyRepo.create({
-          userId: ticket.userId,
-          roundId,
-          scoreRound,
-          scoreTotal: lastTotal + scoreRound
+        await tx.userScoreHistory.create({
+          data: {
+            userId: ticket.userId,
+            roundId,
+            scoreRound,
+            scoreTotal: lastTotal + scoreRound
+          }
         })
 
       }
 
-      await this.roundRepo.updateStatus(
-        roundId,
-        RoundStatus.SCORED
-      )
+      await tx.round.update({
+        where: { id: roundId },
+        data: { status: RoundStatus.SCORED }
+      })
 
     })
-
-    await RecalculateRankingService.execute()
-
-    await SnapshotRankingService.execute(roundId)
 
   }
 
