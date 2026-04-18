@@ -27,19 +27,24 @@ async function main() {
     throw new Error('AdminRole ADMIN não encontrada. Rode seed-admin-permissions primeiro.')
   }
 
-  await prisma.userAdminRole.upsert({
+  const existingUserAdminRole = await prisma.userAdminRole.findFirst({
     where: {
-      userId_roleId: {
-        userId: user.id,
-        roleId: adminRole.id
-      }
-    },
-    update: {},
-    create: {
       userId: user.id,
-      roleId: adminRole.id
-    }
+      roleId: adminRole.id,
+    },
+    select: {
+      id: true,
+    },
   })
+
+  if (!existingUserAdminRole) {
+    await prisma.userAdminRole.create({
+      data: {
+        userId: user.id,
+        roleId: adminRole.id,
+      },
+    })
+  }
 
   console.log('✅ Admin user seed concluído')
 

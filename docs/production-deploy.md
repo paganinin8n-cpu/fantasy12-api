@@ -30,6 +30,7 @@ NODE_ENV=production
 PORT=3001
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DB?schema=public
 SESSION_SECRET=change-me
+JWT_SECRET=change-me-too
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=none
 FRONTEND_ORIGIN=https://www.fantasy12.com
@@ -44,6 +45,14 @@ RUN_DB_MIGRATIONS=false
 2. subir a API com `RUN_DB_MIGRATIONS=false`
 3. abrir o console da API no EasyPanel
 4. diagnosticar o estado das migrations
+
+## Observação importante sobre autenticação
+
+A API também exige `JWT_SECRET` no ambiente.
+
+Sem essa variável, o container sobe e cai imediatamente com erro em `dist/utils/jwt.js`.
+
+Se você ainda não tiver uma estratégia separada para JWT, pode usar o mesmo valor do `SESSION_SECRET` temporariamente, embora o ideal seja manter secrets distintos.
 
 ## Comandos úteis no console da API
 
