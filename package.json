@@ -14,7 +14,8 @@
     "prisma:migrate:resolve:bolao:rolled-back": "npx prisma migrate resolve --rolled-back 20260120_bolao_invites",
     "prisma:migrate:resolve:bolao:applied": "npx prisma migrate resolve --applied 20260120_bolao_invites",
     "seed:admin-permissions": "node prisma/seed-admin-permissions.js",
-    "seed:app": "node prisma/seed.js"
+    "seed:app": "node prisma/seed.js",
+    "seed:test-data": "node prisma/seed-test-data.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
