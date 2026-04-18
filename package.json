@@ -6,22 +6,36 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate:status": "npx prisma migrate status",
+    "prisma:migrate:diagnose:bolao": "node scripts/diagnose-bolao-migration.js",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:migrate:resolve:bolao:rolled-back": "npx prisma migrate resolve --rolled-back 20260120_bolao_invites",
+    "prisma:migrate:resolve:bolao:applied": "npx prisma migrate resolve --applied 20260120_bolao_invites",
+    "seed:admin-permissions": "node prisma/seed-admin-permissions.js",
+    "seed:app": "node prisma/seed.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
+  "overrides": {
+    "brace-expansion": "1.1.14",
+    "follow-redirects": "1.16.0",
+    "path-to-regexp": "0.1.13",
+    "picomatch": "2.3.2"
+  },
   "dependencies": {
     "@prisma/client": "^5.11.0",
-    "axios": "^1.13.2",
+    "axios": "^1.15.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
     "express-session": "^1.19.0",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
+    "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.4"
   },
   "devDependencies": {

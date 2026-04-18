@@ -45,15 +45,11 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/scripts ./scripts
 
 # Prisma Client runtime
 RUN npx prisma generate
 
 EXPOSE 3001
 
-# 🔒 Runtime startup:
-# 1️⃣ aplica migrations
-# 2️⃣ inicia a API
-CMD sh -c "npx prisma migrate deploy && node dist/index.js"
-#CMD ["node", "dist/index.js"]
-
+CMD ["sh", "./scripts/start-production.sh"]

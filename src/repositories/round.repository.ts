@@ -28,7 +28,25 @@ export class RoundRepository {
         number: data.number,
         openAt: data.openAt,
         closeAt: data.closeAt,
-        status: RoundStatus.OPEN
+        status: RoundStatus.DRAFT
+      }
+    });
+  }
+
+  async listAdmin() {
+    return prisma.round.findMany({
+      orderBy: {
+        number: 'desc'
+      },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        openAt: true,
+        closeAt: true,
+        result: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
   }

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { RoundAdminController } from '../controllers/admin/round-admin.controller'
 import { CreateRoundController } from '../controllers/admin/create-round.controller'
+import { ListRoundsController } from '../controllers/admin/list-rounds.controller'
 import { OpenRoundController } from '../controllers/admin/open-round.controller'
 import { SetRoundResultController } from '../controllers/admin/set-round-result.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
@@ -8,6 +9,13 @@ import { authorize } from '../middleware/authorize.middleware'
 
 
 const router = Router()
+
+router.get(
+  '/admin/rounds',
+  authMiddleware,
+  authorize('COMPETITION_READ'),
+  ListRoundsController.handle
+)
 
 /**
  * ADMIN — Criar nova rodada

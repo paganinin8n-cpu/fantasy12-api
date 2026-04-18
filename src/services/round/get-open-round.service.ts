@@ -9,9 +9,31 @@ export class GetOpenRoundService {
       },
       orderBy: {
         number: 'desc'
+      },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        openAt: true,
+        closeAt: true,
+        result: true
       }
     })
 
-    return round
+    if (!round) {
+      return null
+    }
+
+    // O sistema atual nao possui tabela de jogos/partidas.
+    // Mantemos o contrato explicito para o frontend ativo.
+    return {
+      id: round.id,
+      number: round.number,
+      status: round.status,
+      openAt: round.openAt,
+      closeAt: round.closeAt,
+      result: round.result,
+      matches: []
+    }
   }
 }

@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express'
 import dotenv from 'dotenv'
 import session from 'express-session'
+import helmet from 'helmet'
 
 import adminRoundRoutes from './routes/admin-round.routes'
 
@@ -36,6 +37,31 @@ import { errorHandler } from './middleware/error-handler'
 
 dotenv.config()
 
+const SESSION_SECRET = process.env.SESSION_SECRET
+if (!SESSION_SECRET) {
+  throw new Error('SESSION_SECRET nao configurado no ambiente')
+}
+
+const isProduction = process.env.NODE_ENV === 'production'
+const allowedOrigins = (
+  process.env.CORS_ALLOWED_ORIGINS ??
+  process.env.FRONTEND_ORIGIN ??
+  ''
+)
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean)
+
+const cookieSecure =
+  process.env.COOKIE_SECURE != null
+    ? process.env.COOKIE_SECURE === 'true'
+    : isProduction
+
+const cookieSameSite = (
+  process.env.COOKIE_SAME_SITE ??
+  (cookieSecure ? 'none' : 'lax')
+) as 'lax' | 'strict' | 'none'
+
 const app = express()
 
 /* ======================================================
@@ -46,6 +72,11 @@ app.set('trust proxy', 1)
 /* ======================================================
    🔥 BODY PARSER
 ====================================================== */
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -53,10 +84,12 @@ app.use(express.urlencoded({ extended: true }))
    🌍 CORS
 ====================================================== */
 app.use((req, res, next) => {
-  const allowedOrigin =
-    'https://f12-banco-frontend-f12.x18arx.easypanel.host'
+  const requestOrigin = req.headers.origin
 
-  res.header('Access-Control-Allow-Origin', allowedOrigin)
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    res.header('Access-Control-Allow-Origin', requestOrigin)
+  }
+
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header(
     'Access-Control-Allow-Methods',
@@ -80,14 +113,14 @@ app.use((req, res, next) => {
 app.use(
   session({
     name: 'f12.session',
-    secret: process.env.SESSION_SECRET || 'supersecret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     proxy: true,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
     },
   })
 )
