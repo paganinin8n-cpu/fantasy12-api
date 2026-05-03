@@ -28,36 +28,33 @@ export class ProcessMercadoPagoWebhookService {
 
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       /**
-       * 1️⃣ Idempotência (com lock transacional)
+       * 1️⃣ Idempotência race-safe.
+       * Tenta criar o evento direto: se já existir (P2002 do Prisma),
+       * outro processamento já cuidou disso e devemos sair em silêncio.
+       * Esse padrão evita TOCTOU entre findUnique + create.
        */
-      const alreadyProcessed =
-        await tx.paymentWebhookEvent.findUnique({
-          where: {
-            provider_externalEventId: {
-              provider: PaymentProvider.MERCADO_PAGO,
-              externalEventId,
-            },
+      try {
+        await tx.paymentWebhookEvent.create({
+          data: {
+            id: randomUUID(),
+            provider: PaymentProvider.MERCADO_PAGO,
+            externalEventId,
+            payload: mpPayment,
           },
         });
-
-      if (alreadyProcessed) {
-        return;
+      } catch (err) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          // Evento já processado — descarta de forma idempotente
+          return;
+        }
+        throw err;
       }
 
       /**
-       * 2️⃣ Registrar evento (append-only)
-       */
-      await tx.paymentWebhookEvent.create({
-        data: {
-          id: randomUUID(),
-          provider: PaymentProvider.MERCADO_PAGO,
-          externalEventId,
-          payload: mpPayment,
-        },
-      });
-
-      /**
-       * 3️⃣ Localizar Payment interno
+       * 2️⃣ Localizar Payment interno
        */
       const payment = await tx.payment.findFirst({
         where: {

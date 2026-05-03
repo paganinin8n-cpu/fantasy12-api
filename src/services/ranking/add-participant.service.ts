@@ -13,15 +13,15 @@ export class AddParticipantService {
     });
 
     if (!ranking) {
-      throw new AppError('Ranking não encontrado', 404);
+      throw AppError.notFound('Ranking', 'ranking_not_found');
     }
 
     const now = new Date();
 
     if (ranking.startDate && now >= ranking.startDate) {
-      throw new AppError(
+      throw AppError.conflict(
         'Ranking já iniciado. Não é possível adicionar participantes.',
-        409
+        'ranking_already_started'
       );
     }
 
@@ -35,7 +35,10 @@ export class AddParticipantService {
     });
 
     if (exists) {
-      throw new AppError('Usuário já participa do ranking', 409);
+      throw AppError.conflict(
+        'Usuário já participa do ranking',
+        'already_participating'
+      );
     }
 
     const lastScore = await prisma.userScoreHistory.findFirst({

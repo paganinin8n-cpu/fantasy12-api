@@ -18,6 +18,9 @@ import meRoutes from './routes/me'
 import ticketRoutes from './routes/ticket.routes'
 import rankingRoutes from './routes/ranking.routes'
 import roundRoutes from './routes/round.routes'
+import walletRoutes from './routes/wallet.routes'
+import subscriptionRoutes from './routes/subscription.routes'
+import paymentRoutes from './routes/payment.routes'
 
 /**
  * 🛠️ ADMIN
@@ -34,6 +37,9 @@ import internalRoutes from './routes/internal'
  * ⚠️ ERROR HANDLER
  */
 import { errorHandler } from './middleware/error-handler'
+import { globalRateLimiter } from './middleware/rate-limit.middleware'
+import { requestLogger } from './middleware/request-logger.middleware'
+import { logger } from './lib/logger'
 
 dotenv.config()
 
@@ -81,6 +87,15 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 /* ======================================================
+   🛡️ GLOBAL RATE LIMITER (defesa em profundidade)
+   Pula /internal porque os webhooks têm volumes próprios
+====================================================== */
+app.use((req, res, next) => {
+  if (req.path.startsWith('/internal')) return next()
+  return globalRateLimiter(req, res, next)
+})
+
+/* ======================================================
    🌍 CORS
 ====================================================== */
 app.use((req, res, next) => {
@@ -126,12 +141,9 @@ app.use(
 )
 
 /* ======================================================
-   🔴 LOG GLOBAL
+   🔴 LOG GLOBAL (estruturado, com request ID)
 ====================================================== */
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  console.log(`[REQ] ${req.method} ${req.url}`)
-  next()
-})
+app.use(requestLogger)
 
 /* ======================================================
    🟢 PUBLIC ROUTES
@@ -141,6 +153,9 @@ app.use('/api', userRoutes)
 app.use('/api', rankingRoutes)
 app.use('/api', meRoutes)
 app.use('/api', roundRoutes)
+app.use('/api', paymentRoutes)
+app.use('/', walletRoutes)
+app.use('/', subscriptionRoutes)
 
 /* ======================================================
    🔐 AUTH ROUTES (CORRIGIDO)
@@ -185,5 +200,5 @@ app.use(errorHandler)
 const PORT = Number(process.env.PORT ?? 3001)
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Fantasy12 API rodando na porta ${PORT}`)
+  logger.info({ port: PORT }, 'Fantasy12 API rodando')
 })

@@ -6,7 +6,9 @@ dist/
 
 # Environment variables
 .env
+.env.local
+.env.*
+!.env.example
 
 # Prisma generated
 /src/generated/prisma
-

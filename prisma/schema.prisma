@@ -36,12 +36,6 @@ enum TicketStatus {
   LOST
 }
 
-enum TicketBetType {
-  NONE
-  DOUBLE
-  SUPER_DOUBLE
-}
-
 enum BetType {
   NONE
   DOUBLE
@@ -114,6 +108,10 @@ model User {
   bio          String?
   phone        String?
 
+  // Anti brute-force por conta (independente de IP)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -134,7 +132,31 @@ model User {
 
   benefitInventory UserBenefitInventory[]
 
+  passwordResetTokens PasswordResetToken[]
+
   @@map("users")
+}
+
+//////////////////////////////////////////////////////
+// PASSWORD RESET
+//////////////////////////////////////////////////////
+
+model PasswordResetToken {
+  id     String @id @default(uuid())
+  userId String
+
+  // SHA-256 do token enviado por email — nunca armazenamos o token cru.
+  tokenHash String @unique
+
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 //////////////////////////////////////////////////////
@@ -186,6 +208,8 @@ model Ticket {
   @@unique([userId, roundId])
   @@index([userId])
   @@index([roundId])
+  @@index([userId, createdAt])
+  @@index([status])
   @@map("tickets")
 }
 
@@ -370,6 +394,8 @@ model Subscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([status])
+  @@index([endAt])
   @@map("subscriptions")
 }
 
@@ -518,6 +544,7 @@ model Payment {
   @@index([userId])
   @@index([status])
   @@index([packageId])
+  @@index([userId, createdAt])
   @@map("payments")
 }
 

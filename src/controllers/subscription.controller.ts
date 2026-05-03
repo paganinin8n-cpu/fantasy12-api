@@ -1,22 +1,38 @@
-import { Request, Response } from 'express';
-import { GetSubscriptionStatusService } from '../services/subscription/get-subscription-status.service';
+import { Request, Response, NextFunction } from 'express'
+import { GetSubscriptionStatusService } from '../services/subscription/get-subscription-status.service'
+import { CancelSubscriptionService } from '../services/subscription/cancel-subscription.service'
+import { AppError } from '../errors/AppError'
 
 class SubscriptionController {
-  static async get(req: Request, res: Response) {
+  static async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.session?.user?.id ?? (req as any).user?.id
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        throw AppError.unauthorized()
       }
 
-      const result = await GetSubscriptionStatusService.execute(userId);
-
-      return res.status(200).json(result);
+      const result = await GetSubscriptionStatusService.execute(userId)
+      return res.status(200).json(result)
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to fetch subscription status' });
+      return next(error)
+    }
+  }
+
+  static async cancel(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.session?.user?.id ?? (req as any).user?.id
+
+      if (!userId) {
+        throw AppError.unauthorized()
+      }
+
+      const subscription = await CancelSubscriptionService.execute({ userId })
+      return res.status(200).json(subscription)
+    } catch (error) {
+      return next(error)
     }
   }
 }
 
-export default SubscriptionController;
+export default SubscriptionController
