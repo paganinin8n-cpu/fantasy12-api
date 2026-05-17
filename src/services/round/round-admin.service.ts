@@ -12,6 +12,7 @@ export class RoundAdminService {
         id: true,
         number: true,
         status: true,
+        result: true,
       },
     });
 
@@ -23,14 +24,38 @@ export class RoundAdminService {
       throw new Error('Rodada já está inativada');
     }
 
-    if (round.status !== RoundStatus.DRAFT) {
-      throw new Error('Apenas rodadas em rascunho podem ser inativadas');
+    if (round.status === RoundStatus.DRAFT) {
+      await prisma.round.update({
+        where: { id: roundId },
+        data: {
+          status: RoundStatus.CANCELLED,
+        },
+      });
+
+      return;
+    }
+
+    if (round.status !== RoundStatus.OPEN) {
+      throw new Error('Somente rodadas em rascunho ou abertas podem ser inativadas');
+    }
+
+    if (round.result) {
+      throw new Error('Não é possível inativar uma rodada que já possui resultado informado');
+    }
+
+    const ticketCount = await prisma.ticket.count({
+      where: { roundId },
+    });
+
+    if (ticketCount > 0) {
+      throw new Error('Não é possível inativar uma rodada que já recebeu palpites');
     }
 
     await prisma.round.update({
       where: { id: roundId },
       data: {
         status: RoundStatus.CANCELLED,
+        closeAt: new Date(),
       },
     });
   }
