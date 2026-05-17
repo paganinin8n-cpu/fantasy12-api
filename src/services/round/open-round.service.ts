@@ -35,6 +35,24 @@ export class OpenRoundService {
         throw new Error('Only DRAFT rounds can be opened');
       }
 
+      const alreadyOpenRound = await tx.round.findFirst({
+        where: {
+          status: RoundStatus.OPEN,
+          id: {
+            not: roundId,
+          },
+        },
+        select: {
+          number: true,
+        },
+      });
+
+      if (alreadyOpenRound) {
+        throw new Error(
+          `A rodada ${alreadyOpenRound.number} ainda está aberta. Feche a rodada atual antes de abrir uma nova.`
+        );
+      }
+
       await tx.round.update({
         where: { id: roundId },
         data: {
