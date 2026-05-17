@@ -11,7 +11,7 @@ import { randomUUID } from "crypto";
  * - Não cria pagamentos
  * - Não credita wallet
  * - Apenas sincroniza estado da assinatura
- * - Papel PRO depende do status
+ * - Elegibilidade PRO depende do status da assinatura
  */
 export class ProcessMpSubscriptionUpdatedService {
   static async execute(event: any): Promise<void> {
@@ -103,16 +103,5 @@ export class ProcessMpSubscriptionUpdatedService {
       },
     });
 
-    /**
-     * 8️⃣ Atualizar papel do usuário conforme status
-     */
-    await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        role: mappedStatus === 'ACTIVE' ? 'PRO' : 'NORMAL',
-      },
-    });
   }
 }

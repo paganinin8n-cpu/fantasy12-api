@@ -86,12 +86,6 @@ export class ProcessMpSubscriptionCreatedService {
           : null,
       },
     });
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { role: 'PRO' },
-    });
-
     console.info({
       level: 'INFO',
       service: 'ProcessMpSubscriptionCreatedService',

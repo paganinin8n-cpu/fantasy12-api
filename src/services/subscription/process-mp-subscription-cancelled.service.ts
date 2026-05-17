@@ -11,7 +11,6 @@ import { randomUUID } from "crypto";
  * - Não cria pagamentos
  * - Não credita wallet
  * - Cancela assinatura local
- * - Remove papel PRO
  * - Histórico preservado
  */
 export class ProcessMpSubscriptionCancelledService {
@@ -90,16 +89,5 @@ export class ProcessMpSubscriptionCancelledService {
       },
     });
 
-    /**
-     * 7️⃣ Rebaixar usuário para NORMAL
-     */
-    await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        role: 'NORMAL',
-      },
-    });
   }
 }

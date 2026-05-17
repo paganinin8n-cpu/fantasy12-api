@@ -1,35 +1,27 @@
 import { prisma } from '../../lib/prisma';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 export class DetectSubscriptionAlertsService {
   static async execute(): Promise<void> {
     const timestamp = new Date().toISOString();
 
-    const inconsistencies = await prisma.subscription.findMany({
-      where: {
-        OR: [
-          {
-            status: 'ACTIVE',
-            user: { role: 'NORMAL' },
-          },
-          {
-            status: { in: ['CANCELLED', 'EXPIRED'] },
-            user: { role: 'PRO' },
-          },
-        ],
-      },
-      include: {
-        user: true,
-      },
-    });
+    const subscriptions = await prisma.subscription.findMany();
 
-    for (const sub of inconsistencies) {
+    for (const sub of subscriptions) {
+      const isMarkedActive = sub.status === 'ACTIVE';
+      const isEffectivelyActive = hasActiveProSubscription(sub);
+
+      if (isMarkedActive === isEffectivelyActive) {
+        continue;
+      }
+
       console.error({
         level: 'CRITICAL',
         service: 'DetectSubscriptionAlertsService',
-        action: 'subscription.role_mismatch',
+        action: 'subscription.state_mismatch',
         subscriptionId: sub.id,
         userId: sub.userId,
-        message: `Inconsistência assinatura (${sub.status}) x papel (${sub.user.role})`,
+        message: `Inconsistência assinatura (${sub.status}) x vigência (${sub.endAt?.toISOString() ?? 'sem fim'})`,
         timestamp,
       });
     }

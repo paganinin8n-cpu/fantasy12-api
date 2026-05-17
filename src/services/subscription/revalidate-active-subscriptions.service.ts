@@ -10,7 +10,7 @@ import { MercadoPagoClient } from '../../lib/mercado-pago.client';
  *
  * FUNÇÃO:
  * - Corrigir estados inconsistentes
- * - Garantir que PRO esteja correto
+ * - Garantir que a assinatura local esteja correta
  *
  * NÃO:
  * - Não cria pagamento
@@ -76,15 +76,6 @@ export class RevalidateActiveSubscriptionsService {
             },
           });
 
-          /**
-           * 5️⃣ Ajustar papel do usuário
-           */
-          await prisma.user.update({
-            where: { id: subscription.userId },
-            data: {
-              role: mappedStatus === 'ACTIVE' ? 'PRO' : 'NORMAL',
-            },
-          });
         }
       } catch (error) {
         /**
