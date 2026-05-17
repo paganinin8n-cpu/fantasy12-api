@@ -1,4 +1,5 @@
 import { UserRepository } from "../repositories/user.repository";
+import { hasActiveProSubscription } from "../domain/subscription";
 
 export class UserProfileService {
   private userRepository: UserRepository;
@@ -26,6 +27,14 @@ export class UserProfileService {
       cpf: user.cpf,
       phone: user.phone,
       role: user.role,
+      isPro: hasActiveProSubscription(user.subscription),
+      subscription: user.subscription
+        ? {
+            status: user.subscription.status,
+            plan: user.subscription.plan,
+            endAt: user.subscription.endAt?.toISOString() ?? null,
+          }
+        : null,
       createdAt: user.createdAt
     };
   }

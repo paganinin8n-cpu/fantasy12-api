@@ -1,20 +1,30 @@
 import { prisma } from '../../lib/prisma';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 export class RoundBenefitService {
   static async grantForRound(roundId: string) {
     const users = await prisma.user.findMany({
-      select: { id: true, role: true },
+      select: {
+        id: true,
+        subscription: {
+          select: {
+            status: true,
+            endAt: true,
+          },
+        },
+      },
     });
 
     for (const user of users) {
+      const isPro = hasActiveProSubscription(user.subscription)
       let freeDoubles = 0;
       let freeSuperDoubles = 0;
 
-      if (user.role === 'NORMAL') {
+      if (!isPro) {
         freeDoubles = 2;
       }
 
-      if (user.role === 'PRO') {
+      if (isPro) {
         freeDoubles = 4;
         freeSuperDoubles = 1;
       }

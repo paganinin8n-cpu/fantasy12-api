@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
-import { RankingType, UserRole } from '@prisma/client';
+import { RankingType } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 interface CreateRankingInput {
   name: string;
@@ -29,11 +30,22 @@ export class CreateRankingService {
       const users = await prisma.user.findMany({
         where: {
           id: { in: input.participantIds },
-          role: UserRole.PRO
-        }
+        },
+        select: {
+          id: true,
+          subscription: {
+            select: {
+              status: true,
+              endAt: true,
+            },
+          },
+        },
       });
 
-      if (users.length !== input.participantIds.length) {
+      const allArePro = users.length === input.participantIds.length &&
+        users.every(user => hasActiveProSubscription(user.subscription))
+
+      if (!allArePro) {
         throw new Error('Apenas usuários PRO podem participar deste ranking');
       }
     }

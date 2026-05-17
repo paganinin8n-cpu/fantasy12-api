@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma';
-import { UserRole } from '@prisma/client';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 /**
  * Concede benefícios FREE por rodada.
@@ -15,16 +15,22 @@ export class GrantRoundBenefitsService {
     const users = await prisma.user.findMany({
       select: {
         id: true,
-        role: true,
+        subscription: {
+          select: {
+            status: true,
+            endAt: true,
+          },
+        },
       },
     });
 
     for (const user of users) {
+      const isPro = hasActiveProSubscription(user.subscription)
       const freeDoubles =
-        user.role === UserRole.PRO ? 4 : 2;
+        isPro ? 4 : 2;
 
       const freeSuperDoubles =
-        user.role === UserRole.PRO ? 1 : 0;
+        isPro ? 1 : 0;
 
       await prisma.roundBenefit.upsert({
         where: {
