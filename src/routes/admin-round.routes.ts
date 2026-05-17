@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { CancelRoundController } from '../controllers/admin/cancel-round.controller'
 import { RoundAdminController } from '../controllers/admin/round-admin.controller'
 import { CreateRoundController } from '../controllers/admin/create-round.controller'
 import { ListRoundsController } from '../controllers/admin/list-rounds.controller'
@@ -70,6 +71,17 @@ router.post(
     getEntityId: (req) => req.params.roundId
   }),
   RoundAdminController.handle
+)
+
+router.post(
+  '/admin/rounds/:roundId/cancel',
+  authMiddleware,
+  authorize('COMPETITION_EXECUTE', {
+    audit: true,
+    entity: 'ROUND',
+    getEntityId: (req) => req.params.roundId
+  }),
+  CancelRoundController.handle
 )
 
 export default router

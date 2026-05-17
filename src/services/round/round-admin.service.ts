@@ -5,6 +5,36 @@ import { ScoreRoundService } from './score-round.service';
 export class RoundAdminService {
   private scoringService = new ScoreRoundService();
 
+  async cancelRound(roundId: string): Promise<void> {
+    const round = await prisma.round.findUnique({
+      where: { id: roundId },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+      },
+    });
+
+    if (!round) {
+      throw new Error('Rodada não encontrada');
+    }
+
+    if (round.status === RoundStatus.CANCELLED) {
+      throw new Error('Rodada já está inativada');
+    }
+
+    if (round.status !== RoundStatus.DRAFT) {
+      throw new Error('Apenas rodadas em rascunho podem ser inativadas');
+    }
+
+    await prisma.round.update({
+      where: { id: roundId },
+      data: {
+        status: RoundStatus.CANCELLED,
+      },
+    });
+  }
+
   /**
    * Fecha oficialmente uma rodada e dispara apuração.
    *
