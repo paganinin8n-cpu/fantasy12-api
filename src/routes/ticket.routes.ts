@@ -22,6 +22,7 @@ router.post(
 //
 // GET /tickets — histórico paginado dos tickets do usuário
 //
+router.get('/tickets/current', authMiddleware, TicketController.current);
 router.get('/tickets', authMiddleware, TicketController.list);
 
 export default router;

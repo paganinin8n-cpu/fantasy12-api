@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { ConsumeBenefitsService } from '../benefits/consume-benefits.service'
 import { BetType } from '@prisma/client'
+import { AppError } from '../../errors/AppError'
 
 type CreateTicketInput = {
   userId: string
@@ -29,7 +30,10 @@ export class CreateTicketService {
       })
 
       if (!round || round.status !== 'OPEN') {
-        throw new Error('Round is not open')
+        throw AppError.badRequest(
+          'A rodada não está aberta para receber palpites.',
+          'round_not_open'
+        )
       }
 
       /**
@@ -38,14 +42,20 @@ export class CreateTicketService {
       const predictions = prediction.split(',')
 
       if (predictions.length !== 12) {
-        throw new Error('Prediction must contain 12 matches')
+        throw AppError.badRequest(
+          'O envio precisa conter os 12 jogos da rodada.',
+          'invalid_prediction_size'
+        )
       }
 
       /**
        * 3️⃣ Validar multipliers
        */
       if (!Array.isArray(multipliers) || multipliers.length !== 12) {
-        throw new Error('Multipliers must contain 12 positions')
+        throw AppError.badRequest(
+          'Os multiplicadores precisam informar as 12 posições.',
+          'invalid_multiplier_size'
+        )
       }
 
       /**
@@ -57,12 +67,32 @@ export class CreateTicketService {
       for (const m of multipliers) {
 
         if (![1,2,4].includes(m)) {
-          throw new Error('Invalid multiplier')
+          throw AppError.badRequest(
+            'Foi encontrado um multiplicador inválido no envio.',
+            'invalid_multiplier'
+          )
         }
 
         if (m === 2) doubles++
         if (m === 4) superDoubles++
 
+      }
+
+      const existingTicket = await tx.ticket.findUnique({
+        where: {
+          userId_roundId: {
+            userId,
+            roundId,
+          },
+        },
+        select: { id: true },
+      })
+
+      if (existingTicket) {
+        throw AppError.conflict(
+          'Você já enviou seus palpites para esta rodada.',
+          'ticket_already_exists'
+        )
       }
 
       /**
