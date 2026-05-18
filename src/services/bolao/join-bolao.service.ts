@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -7,6 +8,8 @@ type JoinBolaoInput = {
 
 export class JoinBolaoService {
   static async execute({ rankingId, userId }: JoinBolaoInput) {
+    await AssertActiveProUserService.execute(userId);
+
     return prisma.$transaction(async tx => {
       /**
        * 1️⃣ Buscar bolão com lock lógico

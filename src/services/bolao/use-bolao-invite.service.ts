@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { JoinBolaoService } from './join-bolao.service';
+import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
 
 type UseInviteInput = {
   code: string;
@@ -8,6 +9,8 @@ type UseInviteInput = {
 
 export class UseBolaoInviteService {
   static async execute({ code, userId }: UseInviteInput) {
+    await AssertActiveProUserService.execute(userId);
+
     return prisma.$transaction(async tx => {
       const invite = await tx.bolaoInvite.findUnique({
         where: { code },

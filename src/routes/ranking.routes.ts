@@ -33,7 +33,7 @@ router.get('/rankings/:rankingId', controller.show);
 //
 // 🔹 Entrada direta em bolão
 //
-router.post('/rankings/:rankingId/join', JoinBolaoController.handle);
+router.post('/rankings/:rankingId/join', authMiddleware, JoinBolaoController.handle);
 
 //
 // 🔹 Ranking de leitura do bolão
@@ -43,7 +43,7 @@ router.get('/rankings/:rankingId/bolao', BolaoRankingController.handle);
 //
 // 🔹 Convites de bolão
 //
-router.post('/rankings/:rankingId/invites', CreateBolaoInviteController.handle);
-router.post('/boloes/invites/:code/join', UseBolaoInviteController.handle);
+router.post('/rankings/:rankingId/invites', authMiddleware, CreateBolaoInviteController.handle);
+router.post('/boloes/invites/:code/join', authMiddleware, UseBolaoInviteController.handle);
 
 export default router;

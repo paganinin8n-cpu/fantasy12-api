@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
+import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
 
 type CreateInviteInput = {
   rankingId: string;
@@ -15,6 +16,8 @@ export class CreateBolaoInviteService {
     maxUses,
     expiresAt,
   }: CreateInviteInput) {
+    await AssertActiveProUserService.execute(createdByUserId);
+
     // validar ranking (bolão)
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
