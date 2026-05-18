@@ -1,5 +1,5 @@
 import { UserRepository } from "../repositories/user.repository";
-import { hasActiveProSubscription } from "../domain/subscription";
+import { hasActiveProSubscription, hasAnnualProSubscription } from "../domain/subscription";
 
 export class UserProfileService {
   private userRepository: UserRepository;
@@ -28,6 +28,7 @@ export class UserProfileService {
       phone: user.phone,
       role: user.role,
       isPro: hasActiveProSubscription(user.subscription),
+      isAnnualPro: hasAnnualProSubscription(user.subscription),
       subscription: user.subscription
         ? {
             status: user.subscription.status,

@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
-import { hasActiveProSubscription } from '../../domain/subscription';
+import { hasAnnualProSubscription } from '../../domain/subscription';
 import { AppError } from '../../errors/AppError';
 
 type CreateBolaoInput = {
@@ -22,7 +22,7 @@ export class CreateBolaoService {
     } = input;
 
     /**
-     * 1️⃣ Validar usuário PRO
+     * 1️⃣ Validar usuário PRO anual
      */
     const user = await prisma.user.findUnique({
       where: { id: createdByUserId },
@@ -31,6 +31,7 @@ export class CreateBolaoService {
         subscription: {
           select: {
             status: true,
+            plan: true,
             endAt: true,
           },
         },
@@ -41,10 +42,10 @@ export class CreateBolaoService {
       throw AppError.notFound('Usuário', 'user_not_found');
     }
 
-    if (!hasActiveProSubscription(user.subscription)) {
+    if (!hasAnnualProSubscription(user.subscription)) {
       throw AppError.forbidden(
-        'A criação de bolão é exclusiva para usuários com assinatura PRO ativa.',
-        'pro_subscription_required'
+        'A criação de bolão é exclusiva para usuários com assinatura PRO anual ativa.',
+        'annual_pro_subscription_required'
       );
     }
 

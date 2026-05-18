@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma';
-import { hasActiveProSubscription } from '../../domain/subscription';
+import { hasActiveProSubscription, hasAnnualProSubscription } from '../../domain/subscription';
 
 export class GetSubscriptionStatusService {
   static async execute(userId: string) {
@@ -16,14 +16,17 @@ export class GetSubscriptionStatusService {
     if (!subscription) {
       return {
         isPro: false,
+        isAnnualPro: false,
         subscription: null,
       };
     }
 
     const isPro = hasActiveProSubscription(subscription);
+    const isAnnualPro = hasAnnualProSubscription(subscription);
 
     return {
       isPro,
+      isAnnualPro,
       subscription: {
         plan: subscription.plan,
         status: subscription.status,
