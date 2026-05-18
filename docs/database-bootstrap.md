@@ -73,3 +73,19 @@ Por isso:
 
 - `migrate deploy` é apropriado para bancos que já nasceram nesse histórico
 - `db push` é o caminho seguro para um banco realmente novo, até a baseline definitiva ser reorganizada
+
+## Baseline canônica do schema atual
+
+Também mantemos uma baseline fresh gerada diretamente do `schema.prisma` em:
+
+- `/Users/roberson/dev/personal/fantasy12-api/prisma/baselines/current-fresh-schema.sql`
+
+Para regenerar:
+
+```sh
+npm run prisma:baseline:fresh:generate
+```
+
+Para o racional detalhado da auditoria da cadeia histórica, veja:
+
+- `/Users/roberson/dev/personal/fantasy12-api/docs/migration-chain-audit.md`

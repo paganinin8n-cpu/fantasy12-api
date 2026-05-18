@@ -93,11 +93,12 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Em andamento`
 
 Tarefas:
 
-- criar baseline real para banco vazio
+- manter baseline fresh canônica versionada
+- auditar a trilha histórica e documentar pontos de quebra
 - impedir que migrations historicas quebrem ambiente novo
 - definir processo seguro de evolucao de schema
 
