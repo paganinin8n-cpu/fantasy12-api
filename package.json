@@ -11,6 +11,7 @@
     "prisma:migrate:status": "npx prisma migrate status",
     "prisma:migrate:diagnose:bolao": "node scripts/diagnose-bolao-migration.js",
     "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:migrate:audit:chain": "node scripts/audit-migration-chain.js",
     "prisma:db:push": "npx prisma db push",
     "prisma:baseline:fresh:generate": "mkdir -p prisma/baselines && npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/baselines/current-fresh-schema.sql",
     "prisma:bootstrap:fresh": "npm run build && node scripts/bootstrap-database.js",

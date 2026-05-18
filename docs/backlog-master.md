@@ -99,6 +99,7 @@ Tarefas:
 
 - manter baseline fresh canônica versionada
 - auditar a trilha histórica e documentar pontos de quebra
+- preparar plano de corte para baseline Prisma definitiva
 - impedir que migrations historicas quebrem ambiente novo
 - definir processo seguro de evolucao de schema
 

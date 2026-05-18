@@ -89,3 +89,13 @@ npm run prisma:baseline:fresh:generate
 Para o racional detalhado da auditoria da cadeia histórica, veja:
 
 - `/Users/roberson/dev/personal/fantasy12-api/docs/migration-chain-audit.md`
+
+Para rodar a auditoria automatizada da cadeia:
+
+```sh
+npm run prisma:migrate:audit:chain
+```
+
+Para o plano de conversao futura para uma baseline Prisma definitiva:
+
+- `/Users/roberson/dev/personal/fantasy12-api/docs/migration-baseline-plan.md`
