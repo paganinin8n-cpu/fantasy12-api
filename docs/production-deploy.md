@@ -21,6 +21,41 @@ Em vez disso:
 - o boot da API sobe normalmente
 - migrations ficam controladas por `RUN_DB_MIGRATIONS=true` ou por execução manual no console
 
+## Estratégia oficial de banco
+
+Hoje o projeto tem dois cenários diferentes:
+
+### 1. Ambiente novo, banco vazio
+
+Fluxo oficial:
+
+```sh
+npm run prisma:bootstrap:fresh
+```
+
+Esse comando:
+
+- valida se o banco esta realmente vazio
+- aplica `prisma db push`
+- roda `seed:admin-permissions`
+- roda `seed:app`
+
+Isso evita depender da trilha historica de migrations, que ainda nao sobe um banco novo de ponta a ponta com segurança.
+
+### 2. Ambiente existente
+
+Fluxo oficial:
+
+- subir a API com `RUN_DB_MIGRATIONS=false`
+- diagnosticar o estado da trilha existente
+- resolver migrations quebradas
+- só então rodar `prisma migrate deploy`
+
+Em resumo:
+
+- banco novo: `db push + seeds`
+- banco existente: `migrate resolve/deploy`
+
 ## Variáveis recomendadas no EasyPanel
 
 ### API
@@ -43,8 +78,9 @@ RUN_DB_MIGRATIONS=false
 
 1. subir o Postgres
 2. subir a API com `RUN_DB_MIGRATIONS=false`
-3. abrir o console da API no EasyPanel
-4. diagnosticar o estado das migrations
+3. se for banco novo, rodar `npm run prisma:bootstrap:fresh`
+4. se for banco existente, abrir o console da API no EasyPanel
+5. diagnosticar o estado das migrations
 
 ## Observação importante sobre autenticação
 
@@ -110,6 +146,15 @@ npm run prisma:migrate:deploy
 - a migration só ficou marcada como falha em `_prisma_migrations`
 
 ## Fluxo recomendado
+
+### Banco novo
+
+1. API sobe com `RUN_DB_MIGRATIONS=false`
+2. você roda `npm run prisma:bootstrap:fresh`
+3. valida `/health`
+4. valida login e seeds iniciais
+
+### Banco existente
 
 1. API sobe com `RUN_DB_MIGRATIONS=false`
 2. você roda `npm run prisma:migrate:diagnose:bolao`
