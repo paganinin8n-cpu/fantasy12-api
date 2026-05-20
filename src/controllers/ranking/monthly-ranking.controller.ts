@@ -45,19 +45,22 @@ export class MonthlyRankingController {
 
       const ranking = scope === 'pro' ? proRanking ?? globalRanking : globalRanking;
 
-      if (!ranking) {
-        return res.json({
-          ranking: null,
-          participants: [],
-          me: null,
-          scope,
-        });
-      }
-
-      const refDate = ranking.startDate ?? new Date();
+      const refDate = ranking?.startDate ?? new Date();
       const year = refDate.getUTCFullYear();
       const month = String(refDate.getUTCMonth() + 1).padStart(2, '0');
       const periodRef = `${year}-${month}`;
+
+      const rankingPayload =
+        ranking ??
+        ({
+          id: `monthly-${scope}-${periodRef}`,
+          name: scope === 'pro' ? 'Ranking PRO Mensal' : 'Ranking Geral Mensal',
+          type: scope === 'pro' ? 'PRO' : 'GLOBAL',
+          status: 'ACTIVE',
+          startDate: new Date(Date.UTC(year, Number(month) - 1, 1)),
+          endDate: null,
+          createdAt: new Date(),
+        } as const);
 
       const snapshots = await prisma.rankingSnapshot.findMany({
         where: {
@@ -154,7 +157,7 @@ export class MonthlyRankingController {
         : null;
 
       return res.json({
-        ranking,
+        ranking: rankingPayload,
         participants: ranked.slice(0, 10),
         me,
         scope,
