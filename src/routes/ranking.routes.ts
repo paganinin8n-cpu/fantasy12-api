@@ -8,6 +8,7 @@ import { BolaoRankingController } from '../controllers/bolao/bolao-ranking.contr
 import { CreateBolaoInviteController } from '../controllers/bolao/create-bolao-invite.controller';
 import { UseBolaoInviteController } from '../controllers/bolao/use-bolao-invite.controller';
 import { ListUserBoloesController } from '../controllers/bolao/list-user-boloes.controller';
+import { ListAvailableBoloesController } from '../controllers/bolao/list-available-boloes.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -24,6 +25,7 @@ router.get('/rankings/weekly', WeeklyRankingController.handle);
 // 🔹 Bolões do usuário autenticado
 //
 router.get('/boloes/me', authMiddleware, ListUserBoloesController.handle);
+router.get('/boloes/available', authMiddleware, ListAvailableBoloesController.handle);
 
 //
 // 🔹 Ranking genérico por ID (SEMPRE POR ÚLTIMO)
