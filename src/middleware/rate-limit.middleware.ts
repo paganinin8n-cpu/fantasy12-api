@@ -29,6 +29,21 @@ export const loginRateLimiter = rateLimit({
 })
 
 /**
+ * 🔑 Recuperação de senha: mais permissivo que login para não bloquear suporte.
+ */
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10 * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_password_reset_requests',
+    message:
+      'Muitas solicitações de recuperação de senha. Aguarde alguns minutos.',
+  },
+})
+
+/**
  * 💸 Pagamento: 10 criações de pagamento por minuto por IP
  */
 export const paymentRateLimiter = rateLimit({

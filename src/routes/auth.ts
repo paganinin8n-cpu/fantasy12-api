@@ -7,7 +7,10 @@ import {
   RequestPasswordResetSchema,
   ResetPasswordSchema,
 } from '../validators/password-reset.validator'
-import { loginRateLimiter } from '../middleware/rate-limit.middleware'
+import {
+  loginRateLimiter,
+  passwordResetRateLimiter,
+} from '../middleware/rate-limit.middleware'
 
 const router = Router()
 
@@ -29,14 +32,14 @@ router.post(
  */
 router.post(
   '/forgot-password',
-  loginRateLimiter,
+  passwordResetRateLimiter,
   validateRequest(RequestPasswordResetSchema),
   PasswordResetController.request
 )
 
 router.post(
   '/reset-password',
-  loginRateLimiter,
+  passwordResetRateLimiter,
   validateRequest(ResetPasswordSchema),
   PasswordResetController.confirm
 )
