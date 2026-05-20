@@ -1,19 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../lib/prisma';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 export class MonthlyRankingController {
   static async handle(req: Request, res: Response, next: NextFunction) {
     try {
-      /**
-       * 🔹 1. Usuário autenticado
-       * Middleware de auth já garantiu req.user
-       */
-      const userId = (req as any).user?.id;
+      const userId = (req.session as any)?.user?.id ?? null;
+      const scope = req.query.scope === 'pro' ? 'pro' : 'general';
 
-      /**
-       * 🔹 2. Buscar ranking mensal ativo (GLOBAL)
-       */
-      const ranking = await prisma.ranking.findFirst({
+      const globalRanking = await prisma.ranking.findFirst({
         where: {
           type: 'GLOBAL',
           status: 'ACTIVE',
@@ -29,67 +24,140 @@ export class MonthlyRankingController {
         },
       });
 
-      /**
-       * 🔹 3. Se não existir ranking ativo
-       */
+      const proRanking =
+        scope === 'pro'
+          ? await prisma.ranking.findFirst({
+              where: {
+                type: 'PRO',
+                status: 'ACTIVE',
+              },
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                status: true,
+                startDate: true,
+                endDate: true,
+                createdAt: true,
+              },
+            })
+          : null;
+
+      const ranking = scope === 'pro' ? proRanking ?? globalRanking : globalRanking;
+
       if (!ranking) {
         return res.json({
           ranking: null,
           participants: [],
           me: null,
+          scope,
         });
       }
 
-      /**
-       * 🔹 4. Determinar periodRef (YYYY-MM)
-       * Usa startDate do ranking como referência
-       */
       const refDate = ranking.startDate ?? new Date();
       const year = refDate.getUTCFullYear();
       const month = String(refDate.getUTCMonth() + 1).padStart(2, '0');
       const periodRef = `${year}-${month}`;
 
-      /**
-       * 🔹 5. Buscar snapshot do usuário autenticado
-       * Leitura pura, sem ordenação, sem cálculo
-       */
-      let me = null;
-
-      if (userId) {
-        const snapshot = await prisma.rankingSnapshot.findFirst({
-          where: {
-            userId,
-            snapshotType: 'GLOBAL',
-            periodRef,
+      const snapshots = await prisma.rankingSnapshot.findMany({
+        where: {
+          periodRef,
+          snapshotType: 'GLOBAL',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          userId: true,
+          scoreTotal: true,
+          scoreRound: true,
+          createdAt: true,
+          user: {
+            select: {
+              name: true,
+              subscription: {
+                select: {
+                  status: true,
+                  plan: true,
+                  endAt: true,
+                },
+              },
+            },
           },
-          select: {
-            position: true,
-            scoreTotal: true,
-          },
-        });
+        },
+      });
 
-        if (snapshot) {
-          me = {
-            isParticipant: true,
-            position: snapshot.position,
-            score: snapshot.scoreTotal,
-          };
-        } else {
-          me = {
-            isParticipant: false,
-            position: null,
-            score: null,
-          };
+      const latestByUser = new Map<
+        string,
+        {
+          userId: string;
+          userName: string;
+          scoreTotal: number;
+          scoreRound: number;
+          isPro: boolean;
         }
+      >();
+
+      for (const snapshot of snapshots) {
+        if (latestByUser.has(snapshot.userId)) continue;
+
+        latestByUser.set(snapshot.userId, {
+          userId: snapshot.userId,
+          userName: snapshot.user.name,
+          scoreTotal: snapshot.scoreTotal,
+          scoreRound: snapshot.scoreRound,
+          isPro: hasActiveProSubscription(snapshot.user.subscription),
+        });
       }
 
-      /**
-       * 🔹 6. Payload final (incremental e compatível)
-       */
+      const consolidated = Array.from(latestByUser.values())
+        .filter(item => (scope === 'pro' ? item.isPro : true))
+        .sort((a, b) => {
+          if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
+          if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound;
+          return a.userId.localeCompare(b.userId);
+        });
+
+      let position = 1;
+      let lastScoreTotal: number | null = null;
+      let lastScoreRound: number | null = null;
+      let index = 0;
+
+      const ranked = consolidated.map(item => {
+        index += 1;
+        if (
+          lastScoreTotal !== null &&
+          (item.scoreTotal !== lastScoreTotal || item.scoreRound !== lastScoreRound)
+        ) {
+          position = index;
+        }
+
+        lastScoreTotal = item.scoreTotal;
+        lastScoreRound = item.scoreRound;
+
+        return {
+          userId: item.userId,
+          userName: item.userName,
+          points: item.scoreTotal,
+          position,
+          isPro: item.isPro,
+        };
+      });
+
+      const meEntry = userId ? ranked.find(item => item.userId === userId) ?? null : null;
+      const me = userId
+        ? {
+            isParticipant: !!meEntry,
+            position: meEntry?.position ?? null,
+            score: meEntry?.points ?? null,
+          }
+        : null;
+
       return res.json({
         ranking,
-        participants: [],
+        participants: ranked.slice(0, 10),
         me,
+        scope,
       });
     } catch (err) {
       next(err);

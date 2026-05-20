@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express'
 import { RequestPasswordResetService } from '../services/auth/request-password-reset.service'
 import { ResetPasswordService } from '../services/auth/reset-password.service'
-import { sendPasswordResetEmail } from '../lib/email'
+import { isEmailPreviewMode, sendPasswordResetEmail } from '../lib/email'
+import crypto from 'crypto'
 
 const PASSWORD_RESET_TTL_MIN = 30
 
@@ -39,10 +40,18 @@ export class PasswordResetController {
         }
       }
 
+      const baseUrl =
+        process.env.FRONTEND_ORIGIN?.split(',')[0]?.trim() ??
+        'http://localhost:5173'
+      const previewToken = rawToken ?? crypto.randomBytes(32).toString('hex')
+      const previewResetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(previewToken)}`
+
       return res.status(200).json({
         ok: true,
         message:
           'Se este email estiver cadastrado, você receberá instruções em alguns minutos.',
+        previewMode: isEmailPreviewMode(),
+        previewResetUrl: isEmailPreviewMode() ? previewResetUrl : null,
       })
     } catch (err) {
       return next(err)

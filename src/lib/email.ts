@@ -39,6 +39,10 @@ class ConsoleEmailService implements EmailService {
   }
 }
 
+export function isEmailPreviewMode() {
+  return emailService instanceof ConsoleEmailService
+}
+
 /**
  * Singleton — em produção, plugar provedor real.
  *
