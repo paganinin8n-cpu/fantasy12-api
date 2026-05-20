@@ -19,12 +19,12 @@ Transformar as sugestões do PDF em uma matriz prática para execução no Fanta
 | Exibir rodada no formato `001` com status visível e cor forte | Implementado | P1 | Frontend | O dashboard público já destaca a rodada ativa no formato `001` com badge de status. |
 | Botão do palpite com copy mais forte, ex.: `Bora Mister!` | Implementado | P3 | Frontend / Copy | A home já usa CTA com esse tom sem perder a clareza funcional. |
 | Classificação mensal `Geral` e `PRO`, mostrando top 10 e posição do usuário | Implementado | P1 | Backend / Frontend | O contrato público já expõe `scope=general|pro` e o dashboard alterna entre as duas leituras. |
-| Após finalizar o bilhete, mudar estado visual do botão e abrir visualização sem edição | Implementado | P1 | Frontend | O fluxo já troca a ação principal e entra em revisão do envio sem permitir reenvio cego. |
+| Após finalizar o envio, mudar estado visual do botão e abrir visualização sem edição | Implementado | P1 | Frontend | O fluxo já troca a ação principal e entra em revisão do envio sem permitir reenvio cego. |
 | Depois do ranking, exibir botão do Bar | Implementado | P2 | Frontend | O dashboard já organiza a hierarquia com ranking seguido por Bar. |
 | Mostrar bolões do usuário e bolões disponíveis para entrar | Implementado | P1 | Frontend / Backend | A página de bolões agora separa `Meus bolões` e `Disponíveis para entrar`, com entrada direta e por convite. |
 | Menu superior direito com ações do perfil PRO | Implementado | P2 | Frontend | O header já tem menu com perfil, assinatura PRO, palpites, bar, bolões e administração. |
 | Tela dos palpites finalizada sem opção de editar, só visual | Implementado | P1 | Frontend | O ticket carregado entra em modo de revisão visual depois do envio. |
-| Remover palavras ligadas a `aposta/apostar` | Parcial | P1 | Frontend / Conteúdo | O fluxo ativo já usa `palpite/palpites`, mas ainda vale uma passada final em FAQ e conteúdo institucional legado. |
+| Remover palavras ligadas a `aposta/apostar` | Implementado no fluxo ativo | P1 | Frontend / Conteúdo | O produto ativo já usa `palpite/palpites`; restam apenas menções históricas em documentação de análise e rotas legadas. |
 | Recuperação de login não funciona | Implementado | P0 | Backend / Frontend / Infra | O fluxo agora responde em produção com preview funcional e reset assinado mesmo sem tabela de tokens íntegra. |
 | Pensar em botão voltar nas telas | Implementado | P2 | Frontend / UX | Auth, ticket, bar, bolões, histórico e perfil já receberam retorno explícito. |
 
@@ -38,7 +38,7 @@ Estas sugestões conversam diretamente com a direção já consolidada do produt
 - visualização final dos palpites sem edição
 - reforço visual da rodada ativa
 - organização melhor de bolões e bar
-- remoção da linguagem de `aposta`
+- remoção da linguagem de `aposta` no produto ativo
 
 ### Sugestões que apontam bug real ou risco real
 
@@ -67,9 +67,9 @@ Estas são boas, mas não travam uso real:
 
 ### Curto prazo
 
-1. revisar todos os textos restantes para remover linguagem de `aposta`;
-2. enriquecer o ranking mensal com participantes reais e posição do usuário assim que houver snapshots do período;
-3. evoluir bolões com ranking interno e descoberta mais rica conforme a base crescer.
+1. enriquecer o ranking mensal com participantes reais e posição do usuário assim que houver snapshots do período;
+2. evoluir bolões com ranking interno e descoberta mais rica conforme a base crescer;
+3. revisar apenas documentação histórica e rotas legadas que ainda mencionem a nomenclatura antiga.
 
 ### Médio prazo
 

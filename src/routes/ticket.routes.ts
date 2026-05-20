@@ -9,7 +9,7 @@ const router = Router();
 
 //
 // POST /tickets
-// Criação / atualização de bilhete com monetização integrada
+// Criação / atualização de palpites com monetização integrada
 //
 router.post(
   '/tickets',

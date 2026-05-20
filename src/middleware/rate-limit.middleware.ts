@@ -67,7 +67,7 @@ export const ticketRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     error: 'too_many_ticket_requests',
-    message: 'Você está enviando bilhetes muito rápido. Aguarde um instante.',
+    message: 'Você está enviando palpites muito rápido. Aguarde um instante.',
   },
 })
 

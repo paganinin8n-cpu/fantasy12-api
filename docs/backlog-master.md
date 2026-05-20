@@ -207,7 +207,7 @@ Referencia:
 Tarefas:
 
 - refazer a tela de ticket como experiencia mobile-first
-- destacar bilhete gratis ativo
+- destacar palpite gratis ativo
 - destacar duplas e super duplas gratis e pagas
 - explicitar progresso da selecao
 - melhorar CTA final

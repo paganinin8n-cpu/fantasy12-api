@@ -37,7 +37,7 @@ Rotas em uso:
 - `/login`
 - `/`
 - `/dashboard`
-- `/betting`
+- rota legada `/betting`
 - `/wallet`
 - `/payments`
 - `/subscription`
@@ -47,7 +47,7 @@ Rotas em uso:
 
 Observação:
 
-- `betting` foi redirecionado para o fluxo de `TicketPage`
+- a rota legada `betting` foi redirecionada para o fluxo de `TicketPage`
 
 ## Consumo real de API no fluxo ativo
 
