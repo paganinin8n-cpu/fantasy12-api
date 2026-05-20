@@ -18,6 +18,7 @@ Hoje já temos:
 
 - bootstrap seguro para banco vazio
 - baseline canônica em `prisma/baselines/current-fresh-schema.sql`
+- verificação automatizada da baseline com `npm run prisma:baseline:fresh:verify`
 - auditoria da cadeia histórica em `docs/migration-chain-audit.md`
 
 Isso já resolve operação, mas ainda não resolve elegância histórica da trilha.

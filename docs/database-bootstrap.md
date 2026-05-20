@@ -86,6 +86,12 @@ Para regenerar:
 npm run prisma:baseline:fresh:generate
 ```
 
+Para verificar se a baseline versionada ainda bate com o `schema.prisma`:
+
+```sh
+npm run prisma:baseline:fresh:verify
+```
+
 Para o racional detalhado da auditoria da cadeia histórica, veja:
 
 - `/Users/roberson/dev/personal/fantasy12-api/docs/migration-chain-audit.md`
