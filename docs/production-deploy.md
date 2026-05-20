@@ -151,16 +151,33 @@ npm run prisma:migrate:deploy
 
 1. API sobe com `RUN_DB_MIGRATIONS=false`
 2. você roda `npm run prisma:bootstrap:fresh`
+3. se houve mudança recente de schema, valide antes com `npm run prisma:schema:release:check`
 3. valida `/health`
 4. valida login e seeds iniciais
 
 ### Banco existente
 
 1. API sobe com `RUN_DB_MIGRATIONS=false`
+2. se houve mudança recente de schema, valide antes com `npm run prisma:schema:release:check`
 2. você roda `npm run prisma:migrate:diagnose:bolao`
 3. você resolve o estado das migrations pelo console
 4. roda `npm run prisma:migrate:deploy`
 5. se tudo estiver consistente, opcionalmente muda `RUN_DB_MIGRATIONS=true` nos próximos deploys
+
+## Checklist curto para release de schema
+
+Sempre que mexer em `schema.prisma` ou baseline:
+
+```sh
+npm run prisma:schema:release:check
+```
+
+Se a baseline ficar defasada:
+
+```sh
+npm run prisma:baseline:fresh:generate
+npm run prisma:baseline:fresh:verify
+```
 
 ## Observação importante
 

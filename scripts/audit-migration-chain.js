@@ -28,6 +28,7 @@ function collectMatches(regex, source) {
 }
 
 function main() {
+  const reportOnly = process.argv.includes('--report-only');
   const directories = readMigrationDirectories();
   const findings = [];
   const createdTables = new Set();
@@ -143,7 +144,7 @@ function main() {
     console.log(`${prefix} ${finding.migration}: ${finding.message}`);
   });
 
-  if (errors.length > 0) {
+  if (errors.length > 0 && !reportOnly) {
     process.exitCode = 1;
   }
 }

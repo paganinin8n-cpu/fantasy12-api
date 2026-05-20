@@ -102,6 +102,16 @@ Para rodar a auditoria automatizada da cadeia:
 npm run prisma:migrate:audit:chain
 ```
 
+Para rodar a mesma auditoria em modo apenas informativo:
+
+```sh
+npm run prisma:migrate:audit:chain:report
+```
+
 Para o plano de conversao futura para uma baseline Prisma definitiva:
 
 - `/Users/roberson/dev/personal/fantasy12-api/docs/migration-baseline-plan.md`
+
+Para o checklist operacional de mudança de schema:
+
+- `/Users/roberson/dev/personal/fantasy12-api/docs/schema-change-checklist.md`
