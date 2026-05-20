@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../lib/prisma';
 import { hasActiveProSubscription } from '../../domain/subscription';
+import { BuildMonthlyRankingFromHistoryService } from '../../services/ranking/build-monthly-ranking-from-history.service';
 
 export class MonthlyRankingController {
   static async handle(req: Request, res: Response, next: NextFunction) {
@@ -113,13 +114,27 @@ export class MonthlyRankingController {
         });
       }
 
-      const consolidated = Array.from(latestByUser.values())
-        .filter(item => (scope === 'pro' ? item.isPro : true))
-        .sort((a, b) => {
-          if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
-          if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound;
-          return a.userId.localeCompare(b.userId);
-        });
+      const consolidated =
+        latestByUser.size > 0
+          ? Array.from(latestByUser.values())
+              .filter(item => (scope === 'pro' ? item.isPro : true))
+              .sort((a, b) => {
+                if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
+                if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound;
+                return a.userId.localeCompare(b.userId);
+              })
+          : (
+              await BuildMonthlyRankingFromHistoryService.execute({
+                periodRef,
+                scope,
+              })
+            ).map(item => ({
+              userId: item.userId,
+              userName: item.userName,
+              scoreTotal: item.monthlyPoints,
+              scoreRound: item.lastRoundPoints,
+              isPro: item.isPro,
+            }));
 
       let position = 1;
       let lastScoreTotal: number | null = null;

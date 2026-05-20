@@ -20,7 +20,8 @@ export class SnapshotRankingService {
         select: {
           id: true,
           status: true,
-          number: true
+          number: true,
+          updatedAt: true,
         }
       })
 
@@ -31,6 +32,11 @@ export class SnapshotRankingService {
       if (round.status !== 'SCORED') {
         throw new Error('Snapshot can only be generated for SCORED rounds')
       }
+
+      const periodRef = [
+        round.updatedAt.getUTCFullYear(),
+        String(round.updatedAt.getUTCMonth() + 1).padStart(2, '0'),
+      ].join('-')
 
       /**
        * 2️⃣ idempotência
@@ -153,7 +159,7 @@ export class SnapshotRankingService {
           scoreRound: row.scoreRound,
           position: currentPosition,
           snapshotType: 'GLOBAL',
-          periodRef: null
+          periodRef
         }
 
       })
