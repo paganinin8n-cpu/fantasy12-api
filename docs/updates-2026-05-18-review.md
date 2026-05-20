@@ -16,17 +16,17 @@ Transformar as sugestões do PDF em uma matriz prática para execução no Fanta
 
 | Sugestão do PDF | Status atual | Prioridade | Área | Observação |
 |---|---|---:|---|---|
-| Exibir rodada no formato `001` com status visível e cor forte | Parcial | P1 | Frontend | O dashboard já mostra rodada e status, mas ainda não no formato “placa operacional” com forte destaque visual. |
-| Botão do palpite com copy mais forte, ex.: `Bora Mister!` | Não iniciado | P3 | Frontend / Copy | Faz sentido como tom de produto, mas deve ser usado com cuidado para não competir com a copy funcional principal. |
-| Classificação mensal `Geral` e `PRO`, mostrando top 10 e posição do usuário | Parcial | P1 | Backend / Frontend | Está alinhado com a direção do produto, mas ainda precisa revisão explícita da implementação final. |
-| Após finalizar o bilhete, mudar estado visual do botão e abrir visualização sem edição | Parcial | P1 | Frontend | O fluxo já carrega ticket enviado em modo de revisão, mas ainda cabe refinamento visual/comportamental. |
-| Depois do ranking, exibir botão do Bar | Não iniciado | P2 | Frontend | É uma decisão de hierarquia da home/dashboard. |
-| Mostrar bolões do usuário e bolões disponíveis para entrar | Parcial | P1 | Frontend / Backend | A área de bolões já existe, mas ainda precisa melhorar descoberta e separação entre “meus” e “disponíveis”. |
-| Menu superior direito com ações do perfil PRO | Não iniciado | P2 | Frontend | Faz sentido para organizar melhor navegação e recursos premium. |
-| Tela dos palpites finalizada sem opção de editar, só visual | Parcial | P1 | Frontend | Já existe revisão sem reenvio automático, mas ainda pode evoluir como tela final dedicada. |
-| Remover palavras ligadas a `aposta/apostar` | Parcial | P1 | Frontend / Conteúdo | As telas principais já caminharam para `palpite/palpites`, mas ainda vale revisão final em FAQ, conteúdos institucionais e bordas do produto. |
-| Recuperação de login não funciona | Não validado / provável bug operacional | P0 | Backend / Frontend / Infra | A feature existe no código e nas rotas. O ponto provável é integração de email/ambiente, não ausência de implementação. |
-| Pensar em botão voltar nas telas | Não iniciado | P2 | Frontend / UX | Boa melhoria transversal, especialmente para auth, ticket, bar, bolões e histórico. |
+| Exibir rodada no formato `001` com status visível e cor forte | Implementado | P1 | Frontend | O dashboard público já destaca a rodada ativa no formato `001` com badge de status. |
+| Botão do palpite com copy mais forte, ex.: `Bora Mister!` | Implementado | P3 | Frontend / Copy | A home já usa CTA com esse tom sem perder a clareza funcional. |
+| Classificação mensal `Geral` e `PRO`, mostrando top 10 e posição do usuário | Implementado | P1 | Backend / Frontend | O contrato público já expõe `scope=general|pro` e o dashboard alterna entre as duas leituras. |
+| Após finalizar o bilhete, mudar estado visual do botão e abrir visualização sem edição | Implementado | P1 | Frontend | O fluxo já troca a ação principal e entra em revisão do envio sem permitir reenvio cego. |
+| Depois do ranking, exibir botão do Bar | Implementado | P2 | Frontend | O dashboard já organiza a hierarquia com ranking seguido por Bar. |
+| Mostrar bolões do usuário e bolões disponíveis para entrar | Implementado | P1 | Frontend / Backend | A página de bolões agora separa `Meus bolões` e `Disponíveis para entrar`, com entrada direta e por convite. |
+| Menu superior direito com ações do perfil PRO | Implementado | P2 | Frontend | O header já tem menu com perfil, assinatura PRO, palpites, bar, bolões e administração. |
+| Tela dos palpites finalizada sem opção de editar, só visual | Implementado | P1 | Frontend | O ticket carregado entra em modo de revisão visual depois do envio. |
+| Remover palavras ligadas a `aposta/apostar` | Parcial | P1 | Frontend / Conteúdo | O fluxo ativo já usa `palpite/palpites`, mas ainda vale uma passada final em FAQ e conteúdo institucional legado. |
+| Recuperação de login não funciona | Implementado | P0 | Backend / Frontend / Infra | O fluxo agora responde em produção com preview funcional e reset assinado mesmo sem tabela de tokens íntegra. |
+| Pensar em botão voltar nas telas | Implementado | P2 | Frontend / UX | Auth, ticket, bar, bolões, histórico e perfil já receberam retorno explícito. |
 
 ## Leitura Consolidada
 
@@ -67,20 +67,15 @@ Estas são boas, mas não travam uso real:
 
 ### Curto prazo
 
-1. validar a recuperação de senha ponta a ponta;
-2. revisar o dashboard para destacar rodada, status e ranking mensal;
-3. fechar a visualização final do envio já concluído;
-4. revisar todos os textos restantes para remover linguagem de `aposta`.
+1. revisar todos os textos restantes para remover linguagem de `aposta`;
+2. enriquecer o ranking mensal com participantes reais e posição do usuário assim que houver snapshots do período;
+3. evoluir bolões com ranking interno e descoberta mais rica conforme a base crescer.
 
 ### Médio prazo
 
-1. reorganizar a home/dashboard com a ordem:
-   - rodada ativa
-   - classificação mensal
-   - bar
-   - bolões
-2. evoluir o menu superior do perfil PRO;
-3. adicionar padrões de navegação com botão voltar onde fizer sentido.
+1. consolidar conteúdo institucional e FAQ com a nova linguagem do produto;
+2. evoluir bolões com superfícies próprias de detalhe e ranking interno;
+3. adicionar componentes de navegação reutilizáveis para manter o padrão de retorno entre telas.
 
 ## Relação Com O Backlog Mestre
 
