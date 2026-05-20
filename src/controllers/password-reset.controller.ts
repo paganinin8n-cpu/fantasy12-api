@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express'
 import { RequestPasswordResetService } from '../services/auth/request-password-reset.service'
 import { ResetPasswordService } from '../services/auth/reset-password.service'
+import { FindUserByEmailService } from '../services/auth/find-user-by-email.service'
+import { PasswordResetTokenService } from '../services/auth/password-reset-token.service'
 import { isEmailPreviewMode, sendPasswordResetEmail } from '../lib/email'
 import crypto from 'crypto'
 
@@ -15,14 +17,32 @@ export class PasswordResetController {
   static async request(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body
-      const { rawToken } = await RequestPasswordResetService.execute({ email })
+      const baseUrl =
+        process.env.FRONTEND_ORIGIN?.split(',')[0]?.trim() ??
+        'http://localhost:5173'
+      const knownUser = await FindUserByEmailService.execute(email)
+
+      let rawToken: string | null = null
+
+      try {
+        const result = await RequestPasswordResetService.execute({ email })
+        rawToken = result.rawToken
+      } catch (tokenErr) {
+        ;(req as any).log?.warn(
+          { err: tokenErr, email },
+          'Falha ao persistir token de reset; usando fallback stateless'
+        )
+      }
+
+      if (!rawToken && knownUser) {
+        rawToken = PasswordResetTokenService.sign({
+          userId: knownUser.id,
+          email: knownUser.email,
+        })
+      }
 
       if (rawToken) {
         // Monta a URL apontando para a tela /reset-password do frontend.
-        const baseUrl =
-          process.env.FRONTEND_ORIGIN?.split(',')[0]?.trim() ??
-          'http://localhost:5173'
-
         const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(rawToken)}`
 
         // Envio é best-effort — não bloqueia/expõe o pedido em caso de falha SMTP.
@@ -40,10 +60,12 @@ export class PasswordResetController {
         }
       }
 
-      const baseUrl =
-        process.env.FRONTEND_ORIGIN?.split(',')[0]?.trim() ??
-        'http://localhost:5173'
-      const previewToken = rawToken ?? crypto.randomBytes(32).toString('hex')
+      const previewToken =
+        rawToken ??
+        PasswordResetTokenService.sign({
+          userId: knownUser?.id ?? 'preview-user',
+          email: knownUser?.email ?? email.toLowerCase(),
+        })
       const previewResetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(previewToken)}`
 
       return res.status(200).json({
