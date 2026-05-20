@@ -1,141 +1,154 @@
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma'
 
-type BolaoRankingItem = {
-  userId: string;
-  scoreTotal: number;
-  scoreRound: number;
-};
+type ExecuteInput = {
+  rankingId: string
+  viewerUserId?: string
+}
 
 export class GetBolaoRankingService {
-  static async execute(rankingId: string) {
-    /**
-     * 1️⃣ Buscar ranking (bolão)
-     */
+  static async execute({ rankingId, viewerUserId }: ExecuteInput) {
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
       select: {
         id: true,
+        name: true,
+        description: true,
         type: true,
         status: true,
         startDate: true,
         endDate: true,
-      },
-    });
-
-    if (!ranking) {
-      throw new Error('Bolão not found');
-    }
-
-    if (ranking.type !== 'BOLAO') {
-      throw new Error('Ranking is not a bolão');
-    }
-
-    if (ranking.status === 'DRAFT') {
-      throw new Error('Bolão is not active yet');
-    }
-
-    if (!ranking.startDate || !ranking.endDate) {
-      throw new Error('Bolão dates are not defined');
-    }
-
-    /**
-     * 2️⃣ Buscar participantes do bolão
-     */
-    const participants = await prisma.rankingParticipant.findMany({
-      where: { rankingId },
-      select: { userId: true },
-    });
-
-    if (participants.length === 0) {
-      return [];
-    }
-
-    const participantIds = participants.map(p => p.userId);
-
-    /**
-     * 3️⃣ Buscar snapshots válidos no período do bolão
-     */
-    const snapshots = await prisma.rankingSnapshot.findMany({
-      where: {
-        userId: { in: participantIds },
-        round: {
-          closeAt: {
-            gte: ranking.startDate,
-            lte: ranking.endDate,
+        maxParticipants: true,
+        currentParticipants: true,
+        createdByUserId: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            email: true,
           },
         },
       },
-      select: {
-        userId: true,
-        scoreTotal: true,
-        scoreRound: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    })
 
-    if (snapshots.length === 0) {
-      return [];
+    if (!ranking) {
+      throw new Error('Bolão not found')
     }
 
-    /**
-     * 4️⃣ Consolidar último snapshot por usuário
-     */
-    const latestByUser = new Map<string, BolaoRankingItem>();
+    if (ranking.type !== 'BOLAO') {
+      throw new Error('Ranking is not a bolão')
+    }
 
-    for (const snap of snapshots) {
-      if (!latestByUser.has(snap.userId)) {
-        latestByUser.set(snap.userId, {
-          userId: snap.userId,
-          scoreTotal: snap.scoreTotal,
-          scoreRound: snap.scoreRound,
-        });
+    const participants = await prisma.rankingParticipant.findMany({
+      where: { rankingId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [{ position: 'asc' }, { score: 'desc' }, { createdAt: 'asc' }],
+    })
+
+    const participantIds = participants.map(participant => participant.userId)
+    const latestSnapshots =
+      participantIds.length > 0
+        ? await prisma.rankingSnapshot.findMany({
+            where: {
+              userId: { in: participantIds },
+              ...(ranking.startDate && ranking.endDate
+                ? {
+                    round: {
+                      closeAt: {
+                        gte: ranking.startDate,
+                        lte: ranking.endDate,
+                      },
+                    },
+                  }
+                : {}),
+            },
+            select: {
+              userId: true,
+              scoreRound: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        : []
+
+    const lastRoundByUser = new Map<string, number>()
+    for (const snapshot of latestSnapshots) {
+      if (!lastRoundByUser.has(snapshot.userId)) {
+        lastRoundByUser.set(snapshot.userId, snapshot.scoreRound)
       }
     }
 
-    /**
-     * 5️⃣ Ordenar ranking (read-only)
-     */
-    const ordered = Array.from(latestByUser.values()).sort((a, b) => {
-      if (b.scoreTotal !== a.scoreTotal) {
-        return b.scoreTotal - a.scoreTotal;
+    const orderedParticipants = [...participants].sort((a, b) => {
+      const aPosition = a.position ?? Number.MAX_SAFE_INTEGER
+      const bPosition = b.position ?? Number.MAX_SAFE_INTEGER
+
+      if (aPosition !== bPosition) {
+        return aPosition - bPosition
       }
 
-      if (b.scoreRound !== a.scoreRound) {
-        return b.scoreRound - a.scoreRound;
+      if (b.score !== a.score) {
+        return b.score - a.score
       }
 
-      return a.userId.localeCompare(b.userId);
-    });
+      return a.userId.localeCompare(b.userId)
+    })
 
-    /**
-     * 6️⃣ Gerar posições (empate real)
-     */
-    let position = 1;
-    let lastScoreTotal: number | null = null;
-    let lastScoreRound: number | null = null;
-    let index = 0;
-
-    return ordered.map(item => {
-      index++;
-
-      if (
-        lastScoreTotal !== null &&
-        (item.scoreTotal !== lastScoreTotal ||
-          item.scoreRound !== lastScoreRound)
-      ) {
-        position = index;
-      }
-
-      lastScoreTotal = item.scoreTotal;
-      lastScoreRound = item.scoreRound;
+    const rankingItems = orderedParticipants.map((participant, index) => {
+      const displayName =
+        participant.user.nickname?.trim() ||
+        participant.user.name?.trim() ||
+        participant.user.email
 
       return {
-        ...item,
-        position,
-      };
-    });
+        userId: participant.userId,
+        name: displayName,
+        isOwner: participant.userId === ranking.createdByUserId,
+        isMe: participant.userId === viewerUserId,
+        scoreTotal: participant.score,
+        scoreRound: lastRoundByUser.get(participant.userId) ?? 0,
+        position: participant.position ?? index + 1,
+      }
+    })
+
+    const me =
+      viewerUserId != null
+        ? rankingItems.find(item => item.userId === viewerUserId) ?? null
+        : null
+
+    const ownerName =
+      ranking.createdBy?.nickname?.trim() ||
+      ranking.createdBy?.name?.trim() ||
+      ranking.createdBy?.email ||
+      'Administrador'
+
+    return {
+      ranking: {
+        id: ranking.id,
+        name: ranking.name,
+        description: ranking.description,
+        status: ranking.status,
+        startDate: ranking.startDate,
+        endDate: ranking.endDate,
+        participants: ranking.currentParticipants,
+        maxParticipants: ranking.maxParticipants,
+        ownerName,
+        isOwner: ranking.createdByUserId === viewerUserId,
+        joined: rankingItems.some(item => item.userId === viewerUserId),
+      },
+      total: rankingItems.length,
+      me,
+      entries: rankingItems,
+    }
   }
 }

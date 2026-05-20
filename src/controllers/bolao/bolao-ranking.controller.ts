@@ -12,13 +12,12 @@ export class BolaoRankingController {
     }
 
     try {
-      const ranking = await GetBolaoRankingService.execute(rankingId);
-
-      return res.json({
+      const detail = await GetBolaoRankingService.execute({
         rankingId,
-        total: ranking.length,
-        ranking,
+        viewerUserId: req.user?.id,
       });
+
+      return res.json(detail);
     } catch (error: any) {
       return res.status(400).json({
         error: error.message ?? 'Failed to load bolão ranking',

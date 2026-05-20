@@ -40,7 +40,7 @@ router.post('/rankings/:rankingId/join', authMiddleware, JoinBolaoController.han
 //
 // 🔹 Ranking de leitura do bolão
 //
-router.get('/rankings/:rankingId/bolao', BolaoRankingController.handle);
+router.get('/rankings/:rankingId/bolao', authMiddleware, BolaoRankingController.handle);
 
 //
 // 🔹 Convites de bolão
