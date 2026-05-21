@@ -17,15 +17,15 @@ No geral, as sugestões estão alinhadas com o produto atual e ajudam a deixar a
 
 | Sugestão | Status atual | Prioridade | Área |
 |---|---|---:|---|
-| `Fichas` não podem ter desconto; cada ficha vale `R$ 0,50` | `Pendente` | Alta | Frontend + API |
-| Pacotes do bar devem seguir o novo modelo comercial | `Pendente` | Alta | API + Frontend |
-| `Duplas` e `Super Duplas` podem ser dadas, sem influenciar no valor | `Parcial` | Alta | API + Frontend |
-| Regra de multiplicadores: `4 duplas` e `2 super duplas` por rodada | `Pendente` | Alta | API + Frontend |
-| Remover `Estatísticas avançadas` | `Parcial` | Média | Frontend + Docs |
-| Tabela redundante de `envio pendente` pode sair | `Pendente` | Média | Frontend |
-| Card `Sua rodada` repete informações da faixa superior | `Pendente` | Média | Frontend |
-| Consolidar dados da rodada na primeira tabela/bloco | `Pendente` | Média | Frontend |
-| “Pode colocar botão pra cima” | `Ambíguo` | Baixa | Frontend |
+| `Fichas` não podem ter desconto; cada ficha vale `R$ 0,50` | `Implementado` | Alta | Frontend + API |
+| Pacotes do bar devem seguir o novo modelo comercial | `Implementado` | Alta | API + Frontend |
+| `Duplas` e `Super Duplas` podem ser dadas, sem influenciar no valor | `Implementado` | Alta | API + Frontend |
+| Regra de multiplicadores: `4 duplas` e `2 super duplas` por rodada | `Implementado` | Alta | API + Frontend |
+| Remover `Estatísticas avançadas` | `Implementado` | Média | Frontend + Docs |
+| Tabela redundante de `envio pendente` pode sair | `Implementado` | Média | Frontend |
+| Card `Sua rodada` repete informações da faixa superior | `Implementado` | Média | Frontend |
+| Consolidar dados da rodada na primeira tabela/bloco | `Implementado` | Média | Frontend |
+| “Pode colocar botão pra cima” | `Implementado` | Baixa | Frontend |
 
 ## Leitura por item
 

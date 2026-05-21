@@ -248,14 +248,14 @@ Referencia:
 
 Tarefas:
 
-- alinhar pacotes com a regra comercial de `fichas`
-- tratar `1 ficha = R$ 0,50` como referencia fixa de valor
-- nao comunicar desconto sobre `fichas`
-- melhorar hierarquia dos pacotes
-- apresentar `duplas` e `super duplas` como extras, nao como formacao de preco
-- implementar a regra fixa de `4 duplas` e `2 super duplas` por rodada
-- conectar fichas, duplas e super duplas
-- aumentar clareza comercial da loja
+- preservar pacotes alinhados com a regra comercial de `fichas`
+- manter `1 ficha = R$ 0,50` como referencia fixa de valor
+- evitar comunicar desconto sobre `fichas`
+- continuar melhorando hierarquia dos pacotes
+- manter `duplas` e `super duplas` como extras, nao como formacao de preco
+- preservar a regra fixa de `4 duplas` e `2 super duplas` por rodada
+- continuar melhorando a conexao entre fichas, duplas e super duplas
+- continuar aumentando clareza comercial da loja
 
 ### 13. Evoluir tela de perfil
 
