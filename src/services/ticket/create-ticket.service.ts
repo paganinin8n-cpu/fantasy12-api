@@ -78,6 +78,20 @@ export class CreateTicketService {
 
       }
 
+      if (doubles > 4) {
+        throw AppError.badRequest(
+          'Cada rodada permite no máximo 4 duplas.',
+          'double_limit_exceeded'
+        )
+      }
+
+      if (superDoubles > 2) {
+        throw AppError.badRequest(
+          'Cada rodada permite no máximo 2 super duplas.',
+          'super_double_limit_exceeded'
+        )
+      }
+
       const existingTicket = await tx.ticket.findUnique({
         where: {
           userId_roundId: {
