@@ -248,8 +248,13 @@ Referencia:
 
 Tarefas:
 
+- alinhar pacotes com a regra comercial de `fichas`
+- tratar `1 ficha = R$ 0,50` como referencia fixa de valor
+- nao comunicar desconto sobre `fichas`
 - melhorar hierarquia dos pacotes
-- conectar coins, duplas e super duplas
+- apresentar `duplas` e `super duplas` como extras, nao como formacao de preco
+- implementar a regra fixa de `4 duplas` e `2 super duplas` por rodada
+- conectar fichas, duplas e super duplas
 - aumentar clareza comercial da loja
 
 ### 13. Evoluir tela de perfil
@@ -292,9 +297,26 @@ Tarefas:
 - expor regras de premium e assinatura
 - organizar datas, custo e observacoes
 
+### 15. Simplificar a dashboard do jogador
+
+Tipo:
+
+- Frontend / Produto
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Tarefas:
+
+- eliminar redundancia entre hero superior, `Sua rodada` e `Meu envio atual`
+- consolidar `rodada + status + envio` no primeiro bloco
+- reduzir cards secundarios para resumo e CTA
+- revisar necessidade de botao de retorno ao topo conforme layout final
+
 ## P1. Admin operacional
 
-### 15. Consolidar admin de rodadas
+### 16. Consolidar admin de rodadas
 
 Tipo:
 
@@ -315,7 +337,7 @@ Tarefas:
 - amadurecer criacao/edicao de rodadas
 - refletir estados `DRAFT`, `OPEN`, `CLOSED`, `SCORED`
 
-### 16. Consolidar admin de usuarios
+### 17. Consolidar admin de usuarios
 
 Tipo:
 
@@ -335,7 +357,7 @@ Tarefas:
 - permitir ajuste operacional de coins e beneficios
 - alinhar com o modelo final de assinatura e roles
 
-### 17. Consolidar logs operacionais no admin
+### 18. Consolidar logs operacionais no admin
 
 Tipo:
 
@@ -357,7 +379,7 @@ Tarefas:
 
 ## P2. Qualidade, seguranca e operacao
 
-### 18. Endurecer jobs internos, webhooks e auditoria
+### 19. Endurecer jobs internos, webhooks e auditoria
 
 Tipo:
 
@@ -373,7 +395,7 @@ Tarefas:
 - amadurecer trilha auditavel
 - revisar idempotencia e rastreabilidade de webhooks
 
-### 19. Fechar observabilidade minima
+### 20. Fechar observabilidade minima
 
 Tipo:
 
@@ -390,7 +412,7 @@ Tarefas:
 - checklist de incidente
 - visibilidade minima para pagamentos e jobs
 
-### 20. Definir rotina de backup e restore
+### 21. Definir rotina de backup e restore
 
 Tipo:
 
@@ -408,7 +430,7 @@ Tarefas:
 
 ## P2. Arquitetura de frontend
 
-### 21. Criar mini design system do Fantasy12
+### 22. Criar mini design system do Fantasy12
 
 Tipo:
 
@@ -427,7 +449,7 @@ Tarefas:
 - padroes de modal
 - padroes de footer fixo mobile
 
-### 22. Remover ou arquivar definitivamente telas legadas
+### 23. Remover ou arquivar definitivamente telas legadas
 
 Tipo:
 
@@ -445,7 +467,7 @@ Tarefas:
 
 ## P3. Expansao controlada
 
-### 23. Refinar experiencia premium
+### 24. Refinar experiencia premium
 
 Tipo:
 
@@ -461,7 +483,7 @@ Tarefas:
 - diferenciar mensal e anual
 - preparar eventos exclusivos e beneficios premium
 
-### 24. Automatizar CI/CD completo
+### 25. Automatizar CI/CD completo
 
 Tipo:
 
@@ -492,5 +514,6 @@ Os documentos abaixo continuam valiosos, mas agora devem ser lidos como analise 
 
 - [`docs/user-profiles-alignment.md`](/Users/roberson/dev/personal/fantasy12-api/docs/user-profiles-alignment.md)
 - [`docs/ui-patterns-backlog.md`](/Users/roberson/dev/personal/fantasy12-api/docs/ui-patterns-backlog.md)
+- [`docs/updates-2026-05-21-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-21-review.md)
 
 A fonte oficial de prioridades passa a ser este arquivo.
