@@ -19,6 +19,11 @@ export class UserRepository {
       where: { id },
       include: {
         subscription: true,
+        UserAdminRole: {
+          include: {
+            role: true,
+          },
+        },
       },
     });
   }

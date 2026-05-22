@@ -10,6 +10,7 @@ import { UseBolaoInviteController } from '../controllers/bolao/use-bolao-invite.
 import { ListUserBoloesController } from '../controllers/bolao/list-user-boloes.controller';
 import { ListAvailableBoloesController } from '../controllers/bolao/list-available-boloes.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { CreateBolaoController } from '../controllers/bolao/create-bolao.controller';
 
 const router = Router();
 const controller = new RankingController();
@@ -26,6 +27,7 @@ router.get('/rankings/weekly', WeeklyRankingController.handle);
 //
 router.get('/boloes/me', authMiddleware, ListUserBoloesController.handle);
 router.get('/boloes/available', authMiddleware, ListAvailableBoloesController.handle);
+router.post('/boloes', authMiddleware, CreateBolaoController.handle);
 
 //
 // 🔹 Ranking genérico por ID (SEMPRE POR ÚLTIMO)

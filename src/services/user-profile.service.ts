@@ -26,9 +26,12 @@ export class UserProfileService {
       email: user.email,
       cpf: user.cpf,
       phone: user.phone,
+      bio: user.bio,
+      profileImage: user.profileImage,
       role: user.role,
       isPro: hasActiveProSubscription(user.subscription),
       isAnnualPro: hasAnnualProSubscription(user.subscription),
+      adminRoles: user.UserAdminRole?.map(item => item.role.name) ?? [],
       subscription: user.subscription
         ? {
             status: user.subscription.status,

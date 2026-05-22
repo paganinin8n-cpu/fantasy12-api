@@ -1,7 +1,9 @@
-import { Router } from 'express';
-import { AdminSubscriptionsController } from '../controllers/admin/admin-subscriptions.controller';
+import { Router } from 'express'
+import { AdminSubscriptionsController } from '../controllers/admin/admin-subscriptions.controller'
+import { authMiddleware } from '../middleware/auth.middleware'
+import { authorize } from '../middleware/authorize.middleware'
 
-const router = Router();
+const router = Router()
 
 /**
  * Painel ADMIN — Assinaturas
@@ -9,6 +11,11 @@ const router = Router();
  * Prefixo final:
  * /api/admin/subscriptions
  */
-router.get('/admin/subscriptions', AdminSubscriptionsController.list);
+router.get(
+  '/admin/subscriptions',
+  authMiddleware,
+  authorize('FINANCE_READ'),
+  AdminSubscriptionsController.list
+)
 
-export default router;
+export default router

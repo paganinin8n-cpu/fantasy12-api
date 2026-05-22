@@ -27,6 +27,8 @@ import paymentRoutes from './routes/payment.routes'
  */
 import adminMonetizationRoutes from './routes/admin-monetization.routes'
 import adminSubscriptionsRoutes from './routes/admin-subscriptions.routes'
+import adminUsersRoutes from './routes/admin-users.routes'
+import adminLogsRoutes from './routes/admin-logs.routes'
 
 /**
  * ⚙️ INTERNAL
@@ -173,6 +175,8 @@ app.use('/internal', internalRoutes)
 app.use('/api', adminMonetizationRoutes)
 app.use('/api', adminSubscriptionsRoutes)
 app.use('/api', adminRoundRoutes)
+app.use('/api', adminUsersRoutes)
+app.use('/api', adminLogsRoutes)
 
 /* ======================================================
    ❤️ HEALTH
