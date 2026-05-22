@@ -23,7 +23,8 @@
     "prisma:migrate:resolve:bolao:applied": "npx prisma migrate resolve --applied 20260120_bolao_invites",
     "seed:admin-permissions": "node prisma/seed-admin-permissions.js",
     "seed:app": "node prisma/seed.js",
-    "seed:test-data": "node prisma/seed-test-data.js"
+    "seed:test-data": "node prisma/seed-test-data.js",
+    "ranking:monthly:backfill": "npm run build && node scripts/backfill-monthly-ranking-state.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

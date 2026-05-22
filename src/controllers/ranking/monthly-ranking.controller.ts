@@ -176,6 +176,8 @@ export class MonthlyRankingController {
         participants: ranked.slice(0, 10),
         me,
         scope,
+        periodRef,
+        hasData: ranked.length > 0,
       });
     } catch (err) {
       next(err);
