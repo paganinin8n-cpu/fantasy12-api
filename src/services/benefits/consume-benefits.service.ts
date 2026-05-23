@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma'
-import { WalletService } from '../wallet/wallet.service'
-import { BENEFIT_COST, PaidBenefitType } from './benefits.config'
+import { PaidBenefitType } from './benefits.config'
 import { Prisma } from '@prisma/client'
+import { AppError } from '../../errors/AppError'
 
 type ConsumeInput = {
   userId: string
@@ -97,27 +97,16 @@ export class ConsumeBenefitsService {
 
       }
 
-      /**
-       * 3️⃣ CONSUMIR COINS
-       */
-
       if (remaining > 0) {
-
-        const cost = BENEFIT_COST[type] * remaining
-
-        await WalletService.debit(
-          userId,
-          cost,
-          `Consume ${remaining} ${type} on round ${roundId}`,
-          tx
+        throw AppError.badRequest(
+          'Saldo de benefícios insuficiente',
+          'insufficient_benefit_balance',
+          {
+            type,
+            requested: quantity,
+            missing: remaining,
+          }
         )
-
-        return {
-          consumed: 'PAID',
-          quantity,
-          cost
-        }
-
       }
 
       return {

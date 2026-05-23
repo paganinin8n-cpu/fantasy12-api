@@ -21,6 +21,7 @@ import roundRoutes from './routes/round.routes'
 import walletRoutes from './routes/wallet.routes'
 import subscriptionRoutes from './routes/subscription.routes'
 import paymentRoutes from './routes/payment.routes'
+import benefitsRoutes from './routes/benefits.routes'
 
 /**
  * 🛠️ ADMIN
@@ -156,6 +157,7 @@ app.use('/api', rankingRoutes)
 app.use('/api', meRoutes)
 app.use('/api', roundRoutes)
 app.use('/api', paymentRoutes)
+app.use('/api', benefitsRoutes)
 app.use('/', walletRoutes)
 app.use('/', subscriptionRoutes)
 

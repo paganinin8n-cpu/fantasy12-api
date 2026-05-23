@@ -7,6 +7,10 @@
 - transformar decisões implícitas em decisões documentadas
 - reduzir risco operacional antes de acelerar entrega
 
+Backlog oficial:
+
+- ver [`docs/backlog-master.md`](/Users/roberson/dev/personal/fantasy12-api/docs/backlog-master.md)
+
 ## Fase 0: Diagnóstico e alinhamento
 
 Objetivo:
@@ -138,6 +142,16 @@ Entregáveis:
 - aumento de cobertura automatizada
 - evoluções de monetização e admin com menor risco
 
+Prioridade desta fase:
+
+- consolidar um padrão visual e operacional para jogador, bar, bolões e admin
+- transformar referências de tela em backlog implementável
+- evitar que novas telas nasçam fora de um design system mínimo
+
+Referência adicional:
+
+- ver [`docs/ui-patterns-backlog.md`](/Users/roberson/dev/personal/fantasy12-api/docs/ui-patterns-backlog.md)
+
 ## Ordem recomendada de execução
 
 1. consolidar contratos
@@ -173,3 +187,10 @@ Semana 4:
 - aplicar hardening de segurança
 - adicionar observabilidade mínima
 - fechar checklist de produção
+
+Semana 5 em diante:
+
+- consolidar fluxo mobile-first de palpites
+- implementar resumo de palpite
+- revisar UX do bar/loja
+- evoluir superfícies de admin com base nas referências

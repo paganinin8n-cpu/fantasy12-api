@@ -1,12 +1,12 @@
 import { prisma } from '../../lib/prisma';
+import { hasActiveProSubscription } from '../../domain/subscription';
 
 /**
- * Concede extras fixos por rodada.
+ * Concede extras gratuitos por rodada.
  *
  * REGRAS CANÔNICAS:
- * - 4 DOUBLE por rodada
- * - 2 SUPER_DOUBLE por rodada
- * - Não depende de perfil ou assinatura
+ * - NORMAL: 2 DOUBLE por rodada
+ * - PRO: 4 DOUBLE + 2 SUPER_DOUBLE por rodada
  * - Sempre reseta a cada rodada
  */
 export class GrantRoundBenefitsService {
@@ -14,12 +14,21 @@ export class GrantRoundBenefitsService {
     const users = await prisma.user.findMany({
       select: {
         id: true,
+        role: true,
+        subscription: {
+          select: {
+            status: true,
+            plan: true,
+            endAt: true,
+          },
+        },
       },
     });
 
     for (const user of users) {
-      const freeDoubles = 4;
-      const freeSuperDoubles = 2;
+      const isPro = hasActiveProSubscription(user.subscription) || user.role === 'PRO';
+      const freeDoubles = isPro ? 4 : 2;
+      const freeSuperDoubles = isPro ? 2 : 0;
 
       await prisma.roundBenefit.upsert({
         where: {

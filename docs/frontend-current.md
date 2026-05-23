@@ -2,7 +2,7 @@
 
 ## Estado geral
 
-O frontend ativo está mais alinhado com a API do que no início da análise, mas ainda coexistem páginas legadas fora do fluxo canônico.
+O frontend ativo está alinhado com a API principal e já contém as superfícies novas de perfil, bolões e administração básica.
 
 ## Fluxo ativo confirmado
 
@@ -35,30 +35,64 @@ Arquivo:
 Rotas em uso:
 
 - `/login`
+- `/register`
+- `/forgot-password`
+- `/reset-password`
 - `/`
 - `/dashboard`
-- rota legada `/betting`
+- rota legada `/betting`, redirecionada para `/ticket`
 - `/wallet`
 - `/payments`
 - `/subscription`
 - `/bar`
 - `/ticket`
+- `/palpites`
+- `/profile`
+- `/boloes`
+- `/boloes/:rankingId`
+- `/tickets`
+- `/terms`
+- `/privacy`
+- `/faq`
 - `/admin/rounds`
+- `/admin/users`
+- `/admin/logs`
 
 Observação:
 
 - a rota legada `betting` foi redirecionada para o fluxo de `TicketPage`
+- as rotas admin passam por guarda de autenticação e papel administrativo
 
 ## Consumo real de API no fluxo ativo
 
 ### Dashboard
 
 - `GET /api/rankings/monthly`
+- `GET /api/rounds/open`
+- `GET /api/tickets/current`
+- `GET /api/boloes/me`
 
 ### Ticket
 
 - `GET /api/rounds/open`
 - `POST /api/tickets`
+- `GET /api/tickets/current`
+- `GET /api/benefits/balance`
+
+### Perfil
+
+- `GET /api/me`
+- `PATCH /api/me`
+- `POST /api/me/password`
+
+### Bolões
+
+- `GET /api/boloes/me`
+- `GET /api/boloes/available`
+- `POST /api/boloes`
+- `GET /api/rankings/:rankingId/bolao`
+- `POST /api/rankings/:rankingId/join`
+- `POST /api/boloes/invites/:code/join`
 
 ### Wallet e pagamentos
 
@@ -66,10 +100,17 @@ Observação:
 - `GET /api/payment-packages`
 - `POST /api/payments`
 - `GET /api/payments/history`
+- `POST /api/benefits/purchase`
+
+Observação:
+
+- a `BarPage` tem `Menu Tatico` para comprar duplas e super duplas com fichas
+- a tela de ticket desabilita duplas/super duplas quando o saldo disponivel nao comporta nova selecao
 
 ### Subscription
 
 - `GET /api/subscription`
+- `DELETE /api/subscription`
 
 ### Admin de rodadas
 
@@ -79,24 +120,28 @@ Observação:
 - `POST /api/admin/rounds/:roundId/result`
 - `POST /api/admin/rounds/:roundId/close`
 
-## Páginas legadas identificadas
+### Admin de usuários
 
-### `src/pages/AdminPage.tsx`
+- `GET /api/admin/users`
 
-Problemas:
+### Admin de logs
 
-- usa `fetch` hardcoded
-- usa host fixo externo
-- consome endpoints fora do padrão atual
-- tenta acessar rota de audit que não foi confirmada como ativa
+- `GET /api/admin/logs`
 
-### `src/pages/Ranking.tsx`
+## Limpeza de legado
 
-Problemas:
+### Removido
 
-- usa `fetch` hardcoded
-- usa `/api/ranking` em vez de `/api/rankings/*`
-- não participa da arquitetura ativa atual
+- `src/pages/Ranking.tsx`, pagina orfa que consumia `/api/ranking`
+
+### Mantido por compatibilidade
+
+- `/betting`, apenas como redirecionamento para `/ticket`
+
+### Estado atual
+
+- `src/pages/AdminPage.tsx` ja nao existe
+- nao ha pagina legada orfa confirmada no fluxo ativo
 
 ## Conclusão
 
@@ -105,10 +150,14 @@ O frontend ativo hoje é o conjunto:
 - auth por sessão
 - dashboard
 - ticket
+- historico de palpites
 - wallet
 - payments
 - subscription
 - bar
+- menu tatico de compra de duplas/super duplas
+- perfil
+- bolões
 - admin/rounds
-
-O restante deve ser tratado como legado até ser revisado ou removido.
+- admin/users
+- admin/logs

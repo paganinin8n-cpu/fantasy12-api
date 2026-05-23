@@ -4,6 +4,10 @@ Data de consolidacao:
 
 - 2026-05-15
 
+Ultima atualizacao:
+
+- 2026-05-22
+
 Objetivo:
 
 - manter um unico backlog oficial do Fantasy12
@@ -16,6 +20,7 @@ Documentos de origem:
 - [`docs/user-profiles-alignment.md`](/Users/roberson/dev/personal/fantasy12-api/docs/user-profiles-alignment.md)
 - [`docs/ui-patterns-backlog.md`](/Users/roberson/dev/personal/fantasy12-api/docs/ui-patterns-backlog.md)
 - [`docs/updates-2026-05-18-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-18-review.md)
+- [`docs/updates-2026-05-22-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-22-review.md)
 
 ## Como ler este backlog
 
@@ -43,7 +48,7 @@ Tipo:
 
 Status sugerido:
 
-- `Em andamento`
+- `Concluido`
 
 Tarefas:
 
@@ -53,6 +58,11 @@ Tarefas:
 - validar `https://www.fantasy12.com/login`
 - validar `https://api.fantasy12.com/health`
 
+Nota 2026-05-22:
+
+- dominio publico e healthcheck de producao validados
+- frontend publico servindo bundle novo
+
 ### 2. Corrigir CORS para homologacao e dominio final
 
 Tipo:
@@ -61,7 +71,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
@@ -140,6 +150,13 @@ Tarefas:
 - definir regra oficial PRO anual
 - refletir isso no job de abertura de rodada e no consumo de beneficios
 
+Nota 2026-05-22:
+
+- usuario normal recebe 2 duplas gratuitas por rodada
+- usuario PRO recebe 4 duplas e 2 super duplas gratuitas por rodada
+- beneficios gratuitos continuam nao acumulativos entre rodadas
+- consumo de ticket usa primeiro beneficios gratuitos e depois saldo comprado
+
 ### 7. Fechar ranking FREE, PRO e boloes premium
 
 Tipo:
@@ -148,7 +165,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
@@ -164,13 +181,18 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Tarefas:
 
 - enriquecer `/api/me` com estado funcional do usuario
 - preferir `isPro`, `subscriptionPlan` e `adminRoles`
 - reduzir dependencia do frontend em `role = PRO`
+
+Nota 2026-05-22:
+
+- `/api/me` agora retorna `nickname`, `phone`, `bio`, `profileImage` e `adminRoles`
+- perfil editavel disponivel no frontend ativo
 
 ### 9. Decidir sobre login Google
 
@@ -257,6 +279,12 @@ Tarefas:
 - continuar melhorando a conexao entre fichas, duplas e super duplas
 - continuar aumentando clareza comercial da loja
 
+Nota 2026-05-22:
+
+- `BarPage` recebeu `Menu Tatico` para compra de duplas e super duplas por fichas
+- compra de extras independe do usuario ser normal ou PRO
+- extras comprados entram no inventario persistente do usuario
+
 ### 13. Evoluir tela de perfil
 
 Tipo:
@@ -265,7 +293,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Referencia:
 
@@ -277,6 +305,11 @@ Tarefas:
 - melhorar formulario de perfil
 - deixar a gestao de conta mais clara
 
+Nota 2026-05-22:
+
+- formulario de perfil editavel entregue
+- ainda resta refinamento visual fino do estado PRO e gestao de conta
+
 ### 14. Criar fluxo visual de bolao
 
 Tipo:
@@ -285,7 +318,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Referencia:
 
@@ -296,6 +329,12 @@ Tarefas:
 - criar entrada e criacao de bolao no frontend ativo
 - expor regras de premium e assinatura
 - organizar datas, custo e observacoes
+
+Nota 2026-05-22:
+
+- `POST /api/boloes` entregue
+- criacao visual de bolao para PRO anual entregue no frontend ativo
+- backend restringe criacao a assinatura PRO anual ativa
 
 ### 15. Simplificar a dashboard do jogador
 
@@ -345,7 +384,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Referencia:
 
@@ -357,6 +396,12 @@ Tarefas:
 - permitir ajuste operacional de coins e beneficios
 - alinhar com o modelo final de assinatura e roles
 
+Nota 2026-05-22:
+
+- `GET /api/admin/users` entregue e protegido por permissao admin
+- tela `Admin > Usuarios` entregue no frontend ativo
+- ajuste operacional de coins e beneficios continua pendente
+
 ### 18. Consolidar logs operacionais no admin
 
 Tipo:
@@ -365,7 +410,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Referencia:
 
@@ -376,6 +421,12 @@ Tarefas:
 - definir fonte de logs visiveis
 - criar filtros uteis para operacao
 - expor trilha auditavel de eventos relevantes
+
+Nota 2026-05-22:
+
+- `GET /api/admin/logs` entregue e protegido por permissao admin
+- tela `Admin > Logs` entregue no frontend ativo
+- filtros e rotina operacional de uso dos logs ainda podem amadurecer
 
 ## P2. Qualidade, seguranca e operacao
 
@@ -457,7 +508,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
@@ -465,9 +516,33 @@ Tarefas:
 - remover `fetch` hardcoded restante
 - evitar duplicidade de UX e contrato
 
-## P3. Expansao controlada
+Nota 2026-05-22:
 
-### 24. Refinar experiencia premium
+- pagina orfa `src/pages/Ranking.tsx` removida do frontend
+- `AdminPage.tsx` legado ja nao existe no frontend atual
+- nao ha `fetch` hardcoded restante em `src`
+- rota `/betting` permanece apenas como redirecionamento compatível para `/ticket`
+
+## P3. Assinaturas e expansao controlada
+
+### 24. Revisar planos e precificacao de assinatura
+
+Tipo:
+
+- Produto / Backend / Frontend / Pagamentos
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Tarefas:
+
+- validar regra comercial de PRO mensal por R$ 24,90
+- validar regra comercial de PRO anual em 12x de R$ 9,90
+- validar PIX anual por R$ 99,00 com comunicacao "paga 10 meses e ganha 12"
+- alinhar pacotes e gateway antes de expor como fluxo financeiro final
+
+### 25. Refinar experiencia premium
 
 Tipo:
 
@@ -483,7 +558,7 @@ Tarefas:
 - diferenciar mensal e anual
 - preparar eventos exclusivos e beneficios premium
 
-### 25. Automatizar CI/CD completo
+### 26. Automatizar CI/CD completo
 
 Tipo:
 
@@ -501,12 +576,11 @@ Tarefas:
 
 ## Ordem recomendada agora
 
-1. P0 de DNS, CORS e bootstrap
-2. regras centrais de `PRO`, beneficios e rankings
-3. fluxo principal do jogador
-4. bar e monetizacao
-5. admin operacional
-6. observabilidade e CI/CD
+1. observabilidade minima, checklist de incidente e visibilidade de jobs/pagamentos
+2. rotina documentada e testada de backup e restore
+3. concluir desacoplamento conceitual de `PRO` de `User.role`
+4. refinamentos do fluxo principal do jogador, bar e dashboard
+5. amadurecer administracao operacional de usuarios, logs e beneficios
 
 ## Observacao final
 

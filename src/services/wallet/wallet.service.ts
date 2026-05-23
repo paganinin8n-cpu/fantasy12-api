@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { WalletTransactionType, Prisma } from '@prisma/client'
+import { AppError } from '../../errors/AppError'
 
 export class WalletService {
   static async getOrCreateWallet(userId: string) {
@@ -90,7 +91,14 @@ export class WalletService {
     })
 
     if (!wallet || wallet.balance < amount) {
-      throw new Error('Insufficient wallet balance')
+      throw AppError.badRequest(
+        'Saldo de fichas insuficiente',
+        'insufficient_wallet_balance',
+        {
+          required: amount,
+          available: wallet?.balance ?? 0,
+        }
+      )
     }
 
     await tx.walletLedger.create({
