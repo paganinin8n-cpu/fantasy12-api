@@ -62,6 +62,7 @@ async function main() {
     'COMPETITION_EXECUTE',
     'RANKING_READ',
     'FINANCE_READ',
+    'FINANCE_EXECUTE',
     'USER_READ',
     'USER_WRITE',
     'AUDIT_READ',
