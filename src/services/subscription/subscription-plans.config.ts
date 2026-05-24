@@ -32,7 +32,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
       '2 Super Duplas gratuitas por rodada',
       'Ranking PRO exclusivo',
     ],
-    checkoutEnabled: false,
+    checkoutEnabled: true,
   },
   {
     id: 'pro_annual_card',
@@ -50,7 +50,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
       '2 Super Duplas gratuitas por rodada',
       'Criação de bolões exclusivos',
     ],
-    checkoutEnabled: false,
+    checkoutEnabled: true,
   },
   {
     id: 'pro_annual_pix',
@@ -68,7 +68,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
       '4 Duplas e 2 Super Duplas por rodada',
       'Criação de bolões exclusivos',
     ],
-    checkoutEnabled: false,
+    checkoutEnabled: true,
   },
 ]
 
@@ -76,4 +76,8 @@ export class ListSubscriptionPlansService {
   static execute() {
     return SUBSCRIPTION_PLAN_OFFERS
   }
+}
+
+export function getSubscriptionPlanOffer(planId: string) {
+  return SUBSCRIPTION_PLAN_OFFERS.find(offer => offer.id === planId) ?? null
 }

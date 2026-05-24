@@ -48,12 +48,13 @@ Situação:
 
 - frontend consome `GET /api/subscription` como status composto com `isPro`, `isAnnualPro` e `subscription`
 - frontend consome `GET /api/subscription/plans` para exibir PRO mensal, PRO anual no cartao e PRO anual no PIX
-- botoes de compra permanecem desabilitados ate existir checkout/ativacao de assinatura
+- frontend chama `POST /api/subscription/checkout` e redireciona para o `checkoutUrl` do Mercado Pago
+- assinatura e ativada pelo webhook de pagamento aprovado com `metadata.plan`
 
 Leitura:
 
-- precificacao e contrato visual estao alinhados
-- falta ligar o gateway para compra real de assinatura
+- precificacao, contrato visual e abertura de checkout estao alinhados
+- falta validar em producao um pagamento real de assinatura e acompanhar o webhook de confirmacao
 
 ## Fluxos legados ou fora do contrato atual
 
@@ -64,6 +65,6 @@ Leitura:
 
 1. decidir se páginas legadas serão removidas ou migradas
 2. definir se `matches` virarão entidade real no backend
-3. conectar checkout/ativacao para assinatura PRO
-4. evoluir o fluxo de pagamento para retornar dados de checkout/PIX mais úteis
+3. validar pagamento real de assinatura em producao e webhook de confirmacao
+4. evoluir o fluxo de pagamento de fichas para retornar dados de checkout/PIX mais úteis
 5. consolidar documentação compartilhada em um ponto único no futuro

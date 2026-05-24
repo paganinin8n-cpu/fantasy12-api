@@ -72,6 +72,9 @@ FRONTEND_ORIGIN=https://www.fantasy12.com
 CORS_ALLOWED_ORIGINS=https://www.fantasy12.com
 INTERNAL_JOB_SECRET=change-me-too
 RUN_DB_MIGRATIONS=false
+MP_ACCESS_TOKEN=APP_USR-...
+MP_WEBHOOK_SECRET=change-me-too
+API_PUBLIC_URL=https://api.fantasy12.com
 ```
 
 ## Primeiro deploy

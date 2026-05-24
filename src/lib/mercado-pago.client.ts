@@ -30,6 +30,13 @@ export class MercadoPagoClient {
   // Pagamentos
   // ----------------------------------------------------------------
 
+  async createPreference(body: Record<string, unknown>) {
+    const { data } = await this.http.post('/checkout/preferences', body, {
+      headers: { 'X-Idempotency-Key': randomUUID() },
+    })
+    return data
+  }
+
   async getPayment(paymentId: string) {
     const { data } = await this.http.get(`/v1/payments/${paymentId}`)
     return data

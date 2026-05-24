@@ -25,6 +25,7 @@ export class ProcessMercadoPagoWebhookService {
 
     const mpClient = new MercadoPagoClient(process.env.MP_ACCESS_TOKEN);
     const mpPayment = await mpClient.getPayment(mpPaymentId);
+    let shouldProcessSubscription = false;
 
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       /**
@@ -42,6 +43,7 @@ export class ProcessMercadoPagoWebhookService {
             payload: mpPayment,
           },
         });
+        shouldProcessSubscription = true;
       } catch (err) {
         if (
           err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -62,7 +64,11 @@ export class ProcessMercadoPagoWebhookService {
         },
       });
 
-      if (!payment || payment.isCredited) {
+      if (!payment) {
+        return;
+      }
+
+      if (payment.isCredited) {
         return;
       }
 
@@ -108,14 +114,18 @@ export class ProcessMercadoPagoWebhookService {
     /**
      * 7️⃣ Renovação fora da transação principal
      */
-    const plan = mpPayment.metadata?.plan as SubscriptionPlan | undefined;
+    const metadata = mpPayment.metadata ?? {};
+    const plan = metadata.plan as SubscriptionPlan | undefined;
+    const userId = metadata.userId ?? metadata.user_id;
 
     if (
-      plan === SubscriptionPlan.MONTHLY ||
-      plan === SubscriptionPlan.ANNUAL
+      shouldProcessSubscription &&
+      mpPayment.status === 'approved' &&
+      typeof userId === 'string' &&
+      (plan === SubscriptionPlan.MONTHLY || plan === SubscriptionPlan.ANNUAL)
     ) {
       await RenewSubscriptionFromPaymentService.execute({
-        userId: mpPayment.metadata?.userId,
+        userId,
         plan,
       });
     }

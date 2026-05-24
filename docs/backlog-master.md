@@ -547,7 +547,10 @@ Nota 2026-05-24:
 - catalogo canonico de planos exposto em `GET /api/subscription/plans`
 - frontend de assinatura mostra PRO mensal, PRO anual no cartao e PRO anual no PIX
 - contrato de `GET /api/subscription` alinhado no frontend para usar `isPro`, `isAnnualPro` e `subscription`
-- checkout/ativacao automatica da assinatura segue pendente antes de liberar compra real
+- `POST /api/subscription/checkout` cria checkout Mercado Pago para os planos PRO
+- frontend redireciona para o checkout e volta com status `success`, `pending` ou `failure`
+- webhook de pagamento aprovado renova/ativa assinatura via `metadata.plan`
+- ainda falta teste real de pagamento de assinatura em producao antes de considerar o fluxo financeiro fechado
 
 ### 25. Refinar experiencia premium
 
@@ -583,7 +586,7 @@ Tarefas:
 
 ## Ordem recomendada agora
 
-1. conectar checkout/ativacao de assinatura aos planos ja canonizados
+1. validar pagamento real de assinatura em producao e webhook de confirmacao
 2. observabilidade minima, checklist de incidente e visibilidade de jobs/pagamentos
 3. rotina documentada e testada de backup e restore
 4. concluir desacoplamento conceitual de `PRO` de `User.role`

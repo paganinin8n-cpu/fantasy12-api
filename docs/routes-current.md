@@ -59,12 +59,14 @@ Observação:
 - `GET /api/wallet`
 - `GET /api/subscription/plans`
 - `GET /api/subscription`
+- `POST /api/subscription/checkout`
 - `DELETE /api/subscription`
 
 Observação:
 
 - `GET /api/subscription/plans` lista os planos PRO mensais e anuais disponíveis para a interface
-- o checkout/ativacao financeira dos planos ainda nao esta ligado ao gateway
+- `POST /api/subscription/checkout` cria uma preferência Mercado Pago para o plano escolhido e retorna `checkoutUrl`
+- a ativacao financeira ocorre quando o webhook de pagamento aprovado confirma `metadata.plan` e `metadata.user_id`
 
 ## Benefícios táticos
 
