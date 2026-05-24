@@ -74,7 +74,12 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
 
 export class ListSubscriptionPlansService {
   static execute() {
-    return SUBSCRIPTION_PLAN_OFFERS
+    const checkoutEnabled = Boolean(process.env.MP_ACCESS_TOKEN)
+
+    return SUBSCRIPTION_PLAN_OFFERS.map(offer => ({
+      ...offer,
+      checkoutEnabled,
+    }))
   }
 }
 
