@@ -1,9 +1,20 @@
 import { Request, Response, NextFunction } from 'express'
 import { GetSubscriptionStatusService } from '../services/subscription/get-subscription-status.service'
 import { CancelSubscriptionService } from '../services/subscription/cancel-subscription.service'
+import { ListSubscriptionPlansService } from '../services/subscription/subscription-plans.config'
 import { AppError } from '../errors/AppError'
 
 class SubscriptionController {
+  static async plans(req: Request, res: Response, next: NextFunction) {
+    try {
+      return res.status(200).json({
+        data: ListSubscriptionPlansService.execute(),
+      })
+    } catch (error) {
+      return next(error)
+    }
+  }
+
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.session?.user?.id ?? (req as any).user?.id

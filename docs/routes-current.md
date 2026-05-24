@@ -57,8 +57,14 @@ Observação:
 ## Wallet e assinatura
 
 - `GET /api/wallet`
+- `GET /api/subscription/plans`
 - `GET /api/subscription`
 - `DELETE /api/subscription`
+
+Observação:
+
+- `GET /api/subscription/plans` lista os planos PRO mensais e anuais disponíveis para a interface
+- o checkout/ativacao financeira dos planos ainda nao esta ligado ao gateway
 
 ## Benefícios táticos
 

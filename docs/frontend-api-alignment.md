@@ -11,6 +11,7 @@
 - `/api/payments`
 - `/api/payments/history`
 - `/api/subscription`
+- `/api/subscription/plans`
 - `/api/admin/rounds`
 - ações admin de rodada
 
@@ -41,6 +42,19 @@ Leitura:
 - o fluxo básico está coerente
 - a UX ainda está à frente do backend neste ponto
 
+### Assinatura PRO / checkout
+
+Situação:
+
+- frontend consome `GET /api/subscription` como status composto com `isPro`, `isAnnualPro` e `subscription`
+- frontend consome `GET /api/subscription/plans` para exibir PRO mensal, PRO anual no cartao e PRO anual no PIX
+- botoes de compra permanecem desabilitados ate existir checkout/ativacao de assinatura
+
+Leitura:
+
+- precificacao e contrato visual estao alinhados
+- falta ligar o gateway para compra real de assinatura
+
 ## Fluxos legados ou fora do contrato atual
 
 - `src/pages/AdminPage.tsx`
@@ -50,5 +64,6 @@ Leitura:
 
 1. decidir se páginas legadas serão removidas ou migradas
 2. definir se `matches` virarão entidade real no backend
-3. evoluir o fluxo de pagamento para retornar dados de checkout/PIX mais úteis
-4. consolidar documentação compartilhada em um ponto único no futuro
+3. conectar checkout/ativacao para assinatura PRO
+4. evoluir o fluxo de pagamento para retornar dados de checkout/PIX mais úteis
+5. consolidar documentação compartilhada em um ponto único no futuro

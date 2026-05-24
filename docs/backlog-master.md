@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-05-22
+- 2026-05-24
 
 Objetivo:
 
@@ -533,7 +533,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Tarefas:
 
@@ -541,6 +541,13 @@ Tarefas:
 - validar regra comercial de PRO anual em 12x de R$ 9,90
 - validar PIX anual por R$ 99,00 com comunicacao "paga 10 meses e ganha 12"
 - alinhar pacotes e gateway antes de expor como fluxo financeiro final
+
+Nota 2026-05-24:
+
+- catalogo canonico de planos exposto em `GET /api/subscription/plans`
+- frontend de assinatura mostra PRO mensal, PRO anual no cartao e PRO anual no PIX
+- contrato de `GET /api/subscription` alinhado no frontend para usar `isPro`, `isAnnualPro` e `subscription`
+- checkout/ativacao automatica da assinatura segue pendente antes de liberar compra real
 
 ### 25. Refinar experiencia premium
 
@@ -576,11 +583,12 @@ Tarefas:
 
 ## Ordem recomendada agora
 
-1. observabilidade minima, checklist de incidente e visibilidade de jobs/pagamentos
-2. rotina documentada e testada de backup e restore
-3. concluir desacoplamento conceitual de `PRO` de `User.role`
-4. refinamentos do fluxo principal do jogador, bar e dashboard
-5. amadurecer administracao operacional de usuarios, logs e beneficios
+1. conectar checkout/ativacao de assinatura aos planos ja canonizados
+2. observabilidade minima, checklist de incidente e visibilidade de jobs/pagamentos
+3. rotina documentada e testada de backup e restore
+4. concluir desacoplamento conceitual de `PRO` de `User.role`
+5. refinamentos do fluxo principal do jogador, bar e dashboard
+6. amadurecer administracao operacional de usuarios, logs e beneficios
 
 ## Observacao final
 
