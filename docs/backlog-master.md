@@ -428,6 +428,11 @@ Nota 2026-05-22:
 - tela `Admin > Logs` entregue no frontend ativo
 - filtros e rotina operacional de uso dos logs ainda podem amadurecer
 
+Nota 2026-05-25:
+
+- painel `Admin > Operação` entregue para sinais agregados de pagamentos, webhooks, assinaturas e configuração crítica
+- `GET /api/admin/operational/status` entregue e protegido por permissão de auditoria
+
 ## P2. Qualidade, seguranca e operacao
 
 ### 19. Endurecer jobs internos, webhooks e auditoria
@@ -454,7 +459,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Tarefas:
 
@@ -462,6 +467,13 @@ Tarefas:
 - healthchecks uteis
 - checklist de incidente
 - visibilidade minima para pagamentos e jobs
+
+Nota 2026-05-25:
+
+- `/health` agora valida conexão com banco antes de retornar `db: ok`
+- `GET /api/admin/operational/status` consolida sinais mínimos de operação
+- frontend recebeu `Admin > Operação` com status geral, configuração Mercado Pago, pagamentos, webhooks, assinaturas e rodada aberta
+- ainda falta rotina externa de alerta/notificação e runbook de incidente testado
 
 ### 21. Definir rotina de backup e restore
 

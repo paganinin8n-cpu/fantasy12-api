@@ -30,6 +30,7 @@ import adminMonetizationRoutes from './routes/admin-monetization.routes'
 import adminSubscriptionsRoutes from './routes/admin-subscriptions.routes'
 import adminUsersRoutes from './routes/admin-users.routes'
 import adminLogsRoutes from './routes/admin-logs.routes'
+import adminOperationalRoutes from './routes/admin-operational.routes'
 
 /**
  * ⚙️ INTERNAL
@@ -179,12 +180,28 @@ app.use('/api', adminSubscriptionsRoutes)
 app.use('/api', adminRoundRoutes)
 app.use('/api', adminUsersRoutes)
 app.use('/api', adminLogsRoutes)
+app.use('/api', adminOperationalRoutes)
 
 /* ======================================================
    ❤️ HEALTH
 ====================================================== */
-app.get('/health', (_req, res) => {
-  res.json({ api: 'ok', db: 'ok' })
+app.get('/health', async (_req, res) => {
+  try {
+    const { prisma } = await import('./lib/prisma')
+    await prisma.$queryRaw`SELECT 1`
+
+    res.json({
+      api: 'ok',
+      db: 'ok',
+      timestamp: new Date().toISOString(),
+    })
+  } catch {
+    res.status(503).json({
+      api: 'ok',
+      db: 'error',
+      timestamp: new Date().toISOString(),
+    })
+  }
 })
 
 /* ======================================================

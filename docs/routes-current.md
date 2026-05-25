@@ -111,6 +111,14 @@ Observação:
 
 - `GET /api/admin/logs`
 
+### Operação admin
+
+- `GET /api/admin/operational/status`
+
+Observação:
+
+- expõe sinais agregados de pagamentos, webhooks, assinaturas, rodada aberta e configuração crítica
+
 ### Monetização admin
 
 - `GET /api/admin/monetization/wallet/:userId`
@@ -135,3 +143,7 @@ Observação:
 
 - `GET /health`
 - `GET /`
+
+Observação:
+
+- `/health` consulta o banco com `SELECT 1` e retorna `503` se a conexão falhar
