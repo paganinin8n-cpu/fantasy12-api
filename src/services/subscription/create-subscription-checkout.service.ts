@@ -88,6 +88,14 @@ function getPaymentMethods(plan: SubscriptionPlanOffer): PreferencePayload['paym
   }
 }
 
+function getCheckoutUrl(preference: any, accessToken: string) {
+  if (accessToken.startsWith('TEST-')) {
+    return preference.sandbox_init_point ?? preference.init_point ?? null
+  }
+
+  return preference.init_point ?? preference.sandbox_init_point ?? null
+}
+
 export class CreateSubscriptionCheckoutService {
   static async execute({ userId, planId }: Input) {
     const plan = getSubscriptionPlanOffer(planId)
@@ -149,14 +157,15 @@ export class CreateSubscriptionCheckoutService {
       ...(notificationUrl ? { notification_url: notificationUrl } : {}),
     }
 
-    const mp = new MercadoPagoClient(process.env.MP_ACCESS_TOKEN)
+    const accessToken = process.env.MP_ACCESS_TOKEN
+    const mp = new MercadoPagoClient(accessToken)
     const preference = await mp.createPreference(payload)
 
     return {
       checkoutId,
       planId: plan.id,
       provider: 'MERCADO_PAGO',
-      checkoutUrl: preference.init_point ?? preference.sandbox_init_point ?? null,
+      checkoutUrl: getCheckoutUrl(preference, accessToken),
       preferenceId: preference.id ?? null,
       status: 'PENDING',
     }

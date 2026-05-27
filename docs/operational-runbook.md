@@ -21,6 +21,7 @@ Ultima atualizacao:
 - `mp_access_token_missing`
   - checkout Mercado Pago fica desabilitado
   - configurar `MP_ACCESS_TOKEN` no serviço `api` e redeployar
+  - para credenciais de teste, usar token `TEST-...`; o backend usa `sandbox_init_point`
 - `approved_payment_not_credited`
   - pagamento aprovado sem crédito na wallet
   - conferir webhook recebido e reconciliar pagamento antes de creditar manualmente
