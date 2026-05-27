@@ -84,7 +84,10 @@ export class GetOperationalStatusService {
     const warnings = [
       stalePendingPayments > 0 ? 'stale_pending_payments' : null,
       webhooksLast5m > 100 ? 'webhook_high_volume' : null,
-      !process.env.MP_WEBHOOK_SECRET ? 'mp_webhook_secret_missing' : null,
+      !process.env.MP_WEBHOOK_SECRET &&
+      process.env.MP_ALLOW_UNSIGNED_TEST_WEBHOOKS !== 'true'
+        ? 'mp_webhook_secret_missing'
+        : null,
       !process.env.API_PUBLIC_URL && !process.env.MP_NOTIFICATION_URL
         ? 'mp_notification_url_not_explicit'
         : null,
@@ -103,6 +106,9 @@ export class GetOperationalStatusService {
       configuration: {
         mercadoPagoCheckoutEnabled: Boolean(process.env.MP_ACCESS_TOKEN),
         mercadoPagoWebhookSecretConfigured: Boolean(process.env.MP_WEBHOOK_SECRET),
+        mercadoPagoUnsignedTestWebhooksEnabled:
+          process.env.MP_ALLOW_UNSIGNED_TEST_WEBHOOKS === 'true' &&
+          process.env.MP_ACCESS_TOKEN?.startsWith('TEST-'),
         mercadoPagoNotificationUrlConfigured: Boolean(
           process.env.MP_NOTIFICATION_URL || process.env.API_PUBLIC_URL
         ),

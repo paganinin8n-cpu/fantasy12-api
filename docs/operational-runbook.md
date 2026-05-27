@@ -40,6 +40,7 @@ Ultima atualizacao:
 - `mp_webhook_secret_missing`
   - webhook fica menos protegido
   - configurar `MP_WEBHOOK_SECRET` em producao
+  - para teste sandbox, `MP_ALLOW_UNSIGNED_TEST_WEBHOOKS=true` pode ser usado somente com token `TEST-...`
 - `mp_notification_url_not_explicit`
   - a URL de notificacao depende da configuracao do app Mercado Pago ou nao esta explicita no ambiente
   - configurar `API_PUBLIC_URL=https://api.fantasy12.com` ou `MP_NOTIFICATION_URL`

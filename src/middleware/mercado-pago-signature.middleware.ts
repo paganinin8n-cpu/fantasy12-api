@@ -21,10 +21,24 @@ export function verifyMercadoPagoSignature(
   next: NextFunction
 ): void | Response {
   const secret = process.env.MP_WEBHOOK_SECRET
+  const allowUnsignedTestWebhooks =
+    process.env.MP_ALLOW_UNSIGNED_TEST_WEBHOOKS === 'true' &&
+    process.env.MP_ACCESS_TOKEN?.startsWith('TEST-')
 
   // Em ambientes de desenvolvimento permitimos pular a validação
-  // explicitamente para facilitar testes locais.
+  // explicitamente para facilitar testes locais. Em producao, a unica
+  // excecao aceita e sandbox Mercado Pago com token TEST-* e flag explicita.
   if (!secret) {
+    if (allowUnsignedTestWebhooks) {
+      console.warn({
+        level: 'WARN',
+        service: 'verifyMercadoPagoSignature',
+        message:
+          'MP_WEBHOOK_SECRET ausente - assinatura ignorada somente para sandbox TEST',
+      })
+      return next()
+    }
+
     if (process.env.NODE_ENV === 'production') {
       console.error({
         level: 'ERROR',
