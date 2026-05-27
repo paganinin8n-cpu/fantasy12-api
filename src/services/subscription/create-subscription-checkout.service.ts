@@ -89,7 +89,10 @@ function getPaymentMethods(plan: SubscriptionPlanOffer): PreferencePayload['paym
 }
 
 function getCheckoutUrl(preference: any, accessToken: string) {
-  if (accessToken.startsWith('TEST-')) {
+  if (
+    accessToken.startsWith('TEST-') &&
+    process.env.MP_USE_SANDBOX_INIT_POINT === 'true'
+  ) {
     return preference.sandbox_init_point ?? preference.init_point ?? null
   }
 
