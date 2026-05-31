@@ -6,10 +6,12 @@ export class AdminSubscriptionService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       select: {
+        id: true,
         plan: true,
         status: true,
         startAt: true,
         endAt: true,
+        createdAt: true,
       },
     });
   }

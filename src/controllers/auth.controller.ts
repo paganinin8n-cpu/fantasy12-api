@@ -1,8 +1,12 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { LoginService } from '../services/auth/login.service';
 
 export class AuthController {
-  static async login(req: Request, res: Response): Promise<Response> {
+  static async login(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
     try {
       const { email, password } = req.body;
 
@@ -20,9 +24,7 @@ export class AuthController {
         user: result.user,
       });
     } catch (error) {
-      return res.status(401).json({
-        error: 'Credenciais inválidas',
-      });
+      return next(error);
     }
   }
 

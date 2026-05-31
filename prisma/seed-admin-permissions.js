@@ -17,6 +17,10 @@ const permissions = [
   'USER_READ',
   'USER_WRITE',
   'USER_FORCE',
+  'USER_BLOCK',
+  'USER_UNBLOCK',
+  'USER_PLAN_WRITE',
+  'USER_PASSWORD_RESET',
   'AUDIT_READ',
   'SYSTEM_LOCK',
   'SYSTEM_REBUILD',
@@ -65,6 +69,9 @@ async function main() {
     'FINANCE_EXECUTE',
     'USER_READ',
     'USER_WRITE',
+    'USER_BLOCK',
+    'USER_UNBLOCK',
+    'USER_PLAN_WRITE',
     'AUDIT_READ',
     'JOB_EXECUTE'
   ]

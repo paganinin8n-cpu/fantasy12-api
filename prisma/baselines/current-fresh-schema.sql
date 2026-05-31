@@ -48,6 +48,9 @@ CREATE TABLE "users" (
     "phone" TEXT,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),
+    "adminBlockedAt" TIMESTAMP(3),
+    "adminBlockedReason" TEXT,
+    "adminBlockedById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

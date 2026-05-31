@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-05-24
+- 2026-05-31
 
 Objetivo:
 
@@ -304,11 +304,19 @@ Tarefas:
 - tornar status PRO mais visivel
 - melhorar formulario de perfil
 - deixar a gestao de conta mais clara
+- permitir troca de senha pelo proprio usuario logado
+- validar senha atual, nova senha e confirmacao no frontend
+- exibir feedback claro sem encerrar sessao automaticamente
 
 Nota 2026-05-22:
 
 - formulario de perfil editavel entregue
 - ainda resta refinamento visual fino do estado PRO e gestao de conta
+
+Nota 2026-05-31:
+
+- backend ja dispoe de `POST /api/me/password`
+- falta expor a acao no perfil ativo do frontend
 
 ### 14. Criar fluxo visual de bolao
 
@@ -395,12 +403,24 @@ Tarefas:
 - expor tela ativa para gestao de usuarios
 - permitir ajuste operacional de coins e beneficios
 - alinhar com o modelo final de assinatura e roles
+- permitir bloqueio administrativo de usuario com motivo
+- permitir liberacao administrativa de usuario bloqueado
+- permitir ajuste manual de plano pago com vigencia
+- permitir cancelamento manual de plano com auditoria
+- exibir historico administrativo relevante por usuario
+- tornar permissoes admin granulares para acoes sensiveis
 
 Nota 2026-05-22:
 
 - `GET /api/admin/users` entregue e protegido por permissao admin
 - tela `Admin > Usuarios` entregue no frontend ativo
 - ajuste operacional de coins e beneficios continua pendente
+
+Nota 2026-05-31:
+
+- prioridade nova: transformar admin em gestor operacional do sistema
+- acoes sensiveis devem gerar `AdminAuditLog` com admin, alvo, payload, IP e motivo
+- bloqueio administrativo deve ser separado do bloqueio temporario de login por brute force
 
 ### 18. Consolidar logs operacionais no admin
 

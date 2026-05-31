@@ -34,6 +34,13 @@ export class LoginService {
       throw AppError.unauthorized('Credenciais inválidas', 'invalid_credentials')
     }
 
+    if (user.adminBlockedAt) {
+      throw AppError.forbidden(
+        'Conta bloqueada administrativamente. Entre em contato com o suporte.',
+        'account_admin_blocked'
+      )
+    }
+
     // Conta bloqueada?
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       throw AppError.unauthorized(

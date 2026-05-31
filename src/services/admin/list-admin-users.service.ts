@@ -37,6 +37,11 @@ export class ListAdminUsersService {
           nickname: true,
           phone: true,
           role: true,
+          adminBlockedAt: true,
+          adminBlockedReason: true,
+          adminBlockedById: true,
+          failedLoginAttempts: true,
+          lockedUntil: true,
           createdAt: true,
           wallet: {
             select: {
@@ -78,6 +83,11 @@ export class ListAdminUsersService {
         nickname: user.nickname,
         phone: user.phone,
         role: user.role,
+        adminBlockedAt: user.adminBlockedAt,
+        adminBlockedReason: user.adminBlockedReason,
+        adminBlockedById: user.adminBlockedById,
+        failedLoginAttempts: user.failedLoginAttempts,
+        lockedUntil: user.lockedUntil,
         createdAt: user.createdAt,
         wallet: user.wallet,
         subscription: user.subscription,
