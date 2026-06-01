@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { RankingType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { hasActiveProSubscription } from '../../domain/subscription';
+import { RankingWindowScoreService } from './ranking-window-score.service';
 
 interface CreateRankingInput {
   name: string;
@@ -64,19 +65,12 @@ export class CreateRankingService {
 
     // 4️⃣ Criação dos participantes com scoreInitial
     for (const userId of input.participantIds) {
-      const lastScore = await prisma.userScoreHistory.findFirst({
-        where: {
+      const scoreInitial =
+        await RankingWindowScoreService.getScoreTotalBefore(
+          prisma,
           userId,
-          createdAt: {
-            lt: input.startDate
-          }
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-
-      const scoreInitial = lastScore?.scoreTotal ?? 0;
+          input.startDate
+        );
 
       await prisma.rankingParticipant.create({
         data: {

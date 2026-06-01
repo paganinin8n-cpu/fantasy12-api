@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../errors/AppError';
+import { RankingWindowScoreService } from './ranking-window-score.service';
 
 interface AddParticipantInput {
   rankingId: string;
@@ -41,19 +42,13 @@ export class AddParticipantService {
       );
     }
 
-    const lastScore = await prisma.userScoreHistory.findFirst({
-      where: {
-        userId: input.userId,
-        ...(ranking.startDate && {
-          createdAt: {
-            lt: ranking.startDate,
-          },
-        }),
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const scoreInitial = lastScore?.scoreTotal ?? 0;
+    const scoreInitial = ranking.startDate
+      ? await RankingWindowScoreService.getScoreTotalBefore(
+          prisma,
+          input.userId,
+          ranking.startDate
+        )
+      : 0;
 
     return prisma.rankingParticipant.create({
       data: {

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { RankingWindowScoreService } from '../ranking/ranking-window-score.service'
 
 type ExecuteInput = {
   rankingId: string
@@ -54,54 +55,17 @@ export class GetBolaoRankingService {
       orderBy: [{ position: 'asc' }, { score: 'desc' }, { createdAt: 'asc' }],
     })
 
-    const participantIds = participants.map(participant => participant.userId)
-    const latestSnapshots =
-      participantIds.length > 0
-        ? await prisma.rankingSnapshot.findMany({
-            where: {
-              userId: { in: participantIds },
-              ...(ranking.startDate && ranking.endDate
-                ? {
-                    round: {
-                      closeAt: {
-                        gte: ranking.startDate,
-                        lte: ranking.endDate,
-                      },
-                    },
-                  }
-                : {}),
-            },
-            select: {
-              userId: true,
-              scoreRound: true,
-              createdAt: true,
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-          })
-        : []
-
-    const lastRoundByUser = new Map<string, number>()
-    for (const snapshot of latestSnapshots) {
-      if (!lastRoundByUser.has(snapshot.userId)) {
-        lastRoundByUser.set(snapshot.userId, snapshot.scoreRound)
-      }
-    }
+    const liveRows = await RankingWindowScoreService.buildRows(prisma, ranking)
+    const liveRowByUser = new Map(liveRows.map(row => [row.userId, row]))
+    const liveOrderByUser = new Map(
+      liveRows.map((row, index) => [row.userId, index])
+    )
 
     const orderedParticipants = [...participants].sort((a, b) => {
-      const aPosition = a.position ?? Number.MAX_SAFE_INTEGER
-      const bPosition = b.position ?? Number.MAX_SAFE_INTEGER
-
-      if (aPosition !== bPosition) {
-        return aPosition - bPosition
-      }
-
-      if (b.score !== a.score) {
-        return b.score - a.score
-      }
-
-      return a.userId.localeCompare(b.userId)
+      return (
+        (liveOrderByUser.get(a.userId) ?? Number.MAX_SAFE_INTEGER) -
+        (liveOrderByUser.get(b.userId) ?? Number.MAX_SAFE_INTEGER)
+      )
     })
 
     const rankingItems = orderedParticipants.map((participant, index) => {
@@ -115,9 +79,9 @@ export class GetBolaoRankingService {
         name: displayName,
         isOwner: participant.userId === ranking.createdByUserId,
         isMe: participant.userId === viewerUserId,
-        scoreTotal: participant.score,
-        scoreRound: lastRoundByUser.get(participant.userId) ?? 0,
-        position: participant.position ?? index + 1,
+        scoreTotal: liveRowByUser.get(participant.userId)?.score ?? participant.score,
+        scoreRound: liveRowByUser.get(participant.userId)?.scoreRound ?? 0,
+        position: liveRowByUser.get(participant.userId)?.position ?? index + 1,
       }
     })
 

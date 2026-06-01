@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { RankingWindowScoreService } from './ranking-window-score.service';
 
 export class CloseRankingService {
   async execute(rankingId: string) {
@@ -8,13 +9,11 @@ export class CloseRankingService {
        */
       const ranking = await tx.ranking.findUnique({
         where: { id: rankingId },
-        include: {
-          participants: true,
-          rounds: {
-            include: {
-              round: true,
-            },
-          },
+        select: {
+          id: true,
+          status: true,
+          endDate: true,
+          startDate: true,
         },
       });
 
@@ -30,48 +29,14 @@ export class CloseRankingService {
         throw new Error('Ranking ainda não expirou');
       }
 
-      /**
-       * 2️⃣ Encontrar última rodada SCORED vinculada ao ranking
-       */
-      const scoredRounds = ranking.rounds
-        .filter(r => r.round.status === 'SCORED')
-        .map(r => r.round);
+      const rows = await RankingWindowScoreService.buildRows(tx, ranking);
 
-      if (scoredRounds.length === 0) {
-        throw new Error('Nenhuma rodada pontuada encontrada para este ranking');
-      }
-
-      const lastRound = scoredRounds.sort(
-        (a, b) => b.number - a.number
-      )[0];
-
-      /**
-       * 3️⃣ Buscar snapshot GLOBAL da última rodada
-       */
-      const snapshots = await tx.rankingSnapshot.findMany({
-        where: {
-          roundId: lastRound.id,
-          snapshotType: 'GLOBAL', // Snapshot soberano único
-        },
-      });
-
-      if (snapshots.length === 0) {
-        throw new Error('Snapshot GLOBAL não encontrado para a rodada final');
-      }
-
-      /**
-       * 4️⃣ Atualizar rankingParticipant com base no snapshot
-       */
-      for (const participant of ranking.participants) {
-        const snapshot = snapshots.find(s => s.userId === participant.userId);
-
-        if (!snapshot) continue;
-
+      for (const row of rows) {
         await tx.rankingParticipant.update({
-          where: { id: participant.id },
+          where: { id: row.participantId },
           data: {
-            score: snapshot.scoreTotal - participant.scoreInitial,
-            position: snapshot.position,
+            score: row.score,
+            position: row.position,
           },
         });
       }

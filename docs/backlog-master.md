@@ -157,6 +157,11 @@ Nota 2026-05-22:
 - beneficios gratuitos continuam nao acumulativos entre rodadas
 - consumo de ticket usa primeiro beneficios gratuitos e depois saldo comprado
 
+Nota 2026-05-31:
+
+- regra da planilha incorporada ao backlog: rankings de bolao usam a janela propria do ranking, somando `scoreRound` das rodadas dentro de `startDate` e `endDate`
+- `scoreInitial` permanece como marco auditavel do acumulado global antes do inicio, mas a pontuacao exibida do bolao vem do desempenho dentro da janela
+
 ### 7. Fechar ranking FREE, PRO e boloes premium
 
 Tipo:
@@ -316,7 +321,7 @@ Nota 2026-05-22:
 Nota 2026-05-31:
 
 - backend ja dispoe de `POST /api/me/password`
-- falta expor a acao no perfil ativo do frontend
+- perfil ativo do frontend ja expoe troca de senha com validacao de senha atual, nova senha e confirmacao
 
 ### 14. Criar fluxo visual de bolao
 

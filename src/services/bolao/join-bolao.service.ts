@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
+import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -89,6 +90,25 @@ export class JoinBolaoService {
         const endDate = new Date(
           startDate.getTime() + (bolao.durationDays ?? 0) * 24 * 60 * 60 * 1000
         );
+
+        const participants = await tx.rankingParticipant.findMany({
+          where: { rankingId },
+          select: { id: true, userId: true },
+        });
+
+        for (const participant of participants) {
+          const scoreInitial =
+            await RankingWindowScoreService.getScoreTotalBefore(
+              tx,
+              participant.userId,
+              startDate
+            );
+
+          await tx.rankingParticipant.update({
+            where: { id: participant.id },
+            data: { scoreInitial },
+          });
+        }
 
         await tx.ranking.update({
           where: { id: rankingId },

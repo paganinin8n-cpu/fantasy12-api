@@ -1,23 +1,36 @@
 import { prisma } from '../../lib/prisma'
+import { RankingWindowScoreService } from './ranking-window-score.service'
 
 export class RecalculateRankingService {
 
   static async execute(): Promise<void> {
+    await prisma.$transaction(async tx => {
+      const rankings = await tx.ranking.findMany({
+        where: {
+          status: 'ACTIVE',
+          startDate: { not: null },
+        },
+        select: {
+          id: true,
+          startDate: true,
+          endDate: true,
+        },
+      })
 
-    await prisma.$executeRawUnsafe(`
+      for (const ranking of rankings) {
+        const rows = await RankingWindowScoreService.buildRows(tx, ranking)
 
-      UPDATE ranking_participants rp
-      SET position = ranked.position
-      FROM (
-        SELECT
-          ush.user_id,
-          RANK() OVER (ORDER BY ush.score_total DESC) AS position
-        FROM user_score_history ush
-      ) ranked
-      WHERE rp.user_id = ranked.user_id
-
-    `)
-
+        for (const row of rows) {
+          await tx.rankingParticipant.update({
+            where: { id: row.participantId },
+            data: {
+              score: row.score,
+              position: row.position,
+            },
+          })
+        }
+      }
+    })
   }
 
 }
