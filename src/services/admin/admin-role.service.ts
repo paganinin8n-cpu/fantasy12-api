@@ -1,11 +1,19 @@
 import { prisma } from '../../lib/prisma';
+import { AppError } from '../../errors/AppError';
 
 export class AdminRoleService {
   static async setRole(
     adminUserId: string,
     targetUserId: string,
-    role: 'NORMAL' | 'PRO' | 'ADMIN'
+    role: 'NORMAL' | 'ADMIN'
   ) {
+    if (role !== 'NORMAL' && role !== 'ADMIN') {
+      throw AppError.badRequest(
+        'Papel estrutural inválido. Use assinatura para conceder acesso PRO.',
+        'invalid_structural_role'
+      );
+    }
+
     await prisma.user.update({
       where: { id: targetUserId },
       data: { role },

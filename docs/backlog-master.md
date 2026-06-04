@@ -124,7 +124,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Parcial`
 
 Tarefas:
 
@@ -132,6 +132,13 @@ Tarefas:
 - tratar `PRO` como estado de assinatura
 - mover elegibilidade PRO para `Subscription.status`, `Subscription.plan` e vigencia
 - revisar servicos que ainda dependem de `user.role = PRO`
+
+Nota 2026-06-04:
+
+- elegibilidade PRO em runtime passa a depender da assinatura ativa, nao de `User.role`
+- concessao de beneficios por rodada usa apenas `Subscription`
+- ajuste/cancelamento administrativo de assinatura nao altera mais o papel estrutural do usuario
+- enum legado `UserRole.PRO` ainda existe no schema e nos contratos para limpeza futura com migracao planejada
 
 ### 6. Canonizar beneficios por plano
 

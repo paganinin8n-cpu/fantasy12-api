@@ -14,7 +14,6 @@ export class GrantRoundBenefitsService {
     const users = await prisma.user.findMany({
       select: {
         id: true,
-        role: true,
         subscription: {
           select: {
             status: true,
@@ -26,7 +25,7 @@ export class GrantRoundBenefitsService {
     });
 
     for (const user of users) {
-      const isPro = hasActiveProSubscription(user.subscription) || user.role === 'PRO';
+      const isPro = hasActiveProSubscription(user.subscription);
       const freeDoubles = isPro ? 4 : 2;
       const freeSuperDoubles = isPro ? 2 : 0;
 

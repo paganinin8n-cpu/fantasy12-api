@@ -140,7 +140,7 @@ export class AdminUserManagementService {
     return prisma.$transaction(async tx => {
       const target = await tx.user.findUnique({
         where: { id: targetUserId },
-        select: { id: true, role: true },
+        select: { id: true },
       })
 
       if (!target) throw AppError.notFound('Usuário', 'user_not_found')
@@ -166,13 +166,6 @@ export class AdminUserManagementService {
           provider: PaymentProvider.MERCADO_PAGO,
         },
       })
-
-      if (target.role !== 'ADMIN') {
-        await tx.user.update({
-          where: { id: targetUserId },
-          data: { role: input.status === 'ACTIVE' ? 'PRO' : 'NORMAL' },
-        })
-      }
 
       await tx.adminAuditLog.create({
         data: {
@@ -209,7 +202,7 @@ export class AdminUserManagementService {
     return prisma.$transaction(async tx => {
       const target = await tx.user.findUnique({
         where: { id: targetUserId },
-        select: { id: true, role: true, subscription: true },
+        select: { id: true, subscription: true },
       })
 
       if (!target) throw AppError.notFound('Usuário', 'user_not_found')
@@ -222,13 +215,6 @@ export class AdminUserManagementService {
           endAt: new Date(),
         },
       })
-
-      if (target.role === 'PRO') {
-        await tx.user.update({
-          where: { id: targetUserId },
-          data: { role: 'NORMAL' },
-        })
-      }
 
       await tx.adminAuditLog.create({
         data: {

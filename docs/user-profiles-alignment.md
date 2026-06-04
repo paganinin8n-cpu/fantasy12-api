@@ -31,16 +31,17 @@ O PDF esta conceitualmente bem alinhado com a direcao do Fantasy12, principalmen
 O principal desalinhamento atual do codigo e este:
 
 - o documento define `PRO` como estado de assinatura
-- o codigo ainda usa `User.role = PRO` em partes importantes da regra de negocio
+- o codigo ja usa assinatura ativa como fonte de elegibilidade PRO em runtime
+- o enum legado `UserRole.PRO` ainda existe no schema e nos contratos para limpeza futura
 
-Em outras palavras: a arquitetura desejada esta parcialmente implementada, mas ainda existe um modelo hibrido entre `role` e `subscription`.
+Em outras palavras: a arquitetura desejada esta implementada na regra de negocio principal, mas ainda existe compatibilidade legada no schema e em contratos de leitura.
 
 ## Matriz de alinhamento
 
 | Regra do PDF | Status no codigo | Evidencia |
 |---|---|---|
 | `ADMIN` deve ser role estrutural | `Implementado` | [`prisma/schema.prisma`](/Users/roberson/dev/personal/fantasy12-api/prisma/schema.prisma) tem RBAC admin com `AdminRole`, `AdminPermission`, `UserAdminRole` |
-| `PRO` deve ser estado de assinatura | `Parcial` | existe model `Subscription`, mas servicos ainda usam `User.role = PRO` |
+| `PRO` deve ser estado de assinatura | `Parcial` | regras de elegibilidade usam `Subscription`; enum legado `UserRole.PRO` ainda existe para limpeza futura |
 | Backend governa regras do sistema | `Implementado` | regras de round, beneficios, wallet, subscription, ranking e jobs estao no backend |
 | Frontend apenas renderiza estados/permissoes | `Implementado` | frontend consome `/api/me`, `/api/subscription`, `/api/wallet` e usa sessao |
 | FREE recebe duplas gratis por rodada | `Parcial` | existe `RoundBenefit` e job de abertura concede beneficios, mas a regra FREE x PRO precisa ser auditada ponta a ponta |
@@ -98,7 +99,7 @@ O projeto atual segue essa direcao:
 
 ## Principais desalinhamentos
 
-### 1. `PRO` ainda esta misturado entre assinatura e role
+### 1. `PRO` ainda possui compatibilidade legada no schema
 
 Esse e o gap mais importante.
 
@@ -106,15 +107,13 @@ O documento diz:
 
 - `PRO` deve ser tratado como estado de assinatura
 
-Mas hoje o codigo ainda mistura isso com `User.role`.
+Hoje, as regras principais de runtime consultam `Subscription.status`, `Subscription.plan` e vigencia. O ponto restante e estrutural:
 
-Exemplos:
+- `UserRole.PRO` ainda existe no Prisma schema
+- contratos de frontend ainda aceitam `role: 'PRO'` por compatibilidade
+- `/api/me` ainda expoe `role`, mas tambem expoe `isPro`, `isAnnualPro` e `subscription`
 
-- [`src/services/ranking/create-ranking.service.ts`](/Users/roberson/dev/personal/fantasy12-api/src/services/ranking/create-ranking.service.ts) restringe participantes PRO por `user.role = PRO`
-- [`src/services/alerts/detect-subscription-anomalies.service.ts`](/Users/roberson/dev/personal/fantasy12-api/src/services/alerts/detect-subscription-anomalies.service.ts) detecta inconsistencias entre assinatura e role
-- [`src/services/user-profile.service.ts`](/Users/roberson/dev/personal/fantasy12-api/src/services/user-profile.service.ts) ainda expoe `role` como atributo central do perfil
-
-Isso indica que o proprio codigo reconhece a inconsistenci a, mas ainda nao concluiu a migracao conceitual.
+Isso deve ser removido apenas em uma migracao planejada, depois de auditar usuarios existentes com `role = PRO`.
 
 ### 2. Google login nao esta presente
 
@@ -168,13 +167,14 @@ Pode haver partes disso espalhadas, mas nao aparece como fluxo canonico consolid
 
 ### Alta prioridade
 
-1. Desacoplar `PRO` de `User.role`
+1. Concluir limpeza legada de `UserRole.PRO`
 
 Direcao sugerida:
 
-- `User.role` deve ficar para papel estrutural basico ou ser simplificado
-- elegibilidade PRO deve vir de `Subscription.status` + `Subscription.plan` + vigencia
-- rankings, beneficios e boloes devem consultar assinatura, nao `user.role`
+- auditar usuarios que ainda possuam `role = PRO`
+- migrar esses usuarios para `role = NORMAL` preservando assinatura ativa quando existir
+- remover `PRO` do enum `UserRole` em migracao propria
+- manter elegibilidade PRO por `Subscription.status` + `Subscription.plan` + vigencia
 
 2. Canonizar beneficios por plano
 
@@ -204,6 +204,11 @@ O frontend ja recebe dados mais aderentes ao modelo funcional:
 
 O proximo passo e reduzir dependencias restantes de `role = PRO` fora de administracao.
 
+Nota 2026-06-04:
+
+- as dependencias de regra de negocio em `role = PRO` foram removidas dos fluxos principais
+- resta limpar contratos e schema legado em uma etapa propria
+
 5. Implementar ou remover mencao a Google login
 
 Se for requisito real:
@@ -223,7 +228,7 @@ Ele esta mais alinhado ao futuro desejado do sistema do que ao estado exato da i
 Em resumo:
 
 - regras de backend, beneficios, wallet, admin e auditoria: bem alinhadas
-- modelo conceitual de `PRO` como assinatura: parcialmente alinhado
+- modelo conceitual de `PRO` como assinatura: alinhado em runtime, com legado estrutural pendente
 - login Google e premium anual: ainda nao alinhados
 
-O maior trabalho de maturidade agora e concluir a transicao de um modelo baseado em `role` para um modelo baseado em `subscription`.
+O maior trabalho de maturidade agora e limpar o legado estrutural de `UserRole.PRO` com migracao e auditoria de dados.
