@@ -20,7 +20,7 @@ export class BolaoRankingController {
       return res.json(detail);
     } catch (error: any) {
       return res.status(400).json({
-        error: error.message ?? 'Failed to load bolão ranking',
+        error: error.message ?? 'Não foi possível carregar o ranking da Mesa',
       });
     }
   }

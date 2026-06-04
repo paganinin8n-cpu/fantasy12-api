@@ -27,7 +27,7 @@ export class JoinBolaoController {
       return res.status(200).json(result);
     } catch (error: any) {
       return res.status(400).json({
-        error: error.message ?? 'Failed to join bolão',
+        error: error.message ?? 'Não foi possível entrar na Mesa',
       });
     }
   }

@@ -2,10 +2,10 @@ import { prisma } from '../../lib/prisma'
 import { RankingType } from '@prisma/client'
 
 /**
- * Lista todos os bolões em que o usuário participa, junto com sua posição
+ * Lista todas as Mesas em que o usuário participa, junto com sua posição
  * atual e o total de participantes.
  *
- * Bolões só são considerados aqueles com `type === BOLAO`.
+ * Mesas só são consideradas aquelas com `type === BOLAO`.
  */
 export class ListUserBoloesService {
   static async execute({ userId }: { userId: string }) {

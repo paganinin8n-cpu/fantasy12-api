@@ -23,7 +23,7 @@ export class ListAvailableBoloesController {
       }
 
       return res.status(500).json({
-        error: 'Não foi possível carregar os bolões disponíveis agora.',
+        error: 'Não foi possível carregar as Mesas disponíveis agora.',
       })
     }
   }

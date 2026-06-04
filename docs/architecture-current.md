@@ -37,8 +37,8 @@ O banco não está em fase inicial. O schema Prisma já cobre:
 - rodadas
 - tickets/palpites
 - score por rodada e histórico
-- rankings globais, periódicos e bolões
-- convites de bolão
+- rankings globais, periódicos e Mesas privadas
+- convites de Mesa
 - assinatura recorrente
 - carteira e razão financeira
 - pacotes de pagamento

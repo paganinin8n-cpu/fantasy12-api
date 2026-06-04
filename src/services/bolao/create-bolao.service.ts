@@ -44,7 +44,7 @@ export class CreateBolaoService {
 
     if (!hasAnnualProSubscription(user.subscription)) {
       throw AppError.forbidden(
-        'A criação de bolão é exclusiva para usuários com assinatura PRO anual ativa.',
+        'Montar Mesa é exclusivo para usuários com assinatura PRO anual ativa.',
         'annual_pro_subscription_required'
       );
     }
@@ -53,7 +53,7 @@ export class CreateBolaoService {
      * 2️⃣ Validar parâmetros
      */
     if (!name || name.trim().length < 3) {
-      throw new Error('Bolão name must have at least 3 characters');
+      throw new Error('O nome da Mesa deve ter pelo menos 3 caracteres');
     }
 
     if (durationDays <= 0) {
@@ -70,7 +70,7 @@ export class CreateBolaoService {
      */
     const result = await prisma.$transaction(async tx => {
       /**
-       * 3.1 Criar Ranking (Bolão) em DRAFT
+       * 3.1 Criar Ranking (Mesa privada) em DRAFT
        */
       const bolao = await tx.ranking.create({
         data: {

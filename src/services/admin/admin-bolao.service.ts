@@ -16,7 +16,7 @@ export class AdminBolaoService {
    * Usado por controllers antigos
    */
   static async create(adminId: string, input: CreateBolaoInput) {
-    // regra antiga: admin cria bolão em nome de outro usuário
+    // regra antiga: admin cria Mesa em nome de outro usuário
     return this.execute({
       ...input,
       createdByUserId: input.createdByUserId ?? adminId,

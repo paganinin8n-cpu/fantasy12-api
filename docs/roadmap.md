@@ -144,7 +144,7 @@ Entregáveis:
 
 Prioridade desta fase:
 
-- consolidar um padrão visual e operacional para jogador, bar, bolões e admin
+- consolidar um padrão visual e operacional para jogador, Balcão, Mesas e admin
 - transformar referências de tela em backlog implementável
 - evitar que novas telas nasçam fora de um design system mínimo
 

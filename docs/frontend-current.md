@@ -2,7 +2,7 @@
 
 ## Estado geral
 
-O frontend ativo está alinhado com a API principal e já contém as superfícies novas de perfil, bolões e administração básica.
+O frontend ativo está alinhado com a API principal e já contém as superfícies novas de perfil, Mesas e administração básica.
 
 ## Fluxo ativo confirmado
 
@@ -48,6 +48,8 @@ Rotas em uso:
 - `/ticket`
 - `/palpites`
 - `/profile`
+- `/mesas`
+- `/mesas/:rankingId`
 - `/boloes`
 - `/boloes/:rankingId`
 - `/tickets`
@@ -61,6 +63,8 @@ Rotas em uso:
 Observação:
 
 - a rota legada `betting` foi redirecionada para o fluxo de `TicketPage`
+- as rotas `/mesas` e `/mesas/:rankingId` são as rotas de produto para Mesas privadas
+- as rotas `/boloes` e `/boloes/:rankingId` seguem mantidas apenas como compatibilidade técnica
 - as rotas admin passam por guarda de autenticação e papel administrativo
 
 ## Consumo real de API no fluxo ativo
@@ -85,7 +89,7 @@ Observação:
 - `PATCH /api/me`
 - `POST /api/me/password`
 
-### Bolões
+### Mesas privadas
 
 - `GET /api/boloes/me`
 - `GET /api/boloes/available`
@@ -104,6 +108,8 @@ Observação:
 
 Observação:
 
+- a linguagem de produto usa `Mesa`, `Minhas Mesas` e `Montar Mesa`
+- os endpoints continuam como `/api/boloes` por compatibilidade com o contrato publicado
 - a `BarPage` tem `Menu Tatico` para comprar duplas e super duplas com fichas
 - a tela de ticket desabilita duplas/super duplas quando o saldo disponivel nao comporta nova selecao
 
@@ -157,7 +163,7 @@ O frontend ativo hoje é o conjunto:
 - bar
 - menu tatico de compra de duplas/super duplas
 - perfil
-- bolões
+- Mesas
 - admin/rounds
 - admin/users
 - admin/logs

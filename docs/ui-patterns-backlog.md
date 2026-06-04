@@ -91,7 +91,7 @@ Direção:
 - coins, duplas e super duplas precisam aparecer como economia integrada
 - a UI de compra não deve parecer uma página administrativa
 
-### Frente 3: Bolões
+### Frente 3: Mesas
 
 Telas de referência:
 
@@ -99,9 +99,10 @@ Telas de referência:
 
 Direção:
 
-- criação de bolão merece fluxo próprio e claro
+- criação de Mesa merece fluxo próprio e claro
 - status premium/pro anual precisa aparecer na UX
 - regras de entrada, período e observações precisam ser parte do contrato visual
+- a UI deve evitar o termo "bolão" como marca da experiência; o vocabulário público fica em torno de Mesa, Balcão, Comanda e Camarote PRO
 
 ### Frente 4: Painel admin
 
@@ -129,7 +130,7 @@ Direção:
 | Resumo de palpite | não consolidado como modal principal do fluxo | `Baixa` |
 | Perfil | perfil editavel entregue; ainda precisa refinamento visual fino | `Parcial` |
 | Bar / loja | Menu Tatico entregue para compra de duplas e super duplas; pacotes de fichas continuam no fluxo PIX | `Parcial` |
-| Bolões | criacao visual para PRO anual e paginas ativas entregues; ainda cabe refinamento | `Parcial` |
+| Mesas | criacao visual para PRO anual e paginas ativas entregues; linguagem de produto migrada de bolão para Mesa | `Parcial` |
 | Admin rodadas | existe base funcional | `Parcial` |
 | Admin usuários | endpoint e tela ativa entregues; ajustes operacionais continuam pendentes | `Parcial` |
 | Admin logs | endpoint e tela ativa entregues; filtros e rotina operacional continuam pendentes | `Parcial` |
@@ -173,7 +174,7 @@ Direção:
 - edição de dados com UX melhor
 - ações de conta mais claras
 
-6. Refinar fluxo visual de bolão com base em `responsive_create_league_modal`
+6. Refinar fluxo visual de Mesa com base em `responsive_create_league_modal`
 
 - criação ja entregue
 - restrições por plano
@@ -191,7 +192,7 @@ Direção:
 
 - jogador
 - monetização/bar
-- bolões
+- Mesas
 - admin
 
 Isso ajuda a evitar que o frontend vire uma coleção de páginas desconectadas.
@@ -210,7 +211,7 @@ Ordem recomendada:
 2. `resumo do palpite`
 3. `bar / loja`
 4. `perfil`
-5. `bolões`
+5. `Mesas`
 6. `admin`
 
 ## Conclusão

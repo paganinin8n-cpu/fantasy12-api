@@ -33,11 +33,11 @@ export class GetBolaoRankingService {
     })
 
     if (!ranking) {
-      throw new Error('Bolão not found')
+      throw new Error('Mesa não encontrada')
     }
 
     if (ranking.type !== 'BOLAO') {
-      throw new Error('Ranking is not a bolão')
+      throw new Error('Ranking não é uma Mesa')
     }
 
     const participants = await prisma.rankingParticipant.findMany({

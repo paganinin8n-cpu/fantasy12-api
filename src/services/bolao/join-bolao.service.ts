@@ -13,7 +13,7 @@ export class JoinBolaoService {
 
     return prisma.$transaction(async tx => {
       /**
-       * 1️⃣ Buscar bolão com lock lógico
+       * 1️⃣ Buscar Mesa com lock lógico
        */
       const bolao = await tx.ranking.findUnique({
         where: { id: rankingId },
@@ -28,22 +28,22 @@ export class JoinBolaoService {
       });
 
       if (!bolao) {
-        throw new Error('Bolão not found');
+        throw new Error('Mesa não encontrada');
       }
 
       if (bolao.type !== 'BOLAO') {
-        throw new Error('Ranking is not a bolão');
+        throw new Error('Ranking não é uma Mesa');
       }
 
       if (bolao.status !== 'DRAFT') {
-        throw new Error('Bolão is not open for new participants');
+        throw new Error('Esta Mesa não está aberta para novos participantes');
       }
 
       if (
         bolao.maxParticipants !== null &&
         bolao.currentParticipants >= bolao.maxParticipants
       ) {
-        throw new Error('Bolão is already full');
+        throw new Error('Esta Mesa já está cheia');
       }
 
       /**
@@ -59,7 +59,7 @@ export class JoinBolaoService {
       });
 
       if (alreadyParticipant) {
-        throw new Error('User already joined this bolão');
+        throw new Error('Você já participa desta Mesa');
       }
 
       /**

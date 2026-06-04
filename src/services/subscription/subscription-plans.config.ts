@@ -44,11 +44,11 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     installments: 12,
     installmentCents: 990,
     totalCents: 11880,
-    badge: 'Libera bolões',
+    badge: 'Libera Mesas',
     benefits: [
       '4 Duplas gratuitas por rodada',
       '2 Super Duplas gratuitas por rodada',
-      'Criação de bolões exclusivos',
+      'Criação de Mesas exclusivas',
     ],
     checkoutEnabled: true,
   },
@@ -66,7 +66,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     benefits: [
       'Economia sobre o plano mensal',
       '4 Duplas e 2 Super Duplas por rodada',
-      'Criação de bolões exclusivos',
+      'Criação de Mesas exclusivas',
     ],
     checkoutEnabled: true,
   },

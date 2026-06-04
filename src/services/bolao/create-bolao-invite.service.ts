@@ -18,18 +18,18 @@ export class CreateBolaoInviteService {
   }: CreateInviteInput) {
     await AssertActiveProUserService.execute(createdByUserId);
 
-    // validar ranking (bolão)
+    // validar ranking (Mesa privada)
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
       select: { id: true, type: true, createdByUserId: true },
     });
 
-    if (!ranking) throw new Error('Bolão not found');
-    if (ranking.type !== 'BOLAO') throw new Error('Ranking is not a bolão');
+    if (!ranking) throw new Error('Mesa não encontrada');
+    if (ranking.type !== 'BOLAO') throw new Error('Ranking não é uma Mesa');
 
     // apenas o criador pode gerar convite (regra inicial)
     if (ranking.createdByUserId !== createdByUserId) {
-      throw new Error('Only bolão creator can generate invites');
+      throw new Error('Apenas o dono da Mesa pode gerar convites');
     }
 
     const code = randomUUID();
