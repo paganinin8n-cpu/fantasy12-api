@@ -137,6 +137,7 @@ model User {
 
   passwordResetTokens PasswordResetToken[]
 
+  @@index([adminBlockedAt])
   @@map("users")
 }
 
