@@ -41,18 +41,18 @@ Em outras palavras: a arquitetura desejada esta implementada na regra de negocio
 | Regra do PDF | Status no codigo | Evidencia |
 |---|---|---|
 | `ADMIN` deve ser role estrutural | `Implementado` | [`prisma/schema.prisma`](/Users/roberson/dev/personal/fantasy12-api/prisma/schema.prisma) tem RBAC admin com `AdminRole`, `AdminPermission`, `UserAdminRole` |
-| `PRO` deve ser estado de assinatura | `Parcial` | regras de elegibilidade usam `Subscription`; enum legado `UserRole.PRO` ainda existe para limpeza futura |
+| `PRO` deve ser estado de assinatura | `Implementado funcionalmente` | regras de elegibilidade usam `Subscription`; enum legado `UserRole.PRO` existe apenas para limpeza estrutural futura |
 | Backend governa regras do sistema | `Implementado` | regras de round, beneficios, wallet, subscription, ranking e jobs estao no backend |
 | Frontend apenas renderiza estados/permissoes | `Implementado` | frontend consome `/api/me`, `/api/subscription`, `/api/wallet` e usa sessao |
-| FREE recebe duplas gratis por rodada | `Parcial` | existe `RoundBenefit` e job de abertura concede beneficios, mas a regra FREE x PRO precisa ser auditada ponta a ponta |
-| PRO recebe mais beneficios por rodada | `Parcial` | estrutura suporta `freeDoubles` e `freeSuperDoubles`, mas o comportamento por plano precisa ser validado no fluxo real |
+| FREE recebe duplas gratis por rodada | `Implementado` | `ROUND_BENEFIT_GRANTS.FREE` concede 2 duplas e 0 super duplas por rodada |
+| PRO recebe mais beneficios por rodada | `Implementado` | `ROUND_BENEFIT_GRANTS.PRO_MONTHLY` e `PRO_ANNUAL` concedem 4 duplas e 2 super duplas por rodada |
 | Beneficios gratis nao acumulam entre rodadas | `Implementado` | beneficios gratuitos sao vinculados a `roundId` em `RoundBenefit` |
 | Creditos comprados acumulam permanentemente | `Implementado` | `Wallet` e `WalletLedger` persistem saldo e historico |
 | Sistema consome primeiro creditos gratis | `Implementado` | [`src/services/benefits/consume-benefits.service.ts`](/Users/roberson/dev/personal/fantasy12-api/src/services/benefits/consume-benefits.service.ts) consome `RoundBenefit` antes de inventario e wallet |
-| Rankings FREE e PRO devem ser separados | `Parcial` | existe `RankingType = GLOBAL | PRO | BOLAO`, mas a separacao funcional completa ainda precisa validacao |
+| Rankings FREE e PRO devem ser separados | `Implementado funcionalmente` | ranking mensal geral e PRO sao separados por escopo; PRO usa assinatura ativa como filtro |
 | Boloes devem ter inicio e encerramento | `Parcial` | criacao atual usa `durationDays`; inicio/encerramento operacional ainda deve ser acompanhado no fluxo de status |
 | Bolao premium apenas para PRO ANUAL | `Implementado` | `CreateBolaoService` usa `hasAnnualProSubscription` antes de criar bolao |
-| Ranking PRO mensal automatico para PRO ativos | `Parcial` | existem ranking mensal e jobs de subscription, mas nao vi garantia clara de inscricao automatica por assinatura ativa |
+| Ranking PRO mensal automatico para PRO ativos | `Implementado funcionalmente` | ranking PRO mensal e calculado/filtrado por assinatura ativa no momento da leitura, sem depender de inscricao manual por `User.role` |
 | Login via email | `Implementado` | rota [`src/routes/auth.ts`](/Users/roberson/dev/personal/fantasy12-api/src/routes/auth.ts) |
 | Login via Google | `Nao implementado` | nao encontrei fluxo OAuth/Google no backend ou frontend atual |
 | Compra e uso de coins | `Implementado` | models `PaymentPackage`, `Payment`, `Wallet`, `WalletLedger` e telas/servicos de payment/wallet |
@@ -101,19 +101,19 @@ O projeto atual segue essa direcao:
 
 ### 1. `PRO` ainda possui compatibilidade legada no schema
 
-Esse e o gap mais importante.
+Esse deixou de ser um gap funcional e passou a ser uma limpeza estrutural futura.
 
 O documento diz:
 
 - `PRO` deve ser tratado como estado de assinatura
 
-Hoje, as regras principais de runtime consultam `Subscription.status`, `Subscription.plan` e vigencia. O ponto restante e estrutural:
+Hoje, as regras principais de runtime consultam `Subscription.status`, `Subscription.plan` e vigencia. O ponto restante e apenas estrutural:
 
 - `UserRole.PRO` ainda existe no Prisma schema
 - contratos de frontend ainda aceitam `role: 'PRO'` por compatibilidade
 - `/api/me` ainda expoe `role`, mas tambem expoe `isPro`, `isAnnualPro` e `subscription`
 
-Isso deve ser removido apenas em uma migracao planejada, depois de auditar usuarios existentes com `role = PRO`.
+Isso deve ser removido apenas em uma migracao planejada, depois de auditar usuarios existentes com `role = PRO`. Enquanto isso, `npm run product:rules:check` impede que `User.role` volte a ser usado como regra de elegibilidade PRO em fluxos de produto.
 
 ### 2. Google login nao esta presente
 
@@ -156,18 +156,13 @@ Isso reduz a dependencia do frontend em inferencias por `role`, especialmente pa
 
 ### 5. Ranking PRO mensal automatico ainda nao esta claramente fechado
 
-Existe base para rankings e subscriptions, mas ainda nao vi uma regra inequívoca de:
-
-- detectar todos os PRO ativos do mes
-- inscreve-los automaticamente no ranking PRO mensal
-
-Pode haver partes disso espalhadas, mas nao aparece como fluxo canonico consolidado.
+O ranking mensal PRO usa assinatura ativa como filtro no momento da leitura. Isso evita depender de uma inscricao manual ou de `User.role`.
 
 ## Recomendacao de backlog
 
 ### Alta prioridade
 
-1. Concluir limpeza legada de `UserRole.PRO`
+1. Planejar limpeza estrutural de `UserRole.PRO`
 
 Direcao sugerida:
 
@@ -176,7 +171,14 @@ Direcao sugerida:
 - remover `PRO` do enum `UserRole` em migracao propria
 - manter elegibilidade PRO por `Subscription.status` + `Subscription.plan` + vigencia
 
-2. Canonizar beneficios por plano
+2. Manter beneficios por plano como regra canonica versionada
+
+Direcao atual:
+
+- FREE: 2 duplas, 0 super duplas
+- PRO mensal: 4 duplas, 2 super duplas
+- PRO anual: 4 duplas, 2 super duplas
+- elegibilidade PRO sempre por assinatura ativa
 
 Transformar em regra explicita de backend:
 
@@ -228,7 +230,8 @@ Ele esta mais alinhado ao futuro desejado do sistema do que ao estado exato da i
 Em resumo:
 
 - regras de backend, beneficios, wallet, admin e auditoria: bem alinhadas
-- modelo conceitual de `PRO` como assinatura: alinhado em runtime, com legado estrutural pendente
-- login Google e premium anual: ainda nao alinhados
+- modelo conceitual de `PRO` como assinatura: implementado funcionalmente, com legado estrutural pendente
+- login Google: ainda nao alinhado
+- premium anual: alinhado funcionalmente para criacao de Mesas
 
-O maior trabalho de maturidade agora e limpar o legado estrutural de `UserRole.PRO` com migracao e auditoria de dados.
+O trabalho residual agora e limpar o legado estrutural de `UserRole.PRO` com migracao e auditoria de dados.

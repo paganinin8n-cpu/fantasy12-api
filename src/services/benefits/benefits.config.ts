@@ -50,3 +50,33 @@ export const BENEFIT_PURCHASE_PACKAGES = {
 } as const
 
 export type BenefitPurchasePackageId = keyof typeof BENEFIT_PURCHASE_PACKAGES
+
+export const ROUND_BENEFIT_GRANTS = {
+  FREE: {
+    freeDoubles: 2,
+    freeSuperDoubles: 0,
+  },
+  PRO_MONTHLY: {
+    freeDoubles: 4,
+    freeSuperDoubles: 2,
+  },
+  PRO_ANNUAL: {
+    freeDoubles: 4,
+    freeSuperDoubles: 2,
+  },
+} as const
+
+export type RoundBenefitGrantKey = keyof typeof ROUND_BENEFIT_GRANTS
+
+export function getRoundBenefitGrant({
+  isPro,
+  isAnnualPro,
+}: {
+  isPro: boolean
+  isAnnualPro?: boolean
+}) {
+  if (!isPro) return ROUND_BENEFIT_GRANTS.FREE
+  return isAnnualPro
+    ? ROUND_BENEFIT_GRANTS.PRO_ANNUAL
+    : ROUND_BENEFIT_GRANTS.PRO_MONTHLY
+}

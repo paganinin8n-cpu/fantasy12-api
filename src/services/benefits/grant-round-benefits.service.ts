@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
-import { hasActiveProSubscription } from '../../domain/subscription';
+import { hasActiveProSubscription, hasAnnualProSubscription } from '../../domain/subscription';
+import { getRoundBenefitGrant } from './benefits.config';
 
 /**
  * Concede extras gratuitos por rodada.
@@ -26,8 +27,10 @@ export class GrantRoundBenefitsService {
 
     for (const user of users) {
       const isPro = hasActiveProSubscription(user.subscription);
-      const freeDoubles = isPro ? 4 : 2;
-      const freeSuperDoubles = isPro ? 2 : 0;
+      const grant = getRoundBenefitGrant({
+        isPro,
+        isAnnualPro: hasAnnualProSubscription(user.subscription),
+      });
 
       await prisma.roundBenefit.upsert({
         where: {
@@ -37,14 +40,14 @@ export class GrantRoundBenefitsService {
           },
         },
         update: {
-          freeDoubles,
-          freeSuperDoubles,
+          freeDoubles: grant.freeDoubles,
+          freeSuperDoubles: grant.freeSuperDoubles,
         },
         create: {
           userId: user.id,
           roundId,
-          freeDoubles,
-          freeSuperDoubles,
+          freeDoubles: grant.freeDoubles,
+          freeSuperDoubles: grant.freeSuperDoubles,
         },
       });
     }

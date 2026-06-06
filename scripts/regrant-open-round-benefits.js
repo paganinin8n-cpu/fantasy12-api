@@ -8,6 +8,29 @@ function hasActiveProSubscription(subscription) {
   return !subscription.endAt || subscription.endAt > new Date()
 }
 
+function hasAnnualProSubscription(subscription) {
+  return hasActiveProSubscription(subscription) && subscription.plan === 'ANNUAL'
+}
+
+function getRoundBenefitGrant(subscription) {
+  if (!hasActiveProSubscription(subscription)) {
+    return {
+      freeDoubles: 2,
+      freeSuperDoubles: 0,
+    }
+  }
+
+  return hasAnnualProSubscription(subscription)
+    ? {
+        freeDoubles: 4,
+        freeSuperDoubles: 2,
+      }
+    : {
+        freeDoubles: 4,
+        freeSuperDoubles: 2,
+      }
+}
+
 async function main() {
   const round = await prisma.round.findFirst({
     where: { status: 'OPEN' },
@@ -23,7 +46,6 @@ async function main() {
   const users = await prisma.user.findMany({
     select: {
       id: true,
-      role: true,
       subscription: {
         select: {
           status: true,
@@ -38,9 +60,8 @@ async function main() {
   let proUsers = 0
 
   for (const user of users) {
-    const isPro = hasActiveProSubscription(user.subscription) || user.role === 'PRO'
-    const freeDoubles = isPro ? 4 : 2
-    const freeSuperDoubles = isPro ? 2 : 0
+    const isPro = hasActiveProSubscription(user.subscription)
+    const { freeDoubles, freeSuperDoubles } = getRoundBenefitGrant(user.subscription)
 
     if (isPro) proUsers += 1
     else normalUsers += 1

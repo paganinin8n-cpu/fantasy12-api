@@ -138,7 +138,7 @@ Tipo:
 
 Status sugerido:
 
-- `Implementado`
+- `Concluido`
 
 Tarefas:
 
@@ -154,6 +154,12 @@ Nota 2026-06-04:
 - ajuste/cancelamento administrativo de assinatura nao altera mais o papel estrutural do usuario
 - enum legado `UserRole.PRO` ainda existe no schema e nos contratos para limpeza futura com migracao planejada
 
+Nota 2026-06-06:
+
+- dependencias funcionais restantes de `user.role = PRO` foram removidas dos fluxos de beneficios e scripts operacionais
+- `npm run product:rules:check` passa a impedir uso de `User.role` como fonte de elegibilidade PRO fora da camada estrutural/compatibilidade
+- `UserRole.PRO` permanece apenas como legado de schema/contrato para migracao futura, nao como regra de negocio ativa
+
 ### 6. Canonizar beneficios por plano
 
 Tipo:
@@ -162,7 +168,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
@@ -183,6 +189,14 @@ Nota 2026-05-31:
 - regra da planilha incorporada ao backlog: rankings de bolao usam a janela propria do ranking, somando `scoreRound` das rodadas dentro de `startDate` e `endDate`
 - `scoreInitial` permanece como marco auditavel do acumulado global antes do inicio, mas a pontuacao exibida do bolao vem do desempenho dentro da janela
 
+Nota 2026-06-06:
+
+- regra oficial de beneficios por rodada centralizada em `ROUND_BENEFIT_GRANTS`
+- FREE recebe 2 duplas e 0 super duplas
+- PRO mensal recebe 4 duplas e 2 super duplas
+- PRO anual recebe 4 duplas e 2 super duplas
+- concessao e reprocessamento de beneficios usam assinatura ativa como fonte unica de elegibilidade PRO
+
 ### 7. Fechar ranking FREE, PRO e boloes premium
 
 Tipo:
@@ -198,6 +212,13 @@ Tarefas:
 - revisar separacao real entre ranking global, PRO e bolao
 - garantir restricao de bolao premium para `PRO ANNUAL`, se essa for a regra oficial
 - garantir inscricao automatica no ranking PRO mensal, se essa regra for mantida
+
+Nota 2026-06-06:
+
+- dashboard mensal filtra ranking PRO por assinatura ativa
+- Mesas premium continuam restritas a assinatura PRO anual ativa para criacao
+- ranking de Mesa usa janela propria em `RankingWindowScoreService`, somando `scoreRound` dentro de `startDate` e `endDate`
+- `scoreInitial` fica preservado como marco auditavel, sem entrar como pontuacao exibida da Mesa
 
 ### 8. Revisar payload de perfil e permissao do usuario
 
