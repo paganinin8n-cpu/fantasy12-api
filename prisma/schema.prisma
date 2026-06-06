@@ -180,12 +180,38 @@ model Round {
   updatedAt DateTime @updatedAt
 
   tickets          Ticket[]
+  matches          RoundMatch[]
   rankings         RankingRound[]
   scoreHistory     UserScoreHistory[]
   rankingSnapshots RankingSnapshot[]
   roundBenefits    RoundBenefit[]
 
   @@map("rounds")
+}
+
+//////////////////////////////////////////////////////
+// ROUND MATCH
+//////////////////////////////////////////////////////
+
+model RoundMatch {
+  id      String @id @default(uuid())
+  roundId String
+
+  position   Int
+  homeTeam   String
+  awayTeam   String
+  groupLabel String?
+  matchTime  DateTime?
+  result     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, position])
+  @@index([roundId])
+  @@map("round_matches")
 }
 
 //////////////////////////////////////////////////////

@@ -124,7 +124,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Implementado`
 
 Tarefas:
 
@@ -392,9 +392,11 @@ Referencias:
 
 Tarefas:
 
-- amadurecer tela de listagem
-- amadurecer criacao/edicao de rodadas
+- criar rodada com exatamente 12 jogos cadastrados
+- editar datas e jogos enquanto a rodada esta em `DRAFT`
 - refletir estados `DRAFT`, `OPEN`, `CLOSED`, `SCORED`
+- lancar resultado por jogo com selecao `Casa`, `Empate` e `Fora`
+- fechar e apurar rodada usando o motor automatico de pontuacao existente
 
 ### 17. Consolidar admin de usuarios
 

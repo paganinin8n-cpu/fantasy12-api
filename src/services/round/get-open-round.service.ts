@@ -16,7 +16,19 @@ export class GetOpenRoundService {
         status: true,
         openAt: true,
         closeAt: true,
-        result: true
+        result: true,
+        matches: {
+          orderBy: { position: 'asc' },
+          select: {
+            id: true,
+            position: true,
+            homeTeam: true,
+            awayTeam: true,
+            groupLabel: true,
+            matchTime: true,
+            result: true
+          }
+        }
       }
     })
 
@@ -24,8 +36,6 @@ export class GetOpenRoundService {
       return null
     }
 
-    // O sistema atual nao possui tabela de jogos/partidas.
-    // Mantemos o contrato explicito para o frontend ativo.
     return {
       id: round.id,
       number: round.number,
@@ -33,7 +43,7 @@ export class GetOpenRoundService {
       openAt: round.openAt,
       closeAt: round.closeAt,
       result: round.result,
-      matches: []
+      matches: round.matches
     }
   }
 }

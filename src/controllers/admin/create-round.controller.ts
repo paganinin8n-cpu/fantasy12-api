@@ -4,7 +4,7 @@ import { CreateRoundService } from '../../services/round/create-round.service'
 export class CreateRoundController {
   static async handle(req: Request, res: Response): Promise<Response> {
     try {
-      const { openAt, closeAt } = req.body
+      const { openAt, closeAt, matches } = req.body
 
       if (!openAt || !closeAt) {
         return res.status(400).json({
@@ -16,7 +16,8 @@ export class CreateRoundController {
 
       const round = await service.execute({
         openAt: new Date(openAt),
-        closeAt: new Date(closeAt)
+        closeAt: new Date(closeAt),
+        matches
       })
 
       return res.status(201).json({

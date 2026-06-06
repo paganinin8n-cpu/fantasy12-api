@@ -1,4 +1,5 @@
 import { RoundRepository } from '../../repositories/round.repository';
+import type { RoundMatchInput } from './round-match.types';
 
 export class CreateRoundService {
   private repository = new RoundRepository();
@@ -6,8 +7,9 @@ export class CreateRoundService {
   async execute(params: {
     openAt: Date;
     closeAt: Date;
+    matches: RoundMatchInput[];
   }) {
-    const { openAt, closeAt } = params;
+    const { openAt, closeAt, matches } = params;
 
     if (openAt >= closeAt) {
       throw new Error('openAt deve ser anterior a closeAt');
@@ -22,7 +24,8 @@ export class CreateRoundService {
     const round = await this.repository.create({
       number: nextNumber,
       openAt,
-      closeAt
+      closeAt,
+      matches
     });
 
     return {

@@ -84,6 +84,22 @@ CREATE TABLE "rounds" (
 );
 
 -- CreateTable
+CREATE TABLE "round_matches" (
+    "id" TEXT NOT NULL,
+    "roundId" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+    "homeTeam" TEXT NOT NULL,
+    "awayTeam" TEXT NOT NULL,
+    "groupLabel" TEXT,
+    "matchTime" TIMESTAMP(3),
+    "result" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "round_matches_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "tickets" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -403,6 +419,9 @@ CREATE UNIQUE INDEX "users_nickname_key" ON "users"("nickname");
 CREATE UNIQUE INDEX "users_cpf_key" ON "users"("cpf");
 
 -- CreateIndex
+CREATE INDEX "users_adminBlockedAt_idx" ON "users"("adminBlockedAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "password_reset_tokens_tokenHash_key" ON "password_reset_tokens"("tokenHash");
 
 -- CreateIndex
@@ -413,6 +432,12 @@ CREATE INDEX "password_reset_tokens_expiresAt_idx" ON "password_reset_tokens"("e
 
 -- CreateIndex
 CREATE UNIQUE INDEX "rounds_number_key" ON "rounds"("number");
+
+-- CreateIndex
+CREATE INDEX "round_matches_roundId_idx" ON "round_matches"("roundId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "round_matches_roundId_position_key" ON "round_matches"("roundId", "position");
 
 -- CreateIndex
 CREATE INDEX "tickets_userId_idx" ON "tickets"("userId");
@@ -572,6 +597,9 @@ CREATE UNIQUE INDEX "user_benefit_inventory_userId_type_key" ON "user_benefit_in
 
 -- AddForeignKey
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "round_matches" ADD CONSTRAINT "round_matches_roundId_fkey" FOREIGN KEY ("roundId") REFERENCES "rounds"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

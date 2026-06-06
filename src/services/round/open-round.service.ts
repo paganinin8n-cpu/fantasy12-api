@@ -19,7 +19,15 @@ export class OpenRoundService {
     await prisma.$transaction(async tx => {
       const round = await tx.round.findUnique({
         where: { id: roundId },
-        select: { id: true, status: true },
+        select: {
+          id: true,
+          status: true,
+          _count: {
+            select: {
+              matches: true,
+            },
+          },
+        },
       });
 
       if (!round) {
@@ -33,6 +41,10 @@ export class OpenRoundService {
 
       if (round.status !== RoundStatus.DRAFT) {
         throw new Error('Only DRAFT rounds can be opened');
+      }
+
+      if (round._count.matches !== 12) {
+        throw new Error('A rodada precisa ter 12 jogos cadastrados antes da abertura');
       }
 
       const alreadyOpenRound = await tx.round.findFirst({

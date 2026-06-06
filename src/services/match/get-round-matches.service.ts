@@ -1,8 +1,19 @@
-export class GetRoundMatchesService {
-  static async execute(_roundId: string) {
-    // Sistema atual usa apenas prediction vs result
-    // portanto não há tabela de matches no Prisma
+import { prisma } from '../../lib/prisma'
 
-    return []
+export class GetRoundMatchesService {
+  static async execute(roundId: string) {
+    return prisma.roundMatch.findMany({
+      where: { roundId },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        position: true,
+        homeTeam: true,
+        awayTeam: true,
+        groupLabel: true,
+        matchTime: true,
+        result: true
+      }
+    })
   }
 }

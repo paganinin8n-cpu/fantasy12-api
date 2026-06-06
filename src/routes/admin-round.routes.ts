@@ -5,6 +5,7 @@ import { CreateRoundController } from '../controllers/admin/create-round.control
 import { ListRoundsController } from '../controllers/admin/list-rounds.controller'
 import { OpenRoundController } from '../controllers/admin/open-round.controller'
 import { SetRoundResultController } from '../controllers/admin/set-round-result.controller'
+import { UpdateRoundController } from '../controllers/admin/update-round.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { authorize } from '../middleware/authorize.middleware'
 
@@ -29,6 +30,17 @@ router.post(
     entity: 'ROUND'
   }),
   CreateRoundController.handle
+)
+
+router.patch(
+  '/admin/rounds/:roundId',
+  authMiddleware,
+  authorize('COMPETITION_WRITE', {
+    audit: true,
+    entity: 'ROUND',
+    getEntityId: (req) => req.params.roundId
+  }),
+  UpdateRoundController.handle
 )
 
 /**

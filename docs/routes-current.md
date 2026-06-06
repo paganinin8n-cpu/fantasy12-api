@@ -36,6 +36,11 @@ Observação:
 - `GET /api/rounds/open`
 - `GET /api/rounds/:roundId/matches`
 
+Observação:
+
+- `GET /api/rounds/open` retorna `matches` quando a rodada ativa possui os 12 jogos cadastrados
+- `GET /api/rounds/:roundId/matches` lista os jogos da rodada ordenados por `position`
+
 ## Rankings
 
 - `GET /api/rankings/monthly`
@@ -95,9 +100,16 @@ Observação:
 
 - `GET /api/admin/rounds`
 - `POST /api/admin/rounds`
+- `PATCH /api/admin/rounds/:roundId`
 - `POST /api/admin/rounds/:roundId/open`
 - `POST /api/admin/rounds/:roundId/result`
 - `POST /api/admin/rounds/:roundId/close`
+
+Observação:
+
+- `POST /api/admin/rounds` cria a rodada em `DRAFT` com exatamente 12 jogos
+- `PATCH /api/admin/rounds/:roundId` edita datas e jogos apenas enquanto a rodada está em `DRAFT`
+- `POST /api/admin/rounds/:roundId/result` aceita o resultado consolidado `1,X,2,...` e sincroniza o resultado por jogo em `round_matches`
 
 ### Assinaturas admin
 
