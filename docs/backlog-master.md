@@ -267,7 +267,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencia:
 
@@ -281,6 +281,12 @@ Tarefas:
 - explicitar progresso da selecao
 - melhorar CTA final
 
+Nota 2026-06-06:
+
+- fluxo de ticket consolidado com progresso 12/12, saldo tatico e separacao entre multiplicadores gratis e comprados
+- resumo lateral passa a destacar duplas, super duplas, fichas e proximo passo
+- CTA final conduz para conferencia antes do envio definitivo
+
 ### 11. Implementar resumo de palpite antes do envio
 
 Tipo:
@@ -289,7 +295,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Referencia:
 
@@ -301,6 +307,12 @@ Tarefas:
 - destacar selecoes `2x` e `4x`
 - confirmar envio com clareza
 
+Nota 2026-06-06:
+
+- modal `TicketPreviewModal` virou etapa de conferencia final antes do envio
+- revisao mostra os 12 jogos, selecao marcada, uso de `2x` e `4x`, e consumo gratis/comprado
+- botao de envio fica bloqueado para tickets ja enviados e comunica que a confirmacao e definitiva
+
 ### 12. Revisar UX da BarPage
 
 Tipo:
@@ -309,7 +321,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencia:
 
@@ -331,6 +343,12 @@ Nota 2026-05-22:
 - `BarPage` recebeu `Menu Tatico` para compra de duplas e super duplas por fichas
 - compra de extras independe do usuario ser normal ou PRO
 - extras comprados entram no inventario persistente do usuario
+
+Nota 2026-06-06:
+
+- BarPage reorganizada em saldo, Menu Tatico e compra de fichas
+- compra de fichas comunica referencia fixa de `1 ficha = R$ 0,50` sem linguagem de desconto
+- extras ficam claramente separados da compra de fichas e preservam inventario persistente
 
 ### 13. Evoluir tela de perfil
 
