@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 const { execFileSync } = require('node:child_process')
+const fs = require('node:fs')
 const path = require('node:path')
 const { prisma } = require('../dist/lib/prisma')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
+const MIGRATIONS_DIR = path.join(PROJECT_ROOT, 'prisma', 'migrations')
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -26,9 +28,33 @@ async function getPublicTables() {
   return rows.map((row) => row.tablename)
 }
 
+function getMigrationNames() {
+  return fs
+    .readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+}
+
+function markMigrationsApplied() {
+  const migrations = getMigrationNames()
+
+  if (migrations.length === 0) {
+    console.log('No Prisma migrations found to mark as applied.')
+    return
+  }
+
+  console.log('Marking historical Prisma migrations as applied...')
+
+  for (const migration of migrations) {
+    run('npx', ['prisma', 'migrate', 'resolve', '--applied', migration])
+  }
+}
+
 async function main() {
   const allowExisting = process.argv.includes('--allow-existing')
   const skipSeed = process.argv.includes('--skip-seed')
+  const skipMigrationResolve = process.argv.includes('--skip-migration-resolve')
 
   console.log('Inspecting database state...')
   const tables = await getPublicTables()
@@ -48,6 +74,10 @@ async function main() {
 
   console.log('Running prisma db push...')
   run('npx', ['prisma', 'db', 'push', '--skip-generate'])
+
+  if (!skipMigrationResolve) {
+    markMigrationsApplied()
+  }
 
   if (!skipSeed) {
     console.log('Seeding admin permissions...')

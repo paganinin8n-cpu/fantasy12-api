@@ -2,30 +2,34 @@
 
 ## Objetivo
 
-Sair do estado atual:
+Definir a decisao operacional para a linha de corte das migrations do Fantasy12.
+
+O estado antigo era:
 
 - banco vazio -> `db push + seeds`
 - banco existente -> `migrate deploy`
 
-para um estado mais simples no futuro:
+O estado atual fica:
 
-- baseline Prisma definitiva para ambientes fresh
-- migrations futuras realmente reexecutáveis em sequência
+- banco vazio -> `db push + registro da trilha historica como aplicada + seeds`
+- banco existente -> `migrate deploy`
+- migrations futuras -> criadas normalmente e aplicadas por `migrate deploy`
 
 ## Situação Atual
 
-Hoje já temos:
+Hoje temos:
 
 - bootstrap seguro para banco vazio
 - baseline canônica em `prisma/baselines/current-fresh-schema.sql`
 - verificação automatizada da baseline com `npm run prisma:baseline:fresh:verify`
 - auditoria da cadeia histórica em `docs/migration-chain-audit.md`
+- checagem automatizada da politica com `npm run prisma:migration:policy:check`
 
-Isso já resolve operação, mas ainda não resolve elegância histórica da trilha.
+Isso resolve a operacao sem tentar reescrever migrations que ja foram usadas por producao.
 
-## Estratégia Recomendada
+## Estratégia Definida
 
-### Etapa 1. Congelar a cadeia histórica como legado
+### 1. Congelar a cadeia histórica como legado
 
 Não tentar “consertar” a história antiga migration por migration.
 
@@ -35,37 +39,37 @@ Motivos:
 - migrations antigas assumem produção legada
 - há arquivos com encoding inconsistente
 
-### Etapa 2. Escolher um ponto de corte
+### 2. Usar o schema atual como ponto de corte operacional
 
-Criar uma baseline definitiva a partir do schema atual, por exemplo:
+O ponto de corte nao sera uma migration Prisma nova inserida no meio da cadeia antiga. O ponto de corte sera:
 
-- `202605xx_fresh_baseline_v2`
+- `prisma/schema.prisma`
+- `prisma/baselines/current-fresh-schema.sql`
+- `scripts/bootstrap-database.js`
 
-Essa baseline deve representar o estado completo do schema atual em banco vazio.
+O bootstrap cria o schema final com `prisma db push` e depois registra todas as migrations historicas como aplicadas com `prisma migrate resolve --applied`.
 
-### Etapa 3. Definir política operacional
+### 3. Definir política operacional
 
-Depois da baseline definitiva:
+Depois do bootstrap:
 
-- ambientes realmente novos usam essa baseline
-- bancos antigos continuam seguindo a trilha existente até convergir
+- ambientes novos podem receber migrations futuras via `prisma migrate deploy`
+- bancos antigos continuam seguindo `migrate deploy`
+- a cadeia antiga permanece auditada e documentada, mas nao e usada para montar banco vazio
 
-Na prática, isso pode significar um período de transição em que:
+### 4. Normalizar qualidade daqui para frente
 
-- produção antiga continua intacta
-- novos ambientes passam a nascer já na baseline nova
+Para migrations novas:
 
-### Etapa 4. Normalizar encoding e qualidade dos arquivos
+- criar migration incremental normal
+- manter SQL em UTF-8
+- separar DDL de backfills
+- validar com `npm run prisma:schema:release:check`
+- aplicar em banco existente com `npm run prisma:migrate:deploy`
 
-Antes de institucionalizar a nova trilha:
+### 5. Validar em ambiente efêmero
 
-- converter migrations UTF-16LE legadas para UTF-8 apenas se houver real necessidade de manutenção
-- padronizar comentários e estilo dos SQLs futuros
-- garantir que toda migration nova rode em banco montado a partir da baseline nova
-
-### Etapa 5. Validar em ambiente efêmero
-
-Rodar a baseline nova em banco realmente vazio e validar:
+Rodar o bootstrap em banco realmente vazio e validar:
 
 - schema final
 - seeds mínimas
@@ -77,18 +81,26 @@ Rodar a baseline nova em banco realmente vazio e validar:
 
 ## Critério de Saída
 
-A baseline definitiva só deve substituir o modelo atual quando estes três pontos forem verdadeiros:
+Os itens de backlog 3 e 4 ficam concluidos quando estes pontos forem verdadeiros:
 
-1. um banco vazio sobe do zero sem `db push`;
+1. um banco vazio sobe do zero pelo comando oficial;
 2. o schema final bate com o `schema.prisma`;
-3. a produção atual não precisa de intervenção destrutiva para continuar evoluindo.
+3. migrations historicas nao rodam em banco fresh;
+4. o banco fresh fica apto a receber migrations futuras por `migrate deploy`;
+5. a producao atual nao precisa de intervencao destrutiva para continuar evoluindo.
 
-## Decisão Prática De Curto Prazo
+## Decisão Final
 
-Até essa baseline definitiva existir, o projeto deve continuar tratando como oficial:
+O comando oficial para banco vazio e:
 
 ```sh
 npm run prisma:bootstrap:fresh
 ```
 
-Isso mantém o sistema previsível agora, sem introduzir risco desnecessário.
+O comando oficial de release de schema e:
+
+```sh
+npm run prisma:schema:release:check
+```
+
+Esse desenho fecha a ambiguidade entre `db push`, migrations e seeds sem introduzir risco desnecessario em producao.

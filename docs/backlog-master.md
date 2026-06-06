@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-05-31
+- 2026-06-06
 
 Objetivo:
 
@@ -87,7 +87,7 @@ Tipo:
 
 Status sugerido:
 
-- `Em andamento`
+- `Concluido`
 
 Tarefas:
 
@@ -95,6 +95,13 @@ Tarefas:
 - decidir fluxo oficial entre `db push`, migrations e seed
 - documentar bootstrap minimo de producao e desenvolvimento
 - remover ambiguidade da trilha atual de migrations
+
+Nota 2026-06-06:
+
+- fluxo oficial de banco vazio consolidado em `npm run prisma:bootstrap:fresh`
+- bootstrap bloqueia banco nao vazio por padrao
+- bootstrap aplica `prisma db push`, marca migrations historicas como aplicadas e executa seeds minimas
+- `npm run prisma:migration:policy:check` passa a validar que essa politica continua preservada
 
 ### 4. Corrigir estrategia de migrations
 
@@ -104,7 +111,7 @@ Tipo:
 
 Status sugerido:
 
-- `Em andamento`
+- `Concluido`
 
 Tarefas:
 
@@ -113,6 +120,13 @@ Tarefas:
 - preparar plano de corte para baseline Prisma definitiva
 - impedir que migrations historicas quebrem ambiente novo
 - definir processo seguro de evolucao de schema
+
+Nota 2026-06-06:
+
+- baseline fresh canonica permanece versionada em `prisma/baselines/current-fresh-schema.sql`
+- cadeia historica fica congelada como legado auditado
+- ambientes fresh deixam de executar a cadeia quebrada e passam a registra-la como aplicada depois do `db push`
+- releases de schema passam por `npm run prisma:schema:release:check`, incluindo auditoria, baseline, politica de migrations e build
 
 ## P1. Regras centrais do produto
 

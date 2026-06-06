@@ -24,6 +24,7 @@ Esse comando garante:
 
 - a trilha histórica continua auditada e reportada
 - a baseline fresh versionada continua alinhada com o `schema.prisma`
+- a politica oficial de bootstrap/migrations continua preservada
 - a API continua buildando
 
 Observação:
@@ -57,6 +58,8 @@ Para banco realmente vazio, o fluxo oficial continua sendo:
 ```sh
 npm run prisma:bootstrap:fresh
 ```
+
+Esse fluxo aplica o schema atual e registra as migrations historicas como aplicadas. Depois disso, o ambiente novo passa a aceitar migrations futuras via `npm run prisma:migrate:deploy`.
 
 ## Ambientes existentes
 

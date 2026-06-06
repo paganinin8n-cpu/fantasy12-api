@@ -8,7 +8,7 @@ Padronizar como o Fantasy12 sobe em um banco novo sem repetir o problema das mig
 
 Use dois fluxos diferentes:
 
-- banco vazio: `prisma db push + seeds`
+- banco vazio: `prisma db push + registro da trilha historica + seeds`
 - banco existente: `prisma migrate resolve/deploy`
 
 ## Fluxo para banco vazio
@@ -25,8 +25,19 @@ Esse comando:
 2. inspeciona as tabelas do schema `public`
 3. bloqueia a execução se o banco já tiver tabelas
 4. roda `prisma db push --skip-generate`
-5. roda `seed-admin-permissions`
-6. roda `seed:app`
+5. marca as migrations historicas como aplicadas em `_prisma_migrations`
+6. roda `seed-admin-permissions`
+7. roda `seed:app`
+
+Esse registro das migrations e intencional. Como o `db push` ja deixa o schema no estado atual, marcar a historia antiga como aplicada impede que um banco fresh tente executar a cadeia legada quebrada no primeiro `migrate deploy` futuro.
+
+Existe uma rota de escape apenas para diagnostico:
+
+```sh
+npm run prisma:bootstrap:fresh -- --skip-migration-resolve
+```
+
+Nao use essa opcao em ambiente novo normal.
 
 ## Fluxo para banco já existente
 
@@ -71,8 +82,8 @@ A trilha atual de migrations ainda carrega histórico incremental que assume est
 
 Por isso:
 
-- `migrate deploy` é apropriado para bancos que já nasceram nesse histórico
-- `db push` é o caminho seguro para um banco realmente novo, até a baseline definitiva ser reorganizada
+- `migrate deploy` é apropriado para bancos que já nasceram nesse histórico ou que foram bootstrapados pelo fluxo oficial atual
+- `db push + migrate resolve --applied + seeds` é o caminho seguro para um banco realmente novo
 
 ## Baseline canônica do schema atual
 
@@ -90,6 +101,22 @@ Para verificar se a baseline versionada ainda bate com o `schema.prisma`:
 
 ```sh
 npm run prisma:baseline:fresh:verify
+```
+
+## Politica de migrations
+
+O contrato oficial agora e:
+
+- migrations antigas ficam congeladas como legado auditado
+- banco novo nasce pelo bootstrap fresh e registra a trilha historica como aplicada
+- migrations novas continuam sendo criadas normalmente em `prisma/migrations`
+- banco existente evolui com `npm run prisma:migrate:deploy`
+- toda mudanca de schema deve passar por `npm run prisma:schema:release:check`
+
+Para validar que essa politica continua preservada:
+
+```sh
+npm run prisma:migration:policy:check
 ```
 
 Para o racional detalhado da auditoria da cadeia histórica, veja:

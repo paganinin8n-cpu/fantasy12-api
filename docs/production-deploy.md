@@ -37,10 +37,12 @@ Esse comando:
 
 - valida se o banco esta realmente vazio
 - aplica `prisma db push`
+- marca a trilha historica de migrations como aplicada
 - roda `seed:admin-permissions`
 - roda `seed:app`
 
 Isso evita depender da trilha historica de migrations, que ainda nao sobe um banco novo de ponta a ponta com segurança.
+Depois desse bootstrap, migrations futuras podem ser aplicadas com `npm run prisma:migrate:deploy`.
 
 ### 2. Ambiente existente
 
@@ -53,7 +55,7 @@ Fluxo oficial:
 
 Em resumo:
 
-- banco novo: `db push + seeds`
+- banco novo: `db push + migrate resolve --applied + seeds`
 - banco existente: `migrate resolve/deploy`
 
 ## Variáveis recomendadas no EasyPanel

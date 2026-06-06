@@ -4,10 +4,12 @@
 
 A trilha histórica de migrations do `fantasy12-api` **não sobe um banco vazio sozinha**.
 
-Hoje, o caminho operacional seguro é:
+Hoje, o caminho operacional seguro e:
 
 - banco vazio: `npm run prisma:bootstrap:fresh`
 - banco existente: `npm run prisma:migrate:deploy`
+
+No fluxo de banco vazio, o bootstrap aplica o schema atual com `prisma db push` e depois marca as migrations historicas como aplicadas. Isso evita que ambientes fresh tentem executar a cadeia antiga, que foi escrita para um banco pre-existente.
 
 ## Evidências Objetivas
 
@@ -123,6 +125,13 @@ Usar:
 npm run prisma:bootstrap:fresh
 ```
 
+Esse comando:
+
+- bloqueia banco nao vazio por padrao
+- aplica o schema atual
+- registra a trilha historica em `_prisma_migrations`
+- executa seeds minimas
+
 ### Banco existente com histórico Prisma
 
 Usar:
@@ -136,9 +145,11 @@ Se houver migration quebrada, diagnosticar e resolver explicitamente antes do de
 
 ## Próximo Passo Estrutural Recomendado
 
-Há duas rotas possíveis:
+Decisao tomada em 2026-06-06:
 
-1. manter definitivamente `db push + seeds` como bootstrap oficial para ambiente novo;
-2. criar uma baseline Prisma definitiva e reorganizar a história futura a partir dela.
+- manter `db push + migrate resolve --applied + seeds` como bootstrap oficial para ambiente novo
+- manter a cadeia historica congelada como legado auditado
+- criar novas migrations normalmente daqui para frente
+- validar o contrato com `npm run prisma:migration:policy:check`
 
-Hoje a operação já está segura, mas a cadeia histórica ainda não é uma fonte única confiável para subir banco vazio sem cuidado especial.
+A cadeia historica continua nao sendo uma fonte unica confiavel para subir banco vazio, mas isso deixa de ser ambiguidade operacional: banco vazio nao usa essa cadeia para construir schema.
