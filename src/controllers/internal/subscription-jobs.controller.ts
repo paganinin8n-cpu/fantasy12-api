@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RevalidateActiveSubscriptionsService } from '../../services/subscription/revalidate-active-subscriptions.service';
+import { InternalJobRunnerService } from '../../services/internal/internal-job-runner.service';
 
 export class SubscriptionJobsController {
   static async revalidate(_req: Request, res: Response) {
@@ -13,7 +14,14 @@ export class SubscriptionJobsController {
       timestamp,
     });
 
-    await RevalidateActiveSubscriptionsService.execute();
+    const result = await InternalJobRunnerService.execute({
+      jobName: 'REVALIDATE_SUBSCRIPTIONS',
+      referenceId: timestamp.slice(0, 13),
+      run: async () => {
+        await RevalidateActiveSubscriptionsService.execute();
+        return { checkedAt: timestamp };
+      },
+    });
 
     console.info({
       level: 'INFO',
@@ -23,6 +31,12 @@ export class SubscriptionJobsController {
       timestamp,
     });
 
-    return res.status(200).json({ status: 'ok' });
+    return res.status(200).json({
+      status: 'ok',
+      execution: {
+        id: result.executionId,
+        status: result.status,
+      },
+    });
   }
 }

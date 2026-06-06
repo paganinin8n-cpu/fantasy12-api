@@ -2,7 +2,7 @@
 
 Ultima atualizacao:
 
-- 2026-05-25
+- 2026-06-06
 
 ## Verificacoes rapidas
 
@@ -15,6 +15,11 @@ Ultima atualizacao:
 3. Conferir logs:
    - abrir `Admin > Logs`
    - filtrar entidades relacionadas ao incidente, como `WALLET`, `ROUND`, `USER` ou `SYSTEM`
+4. Conferir jobs:
+   - abrir `Admin > Operacao`
+   - verificar `failedLast24h`, `runningOver30m` e `lastExecution`
+5. Conferir alerta externo:
+   - `OPERATIONS_ALERT_WEBHOOK_URL` configurado indica que anomalias tambem sao enviadas para canal externo
 
 ## Sinais criticos
 
@@ -28,6 +33,12 @@ Ultima atualizacao:
 - `active_subscription_past_end`
   - assinatura marcada como ativa apesar da vigencia encerrada
   - rodar revalidacao de assinaturas e revisar status no admin
+- `internal_job_failed_last_24h`
+  - um job interno falhou nas ultimas 24h
+  - abrir `Admin > Operacao`, identificar `lastExecution` e conferir `InternalJobExecution`
+- `internal_job_stuck_over_30m`
+  - existe job `RUNNING` ha mais de 30 minutos
+  - validar se ha execucao real em andamento antes de repetir o job
 
 ## Sinais de aviso
 
@@ -44,6 +55,33 @@ Ultima atualizacao:
 - `mp_notification_url_not_explicit`
   - a URL de notificacao depende da configuracao do app Mercado Pago ou nao esta explicita no ambiente
   - configurar `API_PUBLIC_URL=https://api.fantasy12.com` ou `MP_NOTIFICATION_URL`
+
+## Jobs internos
+
+Todos os jobs internos devem receber `x-internal-job-token` com o valor de `INTERNAL_JOB_SECRET`.
+
+- `POST /internal/jobs/score-round`
+  - body: `{ "roundId": "..." }`
+  - idempotente por `roundId`
+- `POST /internal/jobs/open-round`
+  - body: `{ "roundId": "..." }`
+  - idempotente por `roundId`
+- `POST /internal/jobs/close-expired-rankings`
+  - idempotente por dia
+- `POST /internal/jobs/subscriptions/revalidate`
+  - idempotente por hora
+- `POST /internal/jobs/alerts/run`
+  - idempotente por minuto
+  - executa as deteccoes de pagamento, webhook, assinatura e jobs
+
+## Teste de incidente
+
+1. Rodar `GET /api/admin/operational/status` com sessao admin.
+2. Confirmar que `configuration.operationsAlertWebhookConfigured` reflete o ambiente.
+3. Rodar `POST /internal/jobs/alerts/run` com `x-internal-job-token`.
+4. Validar resposta `status: ok` e `execution.status`.
+5. Abrir `Admin > Logs` e filtrar `InternalJobExecution` para conferir `INTERNAL_JOB_STARTED` e `INTERNAL_JOB_FINISHED`.
+6. Se `OPERATIONS_ALERT_WEBHOOK_URL` estiver configurado e houver anomalia, conferir recebimento no canal externo.
 
 ## Pos-deploy minimo
 

@@ -2,6 +2,9 @@ import { prisma } from '../../lib/prisma'
 
 type ListAdminLogsInput = {
   entity?: string
+  entityId?: string
+  action?: string
+  source?: 'audit' | 'admin' | 'all'
   userId?: string
   limit?: number
 }
@@ -9,42 +12,55 @@ type ListAdminLogsInput = {
 export class ListAdminLogsService {
   static async execute(input: ListAdminLogsInput) {
     const limit = input.limit && input.limit > 0 && input.limit <= 200 ? input.limit : 100
+    const source = input.source ?? 'all'
+
+    const auditWhere = {
+      ...(input.userId ? { userId: input.userId } : {}),
+      ...(input.entity ? { entity: { contains: input.entity, mode: 'insensitive' as const } } : {}),
+      ...(input.entityId ? { entityId: input.entityId } : {}),
+      ...(input.action ? { action: { contains: input.action, mode: 'insensitive' as const } } : {}),
+    }
+
+    const adminAuditWhere = {
+      ...(input.userId ? { adminId: input.userId } : {}),
+      ...(input.entity ? { entity: { contains: input.entity, mode: 'insensitive' as const } } : {}),
+      ...(input.entityId ? { entityId: input.entityId } : {}),
+      ...(input.action ? { action: { contains: input.action, mode: 'insensitive' as const } } : {}),
+    }
 
     const [auditLogs, adminAuditLogs] = await Promise.all([
-      prisma.auditLog.findMany({
-        where: {
-          ...(input.userId ? { userId: input.userId } : {}),
-          ...(input.entity ? { entity: input.entity } : {}),
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      source === 'admin'
+        ? Promise.resolve([])
+        : prisma.auditLog.findMany({
+            where: auditWhere,
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
-          },
-        },
-      }),
-      prisma.adminAuditLog.findMany({
-        where: {
-          ...(input.userId ? { adminId: input.userId } : {}),
-          ...(input.entity ? { entity: input.entity } : {}),
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        include: {
-          admin: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+          }),
+      source === 'audit'
+        ? Promise.resolve([])
+        : prisma.adminAuditLog.findMany({
+            where: adminAuditWhere,
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            include: {
+              admin: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
-          },
-        },
-      }),
+          }),
     ])
 
     const combined = [
@@ -88,6 +104,13 @@ export class ListAdminLogsService {
       meta: {
         total: combined.length,
         limit,
+        filters: {
+          entity: input.entity ?? null,
+          entityId: input.entityId ?? null,
+          action: input.action ?? null,
+          source,
+          userId: input.userId ?? null,
+        },
       },
       data: combined,
     }

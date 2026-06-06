@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { AlertDispatcherService } from './alert-dispatcher.service';
 
 export class DetectWebhookAlertsService {
   static async execute(): Promise<void> {
@@ -13,12 +14,15 @@ export class DetectWebhookAlertsService {
     });
 
     if (recentEvents > 100) {
-      console.warn({
+      await AlertDispatcherService.dispatch({
         level: 'WARN',
         service: 'DetectWebhookAlertsService',
         action: 'webhook.high_volume',
         message: `Volume elevado de webhooks nos últimos 5 minutos (${recentEvents})`,
         timestamp,
+        data: {
+          recentEvents,
+        },
       });
     }
   }

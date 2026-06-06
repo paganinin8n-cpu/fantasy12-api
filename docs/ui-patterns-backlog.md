@@ -125,15 +125,15 @@ Direção:
 | Área | Situação atual | Aderência ao padrão |
 |---|---|---|
 | Login | existe e funciona | `Parcial` |
-| Dashboard | existe, mas ainda sem a linguagem forte das referências | `Parcial` |
+| Dashboard | hero consolidado com rodada/status/envio e menos redundancia | `Boa` |
 | Ticket / análise de palpites | funcional, mas ainda abaixo do padrão visual esperado | `Parcial` |
 | Resumo de palpite | não consolidado como modal principal do fluxo | `Baixa` |
-| Perfil | perfil editavel entregue; ainda precisa refinamento visual fino | `Parcial` |
+| Perfil | perfil editavel, troca de senha e status PRO visual entregues | `Boa` |
 | Bar / loja | Menu Tatico entregue para compra de duplas e super duplas; pacotes de fichas continuam no fluxo PIX | `Parcial` |
 | Mesas | criacao visual para PRO anual e paginas ativas entregues; linguagem de produto migrada de bolão para Mesa | `Parcial` |
 | Admin rodadas | existe base funcional | `Parcial` |
-| Admin usuários | endpoint e tela ativa entregues; ajustes operacionais continuam pendentes | `Parcial` |
-| Admin logs | endpoint e tela ativa entregues; filtros e rotina operacional continuam pendentes | `Parcial` |
+| Admin usuários | gestao de conta, plano, carteira, beneficios e historico auditavel entregues | `Boa` |
+| Admin logs | filtros operacionais, contadores e rotina de investigacao entregues | `Boa` |
 
 ## Backlog proposto
 

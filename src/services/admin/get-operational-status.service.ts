@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { AlertDispatcherService } from '../alerts/alert-dispatcher.service'
 
 function minutesSince(value: Date | null) {
   if (!value) return null
@@ -24,6 +25,9 @@ export class GetOperationalStatusService {
       activeSubscriptionsPastEnd,
       expiringSubscriptions7d,
       openRound,
+      lastInternalJob,
+      failedJobs24h,
+      runningJobsOver30m,
     ] = await Promise.all([
       prisma.payment.findFirst({
         orderBy: { createdAt: 'desc' },
@@ -73,11 +77,37 @@ export class GetOperationalStatusService {
         orderBy: { createdAt: 'desc' },
         select: { id: true, number: true, openAt: true },
       }),
+      prisma.internalJobExecution.findFirst({
+        orderBy: { startedAt: 'desc' },
+        select: {
+          id: true,
+          jobName: true,
+          referenceId: true,
+          status: true,
+          startedAt: true,
+          finishedAt: true,
+          error: true,
+        },
+      }),
+      prisma.internalJobExecution.count({
+        where: {
+          status: 'FAILED',
+          startedAt: { gte: twentyFourHoursAgo },
+        },
+      }),
+      prisma.internalJobExecution.count({
+        where: {
+          status: 'RUNNING',
+          startedAt: { lt: thirtyMinutesAgo },
+        },
+      }),
     ])
 
     const criticalIssues = [
       approvedNotCredited > 0 ? 'approved_payment_not_credited' : null,
       activeSubscriptionsPastEnd > 0 ? 'active_subscription_past_end' : null,
+      failedJobs24h > 0 ? 'internal_job_failed_last_24h' : null,
+      runningJobsOver30m > 0 ? 'internal_job_stuck_over_30m' : null,
       !process.env.MP_ACCESS_TOKEN ? 'mp_access_token_missing' : null,
     ].filter(Boolean)
 
@@ -112,6 +142,8 @@ export class GetOperationalStatusService {
         mercadoPagoNotificationUrlConfigured: Boolean(
           process.env.MP_NOTIFICATION_URL || process.env.API_PUBLIC_URL
         ),
+        operationsAlertWebhookConfigured:
+          AlertDispatcherService.isExternalConfigured(),
       },
       payments: {
         pending: pendingPayments,
@@ -152,6 +184,45 @@ export class GetOperationalStatusService {
             }
           : null,
       },
+      jobs: {
+        failedLast24h: failedJobs24h,
+        runningOver30m: runningJobsOver30m,
+        lastExecution: lastInternalJob
+          ? {
+              id: lastInternalJob.id,
+              jobName: lastInternalJob.jobName,
+              referenceId: lastInternalJob.referenceId,
+              status: lastInternalJob.status,
+              startedAt: lastInternalJob.startedAt.toISOString(),
+              finishedAt: lastInternalJob.finishedAt?.toISOString() ?? null,
+              minutesAgo: minutesSince(lastInternalJob.startedAt),
+              error: lastInternalJob.error,
+            }
+          : null,
+      },
+      runbook: [
+        {
+          key: 'payments',
+          title: 'Pagamentos aprovados sem crédito',
+          trigger: 'approved_payment_not_credited',
+          action:
+            'Conferir /api/admin/operational/status, localizar paymentId em logs e reprocessar crédito somente após validar isCredited=false.',
+        },
+        {
+          key: 'webhooks',
+          title: 'Falha ou volume anormal de webhooks',
+          trigger: 'webhook_high_volume ou ausência de lastReceived',
+          action:
+            'Validar MP_WEBHOOK_SECRET, URL cadastrada no Mercado Pago e eventos recentes em payment_webhook_events.',
+        },
+        {
+          key: 'jobs',
+          title: 'Job interno travado ou falhou',
+          trigger: 'internal_job_failed_last_24h ou internal_job_stuck_over_30m',
+          action:
+            'Executar /internal/jobs/alerts/run com x-internal-job-token, revisar InternalJobExecution e repetir apenas jobs idempotentes.',
+        },
+      ],
     }
   }
 }

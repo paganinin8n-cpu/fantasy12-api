@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import { ListAdminUsersService } from '../../services/admin/list-admin-users.service'
 import { AdminUserManagementService } from '../../services/admin/admin-user-management.service'
+import { GetAdminUserHistoryService } from '../../services/admin/get-admin-user-history.service'
 import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 
 export class ListAdminUsersController {
@@ -40,6 +41,11 @@ export class ListAdminUsersController {
     } catch (err) {
       return next(err)
     }
+  }
+
+  static async history(req: Request, res: Response): Promise<Response> {
+    const result = await GetAdminUserHistoryService.execute(req.params.userId)
+    return res.status(200).json(result)
   }
 
   static async unblock(

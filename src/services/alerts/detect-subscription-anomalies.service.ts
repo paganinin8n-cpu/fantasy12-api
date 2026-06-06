@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { hasActiveProSubscription } from '../../domain/subscription';
+import { AlertDispatcherService } from './alert-dispatcher.service';
 
 export class DetectSubscriptionAlertsService {
   static async execute(): Promise<void> {
@@ -15,14 +16,18 @@ export class DetectSubscriptionAlertsService {
         continue;
       }
 
-      console.error({
+      await AlertDispatcherService.dispatch({
         level: 'CRITICAL',
         service: 'DetectSubscriptionAlertsService',
         action: 'subscription.state_mismatch',
-        subscriptionId: sub.id,
-        userId: sub.userId,
         message: `Inconsistência assinatura (${sub.status}) x vigência (${sub.endAt?.toISOString() ?? 'sem fim'})`,
         timestamp,
+        data: {
+          subscriptionId: sub.id,
+          userId: sub.userId,
+          status: sub.status,
+          endAt: sub.endAt?.toISOString() ?? null,
+        },
       });
     }
   }

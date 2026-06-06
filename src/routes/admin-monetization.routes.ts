@@ -37,4 +37,33 @@ router.post(
   AdminMonetizationController.credit
 )
 
+router.get(
+  '/admin/monetization/benefits/:userId',
+  authMiddleware,
+  authorize('FINANCE_READ'),
+  AdminMonetizationController.benefits
+)
+
+router.post(
+  '/admin/monetization/benefits/:userId/free',
+  authMiddleware,
+  authorize('FINANCE_EXECUTE', {
+    audit: true,
+    entity: 'BENEFIT',
+    getEntityId: (req) => req.params.userId
+  }),
+  AdminMonetizationController.creditFreeBenefit
+)
+
+router.post(
+  '/admin/monetization/benefits/:userId/paid',
+  authMiddleware,
+  authorize('FINANCE_EXECUTE', {
+    audit: true,
+    entity: 'BENEFIT',
+    getEntityId: (req) => req.params.userId
+  }),
+  AdminMonetizationController.creditPaidBenefit
+)
+
 export default router

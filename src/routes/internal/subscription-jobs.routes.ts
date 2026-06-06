@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { SubscriptionJobsController } from '../../controllers/internal/subscription-jobs.controller';
+import { internalJobAuth } from '../../middleware/internal-job-auth.middleware';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ const router = Router();
  */
 router.post(
   '/jobs/subscriptions/revalidate',
+  internalJobAuth,
   SubscriptionJobsController.revalidate
 );
 

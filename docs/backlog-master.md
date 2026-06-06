@@ -358,7 +358,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencia:
 
@@ -382,6 +382,11 @@ Nota 2026-05-31:
 
 - backend ja dispoe de `POST /api/me/password`
 - perfil ativo do frontend ja expoe troca de senha com validacao de senha atual, nova senha e confirmacao
+
+Nota 2026-06-06:
+
+- perfil recebeu bloco dedicado de status PRO, vigencia e beneficios de conta
+- gestao de assinatura, carteira, palpites, mesas, senha e saida ficou mais explicita
 
 ### 14. Criar fluxo visual de bolao
 
@@ -417,7 +422,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Tarefas:
 
@@ -425,6 +430,12 @@ Tarefas:
 - consolidar `rodada + status + envio` no primeiro bloco
 - reduzir cards secundarios para resumo e CTA
 - revisar necessidade de botao de retorno ao topo conforme layout final
+
+Nota 2026-06-06:
+
+- hero passou a concentrar rodada, status, envio e CTAs principais
+- bloco redundante de rodada ativa foi removido da sequencia do dashboard
+- resumos secundarios ficaram focados em palpites, ranking, Bar e Mesas
 
 ## P1. Admin operacional
 
@@ -436,7 +447,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencias:
 
@@ -489,6 +500,13 @@ Nota 2026-05-31:
 - acoes sensiveis devem gerar `AdminAuditLog` com admin, alvo, payload, IP e motivo
 - bloqueio administrativo deve ser separado do bloqueio temporario de login por brute force
 
+Nota 2026-06-06:
+
+- tela `Admin > Usuarios` exibe historico auditavel por usuario
+- ajuste de beneficios taticos foi separado de credito de carteira
+- beneficios pagos entram em `UserBenefitInventory`; beneficios gratis exigem rodada
+- bloqueio, liberacao e plano usam permissoes mais granulares (`USER_BLOCK`, `USER_UNBLOCK`, `USER_PLAN_WRITE`)
+
 ### 18. Consolidar logs operacionais no admin
 
 Tipo:
@@ -497,7 +515,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencia:
 
@@ -520,6 +538,12 @@ Nota 2026-05-25:
 - painel `Admin > Operação` entregue para sinais agregados de pagamentos, webhooks, assinaturas e configuração crítica
 - `GET /api/admin/operational/status` entregue e protegido por permissão de auditoria
 
+Nota 2026-06-06:
+
+- `GET /api/admin/logs` recebeu filtros de fonte, entidade, entityId, acao, ator e limite
+- tela `Admin > Logs` recebeu filtros operacionais, contadores e horario da ultima carga
+- historico de usuario reaproveita a mesma trilha de auditoria para investigacao por alvo
+
 ## P2. Qualidade, seguranca e operacao
 
 ### 19. Endurecer jobs internos, webhooks e auditoria
@@ -530,13 +554,20 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
 - revisar protecao de jobs internos
 - amadurecer trilha auditavel
 - revisar idempotencia e rastreabilidade de webhooks
+
+Nota 2026-06-06:
+
+- jobs internos usam middleware `internalJobAuth` de forma consistente
+- execucoes internas passam por `InternalJobRunnerService` com `RUNNING`, `SUCCESS`, `FAILED` e hit idempotente
+- jobs de rodada, abertura, rankings expirados, revalidacao de assinaturas e alertas ganharam rastreabilidade
+- webhook Mercado Pago manteve criacao race-safe por evento unico e rastreamento em `payment_webhook_events`
 
 ### 20. Fechar observabilidade minima
 
@@ -546,7 +577,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
@@ -561,6 +592,13 @@ Nota 2026-05-25:
 - `GET /api/admin/operational/status` consolida sinais mínimos de operação
 - frontend recebeu `Admin > Operação` com status geral, configuração Mercado Pago, pagamentos, webhooks, assinaturas e rodada aberta
 - ainda falta rotina externa de alerta/notificação e runbook de incidente testado
+
+Nota 2026-06-06:
+
+- anomalias podem ser enviadas para webhook externo via `OPERATIONS_ALERT_WEBHOOK_URL`
+- `GET /api/admin/operational/status` inclui jobs, alerta externo configurado e runbook rapido
+- `POST /internal/jobs/alerts/run` executa rotina de alertas com protecao e rastreabilidade
+- `docs/operational-runbook.md` documenta teste de incidente e checklist de verificacao
 
 ### 21. Definir rotina de backup e restore
 

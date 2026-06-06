@@ -4,6 +4,7 @@ import { DetectSubscriptionAlertsService } from '../../services/alerts/detect-su
 import { DetectPaymentAlertsService } from '../../services/alerts/detect-payment-anomalies.service';
 import { DetectWebhookAlertsService } from '../../services/alerts/detect-webhook-anomalies.service';
 import { DetectJobAnomaliesService } from '../../services/alerts/detect-job-anomalies.service';
+import { InternalJobRunnerService } from '../../services/internal/internal-job-runner.service';
 
 /**
  * Controller — Jobs de Alertas Operacionais
@@ -29,10 +30,17 @@ export class AlertsJobsController {
     });
 
     try {
-      await DetectSubscriptionAlertsService.execute();
-      await DetectPaymentAlertsService.execute();
-      await DetectWebhookAlertsService.execute();
-      await DetectJobAnomaliesService.execute();
+      const execution = await InternalJobRunnerService.execute({
+        jobName: 'RUN_OPERATIONAL_ALERTS',
+        referenceId: timestamp.slice(0, 16),
+        run: async () => {
+          await DetectSubscriptionAlertsService.execute();
+          await DetectPaymentAlertsService.execute();
+          await DetectWebhookAlertsService.execute();
+          await DetectJobAnomaliesService.execute();
+          return { checkedAt: timestamp };
+        },
+      });
 
       console.info({
         level: 'INFO',
@@ -42,7 +50,13 @@ export class AlertsJobsController {
         timestamp,
       });
 
-      return res.status(200).json({ status: 'ok' });
+      return res.status(200).json({
+        status: 'ok',
+        execution: {
+          id: execution.executionId,
+          status: execution.status,
+        },
+      });
     } catch (error) {
       console.error({
         level: 'CRITICAL',

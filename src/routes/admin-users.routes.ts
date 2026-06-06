@@ -17,10 +17,17 @@ router.get(
   ListAdminUsersController.handle
 )
 
+router.get(
+  '/admin/users/:userId/history',
+  authMiddleware,
+  authorize('AUDIT_READ'),
+  ListAdminUsersController.history
+)
+
 router.post(
   '/admin/users/:userId/block',
   authMiddleware,
-  authorize('USER_WRITE', {
+  authorize('USER_BLOCK', {
     audit: true,
     entity: 'USER',
     getEntityId: req => req.params.userId,
@@ -32,7 +39,7 @@ router.post(
 router.post(
   '/admin/users/:userId/unblock',
   authMiddleware,
-  authorize('USER_WRITE', {
+  authorize('USER_UNBLOCK', {
     audit: true,
     entity: 'USER',
     getEntityId: req => req.params.userId,
@@ -44,7 +51,7 @@ router.post(
 router.post(
   '/admin/users/:userId/subscription',
   authMiddleware,
-  authorize('FINANCE_EXECUTE', {
+  authorize('USER_PLAN_WRITE', {
     audit: true,
     entity: 'SUBSCRIPTION',
     getEntityId: req => req.params.userId,
@@ -56,7 +63,7 @@ router.post(
 router.post(
   '/admin/users/:userId/subscription/cancel',
   authMiddleware,
-  authorize('FINANCE_EXECUTE', {
+  authorize('USER_PLAN_WRITE', {
     audit: true,
     entity: 'SUBSCRIPTION',
     getEntityId: req => req.params.userId,

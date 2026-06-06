@@ -1,4 +1,3 @@
-import { WalletService } from '../wallet/wallet.service';
 import { prisma } from '../../lib/prisma';
 
 export class AdminPaidBenefitsService {
@@ -8,24 +7,35 @@ export class AdminPaidBenefitsService {
     amount: number,
     type: 'DOUBLE' | 'SUPER_DOUBLE'
   ) {
-    const cost = type === 'DOUBLE' ? 1 : 2;
+    if (amount <= 0) throw new Error('Invalid amount');
 
-    await WalletService.credit(
-      userId,
-      amount * cost,
-      `ADMIN CREDIT ${type}`
-    );
+    const inventory = await prisma.userBenefitInventory.upsert({
+      where: {
+        userId_type: {
+          userId,
+          type,
+        },
+      },
+      update: {
+        quantity: { increment: amount },
+      },
+      create: {
+        userId,
+        type,
+        quantity: amount,
+      },
+    });
 
     await prisma.auditLog.create({
       data: {
         userId: adminUserId,
         action: 'ADMIN_CREDIT_PAID_BENEFIT',
-        entity: 'Wallet',
-        entityId: userId,
+        entity: 'UserBenefitInventory',
+        entityId: inventory.id,
         metadata: { type, amount },
       },
     });
 
-    return { userId, type, amount };
+    return inventory;
   }
 }

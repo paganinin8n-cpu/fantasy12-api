@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { AlertDispatcherService } from './alert-dispatcher.service';
 
 export class DetectPaymentAlertsService {
   static async execute(): Promise<void> {
@@ -12,14 +13,16 @@ export class DetectPaymentAlertsService {
     });
 
     for (const payment of anomalousPayments) {
-      console.error({
+      await AlertDispatcherService.dispatch({
         level: 'CRITICAL',
         service: 'DetectPaymentAlertsService',
         action: 'payment.approved_not_credited',
-        paymentId: payment.id,
-        userId: payment.userId,
         message: 'Pagamento aprovado sem crédito na wallet',
         timestamp,
+        data: {
+          paymentId: payment.id,
+          userId: payment.userId,
+        },
       });
     }
   }

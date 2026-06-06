@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { AlertDispatcherService } from './alert-dispatcher.service';
 
 export class DetectJobAnomaliesService {
   /**
@@ -23,7 +24,7 @@ export class DetectJobAnomaliesService {
     });
 
     if (!lastEvent) {
-      console.error({
+      await AlertDispatcherService.dispatch({
         level: 'CRITICAL',
         service: 'DetectJobAnomaliesService',
         action: 'job.no_activity_detected',
@@ -39,15 +40,18 @@ export class DetectJobAnomaliesService {
       (Date.now() - lastEvent.receivedAt.getTime()) / 60000;
 
     if (diffMinutes > 60) {
-      console.warn({
+      await AlertDispatcherService.dispatch({
         level: 'WARN',
         service: 'DetectJobAnomaliesService',
         action: 'job.possible_stall',
         message: `Sistema sem atividade relevante há ${Math.floor(
           diffMinutes
         )} minutos`,
-        lastEventAt: lastEvent.receivedAt,
         timestamp,
+        data: {
+          lastEventAt: lastEvent.receivedAt.toISOString(),
+          diffMinutes: Math.floor(diffMinutes),
+        },
       });
     }
   }
