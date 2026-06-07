@@ -27,7 +27,10 @@
     "seed:app": "node prisma/seed.js",
     "seed:test-data": "node prisma/seed-test-data.js",
     "ranking:monthly:backfill": "npm run build && node scripts/backfill-monthly-ranking-state.js",
-    "benefits:regrant-open-round": "node scripts/regrant-open-round-benefits.js"
+    "benefits:regrant-open-round": "node scripts/regrant-open-round-benefits.js",
+    "db:backup": "node scripts/backup-postgres.js",
+    "db:backup:verify": "node scripts/verify-postgres-backup.js",
+    "db:restore": "node scripts/restore-postgres.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

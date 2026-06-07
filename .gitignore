@@ -12,3 +12,8 @@ dist/
 
 # Prisma generated
 /src/generated/prisma
+
+# Local database backups (never commit dumps)
+backups/
+*.dump
+*.backup

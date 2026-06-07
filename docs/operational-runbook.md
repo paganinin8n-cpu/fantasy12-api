@@ -90,3 +90,23 @@ Todos os jobs internos devem receber `x-internal-job-token` com o valor de `INTE
 3. Abrir `Admin > Operacao`.
 4. Conferir se o estado geral condiz com a mudanca feita.
 5. Em mudancas de pagamento/assinatura, validar endpoints autenticados e acompanhar webhooks.
+
+## Backup e restore
+
+Rotina completa:
+
+- `docs/database-backup-restore.md`
+
+Comandos principais:
+
+```bash
+npm run db:backup -- --label pre-deploy
+npm run db:backup:verify -- --file backups/postgres/<arquivo>.dump --manifest backups/postgres/<arquivo>.manifest.json
+npm run db:restore -- --file backups/postgres/<arquivo>.dump --target-url "$RESTORE_DATABASE_URL" --dry-run
+```
+
+Restore real exige banco alvo explicito e a flag:
+
+```bash
+--yes-i-know-this-drops-data
+```

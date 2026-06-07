@@ -608,13 +608,21 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Tarefas:
 
 - definir backup do Postgres
 - definir restore testado
 - documentar operacao
+
+Nota 2026-06-07:
+
+- `npm run db:backup` cria dump Postgres custom com checksum SHA-256 e manifest
+- `npm run db:backup:verify` valida arquivo, manifest e leitura via `pg_restore --list`
+- `npm run db:restore` restaura em URL alvo explicita, com dry-run e protecao contra uso acidental da `DATABASE_URL`
+- `.env.example` documenta `BACKUP_DIR`, `BACKUP_RETENTION`, `BACKUP_UPLOAD_COMMAND` e `RESTORE_DATABASE_URL`
+- `docs/database-backup-restore.md` define politica inicial, agendamento, restore testado e checklists
 
 ## P2. Arquitetura de frontend
 
