@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { CalculateTicketScoreService } from '../score/calculate-ticket-score.service'
 
 interface Input {
   userId: string
@@ -16,6 +17,7 @@ const MAX_LIMIT = 100
 export class ListUserTicketsService {
   static async execute({ userId, limit, cursor }: Input) {
     const take = Math.min(Math.max(limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT)
+    const scoreCalculator = new CalculateTicketScoreService()
 
     const items = await prisma.ticket.findMany({
       where: { userId },
@@ -50,6 +52,18 @@ export class ListUserTicketsService {
     const data = hasMore ? items.slice(0, take) : items
     const nextCursor = hasMore ? data[data.length - 1].id : null
 
-    return { data, nextCursor }
+    return {
+      data: data.map(item => ({
+        ...item,
+        scoreBreakdown: item.round.result
+          ? scoreCalculator.detail(
+              item.prediction,
+              item.round.result,
+              item.multipliers
+            )
+          : null,
+      })),
+      nextCursor,
+    }
   }
 }

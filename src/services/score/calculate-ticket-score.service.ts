@@ -1,13 +1,26 @@
+export type TicketScoreBreakdown = {
+  hits: number
+  misses: number
+  doubleHits: number
+  doubleMisses: number
+  superDoubleHits: number
+  superDoubleMisses: number
+  basePoints: number
+  multiplierBonus: number
+  multiplierPenalty: number
+  total: number
+}
+
 export class CalculateTicketScoreService {
 
   private readonly MATCH_COUNT = 12
   private readonly MIN_ROUND_SCORE = -24
 
-  execute(
+  detail(
     prediction: string,
     result: string,
     multipliers: number[]
-  ): number {
+  ): TicketScoreBreakdown {
 
     const predictionArr = prediction.split(',')
     const resultArr = result.split(',')
@@ -27,7 +40,15 @@ export class CalculateTicketScoreService {
       throw new Error('Multipliers must contain 12 matches')
     }
 
-    let score = 0
+    let hits = 0
+    let misses = 0
+    let doubleHits = 0
+    let doubleMisses = 0
+    let superDoubleHits = 0
+    let superDoubleMisses = 0
+    let basePoints = 0
+    let multiplierBonus = 0
+    let multiplierPenalty = 0
 
     for (let i = 0; i < this.MATCH_COUNT; i++) {
 
@@ -42,26 +63,67 @@ export class CalculateTicketScoreService {
       const hit = pred === res
 
       if (hit) {
+        hits++
+        basePoints += 1
 
-        score += multiplier
+        if (multiplier === 2) {
+          doubleHits++
+          multiplierBonus += 2
+        }
+
+        if (multiplier === 4) {
+          superDoubleHits++
+          multiplierBonus += 4
+        }
 
       } else {
+        misses++
 
-        if (multiplier === 2) score -= 2
-        if (multiplier === 4) score -= 4
+        if (multiplier === 2) {
+          doubleMisses++
+          multiplierPenalty += 2
+        }
+
+        if (multiplier === 4) {
+          superDoubleMisses++
+          multiplierPenalty += 4
+        }
 
       }
 
     }
 
+    let total = basePoints + multiplierBonus - multiplierPenalty
+
     /**
      * proteção contra score negativo extremo
      */
-    if (score < this.MIN_ROUND_SCORE) {
-      score = this.MIN_ROUND_SCORE
+    if (total < this.MIN_ROUND_SCORE) {
+      total = this.MIN_ROUND_SCORE
     }
 
-    return score
+    return {
+      hits,
+      misses,
+      doubleHits,
+      doubleMisses,
+      superDoubleHits,
+      superDoubleMisses,
+      basePoints,
+      multiplierBonus,
+      multiplierPenalty,
+      total,
+    }
+
+  }
+
+  execute(
+    prediction: string,
+    result: string,
+    multipliers: number[]
+  ): number {
+
+    return this.detail(prediction, result, multipliers).total
 
   }
 

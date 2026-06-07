@@ -41,9 +41,19 @@ export class ScoreRoundService {
       for (const ticket of tickets) {
 
         /**
-         * 🔒 IDPOTÊNCIA
+         * 🔒 Idempotencia por historico da rodada.
          */
-        if (ticket.scoreRound > 0) continue
+        const existingHistory = await tx.userScoreHistory.findUnique({
+          where: {
+            userId_roundId: {
+              userId: ticket.userId,
+              roundId,
+            },
+          },
+          select: { id: true },
+        })
+
+        if (existingHistory) continue
 
         const scoreRound = this.scoreCalculator.execute(
           ticket.prediction,
