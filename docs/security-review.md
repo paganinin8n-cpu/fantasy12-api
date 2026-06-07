@@ -159,6 +159,25 @@ Status atual:
 - revisar exposição de dados sensíveis em logs
 - documentar segredos obrigatórios
 
+## Recuperacao de senha
+
+Decisao 2026-06-07:
+
+- producao nao pode operar com link de reset em preview
+- producao sem provedor real de email responde mensagem generica e nao gera token
+- envio real usa `EMAIL_PROVIDER=smtp`
+- confirmacao de reset aceita apenas token persistido em `password_reset_tokens`
+- token stateless/JWT de reset foi removido do fluxo de producao
+
+Variaveis obrigatorias para habilitar envio real:
+
+- `EMAIL_PROVIDER=smtp`
+- `EMAIL_FROM`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+
 ### Médio prazo
 
 - backup e restore testados

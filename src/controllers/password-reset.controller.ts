@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import { RequestPasswordResetService } from '../services/auth/request-password-reset.service'
 import { ResetPasswordService } from '../services/auth/reset-password.service'
-import { FindUserByEmailService } from '../services/auth/find-user-by-email.service'
-import { PasswordResetTokenService } from '../services/auth/password-reset-token.service'
-import { isEmailPreviewMode, sendPasswordResetEmail } from '../lib/email'
-import crypto from 'crypto'
+import {
+  isEmailDeliveryConfigured,
+  isEmailPreviewMode,
+  sendPasswordResetEmail,
+} from '../lib/email'
 
 const PASSWORD_RESET_TTL_MIN = 30
 
@@ -12,7 +13,8 @@ export class PasswordResetController {
   /**
    * POST /api/auth/forgot-password
    * Sempre responde 200 para não vazar emails cadastrados.
-   * Em dev, loga o token cru no console para facilitar testes.
+   * Em dev, pode retornar previewResetUrl quando EMAIL_PROVIDER não está ativo.
+   * Em produção, nunca retorna token/link e exige email real configurado no boot.
    */
   static async request(req: Request, res: Response, next: NextFunction) {
     try {
@@ -20,9 +22,25 @@ export class PasswordResetController {
       const baseUrl =
         process.env.FRONTEND_ORIGIN?.split(',')[0]?.trim() ??
         'http://localhost:5173'
-      const knownUser = await FindUserByEmailService.execute(email)
 
       let rawToken: string | null = null
+      const canDeliverEmail =
+        process.env.NODE_ENV !== 'production' || isEmailDeliveryConfigured()
+
+      if (!canDeliverEmail) {
+        ;(req as any).log?.warn(
+          { email },
+          'Recuperacao de senha solicitada sem provedor de email configurado'
+        )
+
+        return res.status(200).json({
+          ok: true,
+          message:
+            'Se este email estiver cadastrado, você receberá instruções em alguns minutos.',
+          previewMode: false,
+          previewResetUrl: null,
+        })
+      }
 
       try {
         const result = await RequestPasswordResetService.execute({ email })
@@ -30,22 +48,14 @@ export class PasswordResetController {
       } catch (tokenErr) {
         ;(req as any).log?.warn(
           { err: tokenErr, email },
-          'Falha ao persistir token de reset; usando fallback stateless'
+          'Falha ao persistir token de reset; pedido sera respondido sem link'
         )
-      }
-
-      if (!rawToken && knownUser) {
-        rawToken = PasswordResetTokenService.sign({
-          userId: knownUser.id,
-          email: knownUser.email,
-        })
       }
 
       if (rawToken) {
         // Monta a URL apontando para a tela /reset-password do frontend.
         const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(rawToken)}`
 
-        // Envio é best-effort — não bloqueia/expõe o pedido em caso de falha SMTP.
         try {
           await sendPasswordResetEmail({
             to: email,
@@ -60,20 +70,17 @@ export class PasswordResetController {
         }
       }
 
-      const previewToken =
-        rawToken ??
-        PasswordResetTokenService.sign({
-          userId: knownUser?.id ?? 'preview-user',
-          email: knownUser?.email ?? email.toLowerCase(),
-        })
-      const previewResetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(previewToken)}`
+      const previewResetUrl =
+        isEmailPreviewMode() && rawToken
+          ? `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(rawToken)}`
+          : null
 
       return res.status(200).json({
         ok: true,
         message:
           'Se este email estiver cadastrado, você receberá instruções em alguns minutos.',
         previewMode: isEmailPreviewMode(),
-        previewResetUrl: isEmailPreviewMode() ? previewResetUrl : null,
+        previewResetUrl,
       })
     } catch (err) {
       return next(err)

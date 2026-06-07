@@ -1,16 +1,12 @@
 import { logger } from './logger'
+import nodemailer from 'nodemailer'
 
 /**
  * Abstração de envio de email.
  *
- * Hoje: implementação console (dev) que apenas loga.
- *
- * Para integrar provedor real:
- *   1. Criar um adaptador concreto (e.g. ResendEmailService) que implementa
- *      a interface `EmailService`.
- *   2. Trocar o export `emailService` no fim deste arquivo para usar a
- *      variável de ambiente `EMAIL_PROVIDER` (resend / ses / sendgrid).
- *   3. Configurar credenciais no .env (ex: RESEND_API_KEY).
+ * Em desenvolvimento: implementação console que apenas loga.
+ * Em produção: exige provedor real configurado. Sem isso, a API falha no boot
+ * para evitar recuperação de senha aberta ou links de preview expostos.
  */
 export interface EmailService {
   send(input: {
@@ -39,20 +35,87 @@ class ConsoleEmailService implements EmailService {
   }
 }
 
-export function isEmailPreviewMode() {
-  return emailService instanceof ConsoleEmailService
+class SmtpEmailService implements EmailService {
+  private readonly transporter
+  private readonly from: string
+
+  constructor() {
+    const host = process.env.SMTP_HOST
+    const port = Number(process.env.SMTP_PORT ?? 587)
+    const user = process.env.SMTP_USER
+    const pass = process.env.SMTP_PASS
+    const from = process.env.EMAIL_FROM
+
+    if (!host || !user || !pass || !from) {
+      throw new Error(
+        'SMTP_HOST, SMTP_USER, SMTP_PASS e EMAIL_FROM sao obrigatorios para EMAIL_PROVIDER=smtp'
+      )
+    }
+
+    this.from = from
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user, pass },
+    })
+  }
+
+  async send({ to, subject, html, text }: {
+    to: string
+    subject: string
+    html: string
+    text: string
+  }): Promise<void> {
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject,
+      html,
+      text,
+    })
+
+    logger.info({ to, subject }, 'Email enviado via SMTP')
+  }
 }
 
-/**
- * Singleton — em produção, plugar provedor real.
- *
- * Exemplo (Resend):
- *
- *   import { Resend } from 'resend'
- *   const resend = new Resend(process.env.RESEND_API_KEY)
- *   class ResendEmailService implements EmailService { ... }
- */
-export const emailService: EmailService = new ConsoleEmailService()
+class DisabledEmailService implements EmailService {
+  async send(): Promise<void> {
+    throw new Error('email_delivery_not_configured')
+  }
+}
+
+export function isEmailPreviewMode() {
+  return process.env.NODE_ENV !== 'production' &&
+    emailService instanceof ConsoleEmailService
+}
+
+export function isEmailDeliveryConfigured() {
+  return !(emailService instanceof DisabledEmailService)
+}
+
+function createEmailService(): EmailService {
+  const provider = (process.env.EMAIL_PROVIDER ?? '').toLowerCase()
+
+  if (provider === 'smtp') {
+    return new SmtpEmailService()
+  }
+
+  if (!provider && process.env.NODE_ENV === 'production') {
+    logger.warn(
+      'EMAIL_PROVIDER nao configurado; recuperacao de senha por email desabilitada em producao'
+    )
+    return new DisabledEmailService()
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`EMAIL_PROVIDER nao suportado em producao: ${provider}`)
+  }
+
+  return new ConsoleEmailService()
+}
+
+export const emailService: EmailService = createEmailService()
 
 // ----------------------------------------------------------------
 // Templates conhecidos

@@ -42,6 +42,10 @@ Ultima atualizacao:
 
 ## Sinais de aviso
 
+- `email_delivery_not_configured`
+  - recuperacao de senha por email esta desabilitada
+  - em producao o endpoint responde mensagem generica, mas nao gera token nem link
+  - configurar `EMAIL_PROVIDER=smtp`, `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS`
 - `stale_pending_payments`
   - pagamentos pendentes ha mais de 30 minutos
   - pode ser normal em PIX/cartao pendente, mas deve ser acompanhado
@@ -73,6 +77,28 @@ Todos os jobs internos devem receber `x-internal-job-token` com o valor de `INTE
 - `POST /internal/jobs/alerts/run`
   - idempotente por minuto
   - executa as deteccoes de pagamento, webhook, assinatura e jobs
+
+## Recuperacao de senha
+
+Politica de seguranca:
+
+- producao nunca retorna `previewResetUrl`
+- producao sem provedor de email real nao gera token de reset
+- tokens validos ficam persistidos como SHA-256 em `password_reset_tokens`
+- confirmacao de reset aceita apenas token persistido, nao usado e nao expirado
+- tokens anteriores nao usados sao invalidados ao gerar um novo
+
+Variaveis para habilitar envio real via SMTP:
+
+```bash
+EMAIL_PROVIDER=smtp
+EMAIL_FROM="Fantasy12 <no-reply@fantasy12.com>"
+SMTP_HOST=smtp.exemplo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario
+SMTP_PASS=senha
+```
 
 ## Teste de incidente
 

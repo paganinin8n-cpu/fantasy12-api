@@ -2,7 +2,6 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
-import { PasswordResetTokenService } from './password-reset-token.service'
 
 const BCRYPT_ROUNDS = 10
 
@@ -26,20 +25,6 @@ export class ResetPasswordService {
         'Senha deve ter ao menos 6 caracteres',
         'weak_password'
       )
-    }
-
-    try {
-      const decoded = PasswordResetTokenService.verify(token)
-      const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
-
-      await prisma.user.update({
-        where: { id: decoded.userId },
-        data: { password: hashed },
-      })
-
-      return { ok: true }
-    } catch (statelessErr) {
-      // Se não for um token JWT válido de reset, continua no fluxo legado.
     }
 
     const tokenHash = crypto
