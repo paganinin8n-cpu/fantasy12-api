@@ -634,7 +634,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Concluido`
 
 Tarefas:
 
@@ -644,6 +644,14 @@ Tarefas:
 - padroes de CTA
 - padroes de modal
 - padroes de footer fixo mobile
+
+Nota 2026-06-07:
+
+- frontend recebeu mini design system em `src/components/ds`
+- tokens de pagina, superficie, texto e controles foram centralizados
+- componentes base criados: `PageShell`, `PageHero`, `Card`, `Panel`, `MetricCard`, `StatusBadge`, `Notice`, `Button`, `TextInput`, `SelectInput`, `EmptyState`, `LoadingState`
+- telas migradas parcialmente: Dashboard, Profile, AdminUsers, AdminLogs e AdminOperations
+- documentacao criada em `docs/mini-design-system.md` no repositorio frontend
 
 ### 23. Remover ou arquivar definitivamente telas legadas
 
