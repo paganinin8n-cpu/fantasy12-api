@@ -6,6 +6,7 @@ import {
   BenefitBalanceQuerySchema,
   PurchaseBenefitsSchema,
 } from '../validators/benefits.validator'
+import { benefitPurchaseRateLimiter } from '../middleware/rate-limit.middleware'
 
 const router = Router()
 
@@ -18,6 +19,7 @@ router.get(
 
 router.post(
   '/benefits/purchase',
+  benefitPurchaseRateLimiter,
   authMiddleware,
   validateRequest(PurchaseBenefitsSchema),
   BenefitsController.purchase

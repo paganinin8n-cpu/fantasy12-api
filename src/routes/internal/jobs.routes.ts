@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { internalJobAuth } from '../../middleware/internal-job-auth.middleware';
+import { internalJobRateLimiter } from '../../middleware/rate-limit.middleware';
 import { ScoreRoundJobController } from '../../controllers/internal/score-round.job.controller';
 import { CloseExpiredRankingsController } from '../../controllers/internal/close-expired-rankings.controller';
 import { OpenRoundJobController } from '../../controllers/internal/open-round.job.controller';
@@ -18,6 +19,7 @@ const recomputeScoredRoundsController = new RecomputeScoredRoundsController();
  */
 router.post(
   '/score-round',
+  internalJobRateLimiter,
   internalJobAuth,
   (req, res) => scoreRoundController.execute(req, res)
 );
@@ -28,6 +30,7 @@ router.post(
  */
 router.post(
   '/close-expired-rankings',
+  internalJobRateLimiter,
   internalJobAuth,
   (req, res) => closeExpiredRankingsController.execute(req, res)
 );
@@ -38,6 +41,7 @@ router.post(
  */
 router.post(
   '/open-round',
+  internalJobRateLimiter,
   internalJobAuth,
   (req, res) => openRoundJobController.execute(req, res)
 );
@@ -48,6 +52,7 @@ router.post(
  */
 router.post(
   '/recompute-scored-rounds',
+  internalJobRateLimiter,
   internalJobAuth,
   (req, res) => recomputeScoredRoundsController.execute(req, res)
 );

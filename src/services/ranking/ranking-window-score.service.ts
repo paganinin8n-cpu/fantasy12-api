@@ -17,9 +17,20 @@ export type RankingWindowRow = {
   score: number
   scoreRound: number
   position: number
+  scoreInitial: number
+  scoreTotalCurrent: number
+  previousScore: number
+  previousPosition: number | null
 }
 
 export class RankingWindowScoreService {
+  static calculateScoreFromBaseline(
+    scoreTotalCurrent: number,
+    scoreInitial: number
+  ) {
+    return Math.max(0, scoreTotalCurrent - scoreInitial)
+  }
+
   static async getScoreTotalBefore(
     tx: RankingScoreClient,
     userId: string,
@@ -54,6 +65,9 @@ export class RankingWindowScoreService {
       select: {
         id: true,
         userId: true,
+        score: true,
+        scoreInitial: true,
+        position: true,
         createdAt: true,
       },
       orderBy: {
@@ -68,27 +82,43 @@ export class RankingWindowScoreService {
         score: 0,
         scoreRound: 0,
         position: index + 1,
+        scoreInitial: participant.scoreInitial,
+        scoreTotalCurrent: participant.scoreInitial,
+        previousScore: participant.score,
+        previousPosition: participant.position,
       }))
     }
 
     const participantIds = participants.map(participant => participant.userId)
     const endDate = ranking.endDate ?? new Date()
 
-    const scoreRows = await tx.userScoreHistory.groupBy({
-      by: ['userId'],
+    const latestTotalRows = await tx.userScoreHistory.findMany({
       where: {
         userId: { in: participantIds },
         round: {
           closeAt: {
-            gte: ranking.startDate,
             lte: endDate,
           },
         },
       },
-      _sum: {
+      select: {
+        userId: true,
+        scoreTotal: true,
         scoreRound: true,
+        createdAt: true,
       },
+      orderBy: [
+        { round: { closeAt: 'desc' } },
+        { createdAt: 'desc' },
+      ],
     })
+
+    const scoreTotalByUser = new Map<string, number>()
+    for (const row of latestTotalRows) {
+      if (!scoreTotalByUser.has(row.userId)) {
+        scoreTotalByUser.set(row.userId, row.scoreTotal)
+      }
+    }
 
     const latestRows = await tx.userScoreHistory.findMany({
       where: {
@@ -110,10 +140,6 @@ export class RankingWindowScoreService {
       },
     })
 
-    const scoreByUser = new Map(
-      scoreRows.map(row => [row.userId, row._sum.scoreRound ?? 0])
-    )
-
     const scoreRoundByUser = new Map<string, number>()
     for (const row of latestRows) {
       if (!scoreRoundByUser.has(row.userId)) {
@@ -125,13 +151,26 @@ export class RankingWindowScoreService {
       participants.map((participant, index) => [participant.userId, index])
     )
 
-    const rows = participants.map(participant => ({
-      participantId: participant.id,
-      userId: participant.userId,
-      score: scoreByUser.get(participant.userId) ?? 0,
-      scoreRound: scoreRoundByUser.get(participant.userId) ?? 0,
-      position: 0,
-    }))
+    const rows = participants.map(participant => {
+      const scoreTotalCurrent =
+        scoreTotalByUser.get(participant.userId) ?? participant.scoreInitial
+      const scoreByBaseline = RankingWindowScoreService.calculateScoreFromBaseline(
+        scoreTotalCurrent,
+        participant.scoreInitial
+      )
+
+      return {
+        participantId: participant.id,
+        userId: participant.userId,
+        score: scoreByBaseline,
+        scoreRound: scoreRoundByUser.get(participant.userId) ?? 0,
+        position: 0,
+        scoreInitial: participant.scoreInitial,
+        scoreTotalCurrent,
+        previousScore: participant.score,
+        previousPosition: participant.position,
+      }
+    })
 
     rows.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score

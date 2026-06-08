@@ -32,6 +32,10 @@ export class CloseRankingService {
       const rows = await RankingWindowScoreService.buildRows(tx, ranking);
 
       for (const row of rows) {
+        const changed =
+          row.previousScore !== row.score ||
+          row.previousPosition !== row.position;
+
         await tx.rankingParticipant.update({
           where: { id: row.participantId },
           data: {
@@ -39,6 +43,27 @@ export class CloseRankingService {
             position: row.position,
           },
         });
+
+        if (changed) {
+          await tx.auditLog.create({
+            data: {
+              userId: row.userId,
+              action: 'RANKING_PARTICIPANT_SCORE_RECALCULATED',
+              entity: 'RANKING_PARTICIPANT',
+              entityId: row.participantId,
+              metadata: {
+                rankingId,
+                previousScore: row.previousScore,
+                score: row.score,
+                previousPosition: row.previousPosition,
+                position: row.position,
+                scoreInitial: row.scoreInitial,
+                scoreTotalCurrent: row.scoreTotalCurrent,
+                formula: 'scoreTotalCurrent - scoreInitial',
+              },
+            },
+          });
+        }
       }
 
       /**
@@ -48,6 +73,18 @@ export class CloseRankingService {
         where: { id: rankingId },
         data: {
           status: 'CLOSED',
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: 'RANKING_CLOSED',
+          entity: 'RANKING',
+          entityId: rankingId,
+          metadata: {
+            rows: rows.length,
+            formula: 'scoreTotalCurrent - scoreInitial',
+          },
         },
       });
     });

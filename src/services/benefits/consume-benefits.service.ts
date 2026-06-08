@@ -8,6 +8,7 @@ type ConsumeInput = {
   roundId: string
   type: PaidBenefitType
   quantity?: number
+  tx?: Prisma.TransactionClient
 }
 
 export class ConsumeBenefitsService {
@@ -16,18 +17,15 @@ export class ConsumeBenefitsService {
     userId,
     roundId,
     type,
-    quantity = 1
+    quantity = 1,
+    tx
   }: ConsumeInput) {
-
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-
+    const run = async (client: Prisma.TransactionClient) => {
       let remaining = quantity
+      let freeUsed = 0
+      let inventoryUsed = 0
 
-      /**
-       * 1️⃣ CONSUMIR BENEFÍCIOS FREE DA RODADA
-       */
-
-      const benefit = await tx.roundBenefit.findUnique({
+      const benefit = await client.roundBenefit.findUnique({
         where: { userId_roundId: { userId, roundId } }
       })
 
@@ -39,7 +37,7 @@ export class ConsumeBenefitsService {
 
         const used = Math.min(benefit.freeDoubles, remaining)
 
-        await tx.roundBenefit.update({
+        await client.roundBenefit.update({
           where: { id: benefit.id },
           data: {
             freeDoubles: { decrement: used }
@@ -47,6 +45,7 @@ export class ConsumeBenefitsService {
         })
 
         remaining -= used
+        freeUsed += used
 
       }
 
@@ -54,7 +53,7 @@ export class ConsumeBenefitsService {
 
         const used = Math.min(benefit.freeSuperDoubles, remaining)
 
-        await tx.roundBenefit.update({
+        await client.roundBenefit.update({
           where: { id: benefit.id },
           data: {
             freeSuperDoubles: { decrement: used }
@@ -62,6 +61,7 @@ export class ConsumeBenefitsService {
         })
 
         remaining -= used
+        freeUsed += used
 
       }
 
@@ -71,7 +71,7 @@ export class ConsumeBenefitsService {
 
       if (remaining > 0) {
 
-        const inventory = await tx.userBenefitInventory.findUnique({
+        const inventory = await client.userBenefitInventory.findUnique({
           where: {
             userId_type: {
               userId,
@@ -84,7 +84,7 @@ export class ConsumeBenefitsService {
 
           const used = Math.min(inventory.quantity, remaining)
 
-          await tx.userBenefitInventory.update({
+          await client.userBenefitInventory.update({
             where: { id: inventory.id },
             data: {
               quantity: { decrement: used }
@@ -92,6 +92,7 @@ export class ConsumeBenefitsService {
           })
 
           remaining -= used
+          inventoryUsed += used
 
         }
 
@@ -111,10 +112,15 @@ export class ConsumeBenefitsService {
 
       return {
         consumed: 'FREE_OR_INVENTORY',
-        quantity
+        quantity,
+        freeUsed,
+        inventoryUsed,
       }
+    }
 
-    })
+    if (tx) return run(tx)
+
+    return prisma.$transaction(async (client: Prisma.TransactionClient) => run(client))
 
   }
 

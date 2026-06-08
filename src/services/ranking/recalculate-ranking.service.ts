@@ -21,6 +21,10 @@ export class RecalculateRankingService {
         const rows = await RankingWindowScoreService.buildRows(tx, ranking)
 
         for (const row of rows) {
+          const changed =
+            row.previousScore !== row.score ||
+            row.previousPosition !== row.position
+
           await tx.rankingParticipant.update({
             where: { id: row.participantId },
             data: {
@@ -28,6 +32,27 @@ export class RecalculateRankingService {
               position: row.position,
             },
           })
+
+          if (changed) {
+            await tx.auditLog.create({
+              data: {
+                userId: row.userId,
+                action: 'RANKING_PARTICIPANT_SCORE_RECALCULATED',
+                entity: 'RANKING_PARTICIPANT',
+                entityId: row.participantId,
+                metadata: {
+                  rankingId: ranking.id,
+                  previousScore: row.previousScore,
+                  score: row.score,
+                  previousPosition: row.previousPosition,
+                  position: row.position,
+                  scoreInitial: row.scoreInitial,
+                  scoreTotalCurrent: row.scoreTotalCurrent,
+                  formula: 'scoreTotalCurrent - scoreInitial',
+                },
+              },
+            })
+          }
         }
       }
     })

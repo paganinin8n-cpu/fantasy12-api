@@ -47,6 +47,22 @@ export class UseBolaoInviteService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'BOLAO_INVITE_USED',
+          entity: 'BOLAO_INVITE',
+          entityId: invite.id,
+          metadata: {
+            rankingId: invite.rankingId,
+            code,
+            usedCountBefore: invite.usedCount,
+            usedCountAfter: invite.usedCount + 1,
+            joinStatus: joinResult.status,
+          },
+        },
+      });
+
       return {
         ...joinResult,
         inviteCode: code,

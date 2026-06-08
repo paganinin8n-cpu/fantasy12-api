@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
+    "test:ranking": "npm run build && node --test tests/ranking-window-score.test.js",
     "start": "node dist/index.js",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate:status": "npx prisma migrate status",

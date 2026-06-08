@@ -159,6 +159,57 @@ Status atual:
 - revisar exposição de dados sensíveis em logs
 - documentar segredos obrigatórios
 
+Status atual 2026-06-08:
+
+- rate limiting global segue aplicado a rotas publicas e autenticadas
+- login e recuperacao de senha seguem com limites especificos
+- cadastro, criacao de pagamento, compra de beneficios, assinatura, ticket, webhook e jobs internos passaram a ter limites por categoria
+- rotas de pagamento agora declaram `authMiddleware` no roteador, alem da checagem defensiva do controller
+- `/internal/webhooks/mercado-pago` usa limitador proprio antes da validacao de assinatura
+- jobs internos usam limitador proprio antes da validacao de `INTERNAL_JOB_SECRET`
+- `.env.example` documenta os limites operacionais configuraveis para webhooks e jobs internos
+
+## Classificacao atual de rotas
+
+Publicas:
+
+- `GET /health`
+- `GET /`
+- `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `POST /api/users`
+- `GET /api/rankings/monthly`
+- `GET /api/rankings/semester`
+- `GET /api/rankings/weekly`
+- `GET /api/rankings/:rankingId`
+- `GET /api/rounds`
+- `GET /api/rounds/open`
+- `GET /api/rounds/:roundId/matches`
+- `GET /api/payment-packages`
+
+Autenticadas:
+
+- `/api/me`
+- `/api/tickets*`
+- `/api/benefits*`
+- `/api/wallet`
+- `/api/subscription*`
+- `/api/payments*`
+- `/api/boloes*`
+- `/api/rankings/:rankingId/join`
+- `/api/rankings/:rankingId/bolao`
+- `/api/rankings/:rankingId/invites`
+
+Administrativas:
+
+- `/api/admin/*`, sempre com `authMiddleware` e `authorize(...)`
+
+Internas:
+
+- `/internal/jobs/*`, com `internalJobRateLimiter` e `internalJobAuth`
+- `/internal/webhooks/mercado-pago`, com `webhookRateLimiter` e validacao de assinatura Mercado Pago
+
 ## Recuperacao de senha
 
 Decisao 2026-06-07:

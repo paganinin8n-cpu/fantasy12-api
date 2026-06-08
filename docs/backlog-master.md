@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-06-06
+- 2026-06-08
 
 Objetivo:
 
@@ -197,6 +197,11 @@ Nota 2026-06-06:
 - PRO anual recebe 4 duplas e 2 super duplas
 - concessao e reprocessamento de beneficios usam assinatura ativa como fonte unica de elegibilidade PRO
 
+Nota 2026-06-08:
+
+- consumo de ticket passou a auditar a origem de cada multiplicador usado
+- auditoria registra quantos beneficios vieram do saldo gratis da rodada e quantos vieram do inventario comprado
+
 ### 7. Fechar ranking FREE, PRO e boloes premium
 
 Tipo:
@@ -217,8 +222,16 @@ Nota 2026-06-06:
 
 - dashboard mensal filtra ranking PRO por assinatura ativa
 - Mesas premium continuam restritas a assinatura PRO anual ativa para criacao
-- ranking de Mesa usa janela propria em `RankingWindowScoreService`, somando `scoreRound` dentro de `startDate` e `endDate`
-- `scoreInitial` fica preservado como marco auditavel, sem entrar como pontuacao exibida da Mesa
+- ranking de Mesa usa janela propria em `RankingWindowScoreService`
+- a pontuacao da Mesa segue a regra da planilha: `scoreTotalCurrent - scoreInitial`
+- `scoreInitial` fica preservado como marco auditavel do acumulado antes da ativacao da Mesa
+- a regra protege contra valor negativo quando o baseline supera o total corrente
+
+Nota 2026-06-08:
+
+- implementado teste automatizado para a regra `scoreTotalCurrent - scoreInitial`
+- recalculo e fechamento de ranking registram auditoria quando score ou posicao mudam
+- criacao manual de ranking e adicao manual de participante agora registram baseline e auditoria
 
 ### 8. Revisar payload de perfil e permissao do usuario
 
@@ -568,6 +581,13 @@ Nota 2026-06-06:
 - execucoes internas passam por `InternalJobRunnerService` com `RUNNING`, `SUCCESS`, `FAILED` e hit idempotente
 - jobs de rodada, abertura, rankings expirados, revalidacao de assinaturas e alertas ganharam rastreabilidade
 - webhook Mercado Pago manteve criacao race-safe por evento unico e rastreamento em `payment_webhook_events`
+
+Nota 2026-06-08:
+
+- pagamentos, webhooks, compras de beneficios, convites de Mesa, entrada em Mesa, ativacao de Mesa, captura de baseline, envio de ticket e recalculo de ranking receberam auditoria de dominio persistida
+- rotas de pagamento passaram a declarar `authMiddleware` explicitamente
+- cadastro, compra de beneficios, checkout/cancelamento de assinatura, webhooks e jobs internos receberam rate limit por categoria
+- variaveis `RATE_LIMIT_WEBHOOK_MAX` e `RATE_LIMIT_INTERNAL_JOB_MAX` foram documentadas em `.env.example`
 
 ### 20. Fechar observabilidade minima
 

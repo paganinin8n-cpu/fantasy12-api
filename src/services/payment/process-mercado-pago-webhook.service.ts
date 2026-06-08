@@ -65,10 +65,35 @@ export class ProcessMercadoPagoWebhookService {
       });
 
       if (!payment) {
+        await tx.auditLog.create({
+          data: {
+            action: 'PAYMENT_WEBHOOK_UNMATCHED',
+            entity: 'PAYMENT_WEBHOOK_EVENT',
+            entityId: externalEventId,
+            metadata: {
+              externalPaymentId: mpPayment.id?.toString(),
+              externalReference: mpPayment.external_reference ?? null,
+              status: mpPayment.status ?? null,
+            },
+          },
+        });
         return;
       }
 
       if (payment.isCredited) {
+        await tx.auditLog.create({
+          data: {
+            userId: payment.userId,
+            action: 'PAYMENT_WEBHOOK_ALREADY_CREDITED',
+            entity: 'PAYMENT',
+            entityId: payment.id,
+            metadata: {
+              externalEventId,
+              externalPaymentId: mpPayment.id?.toString(),
+              status: payment.status,
+            },
+          },
+        });
         return;
       }
 
@@ -76,11 +101,28 @@ export class ProcessMercadoPagoWebhookService {
        * 4️⃣ Atualizar status se não aprovado
        */
       if (mpPayment.status !== 'approved') {
+        const status = this.mapMpStatus(mpPayment.status);
         await tx.payment.update({
           where: { id: payment.id },
           data: {
-            status: this.mapMpStatus(mpPayment.status),
+            status,
             externalPaymentId: mpPayment.id?.toString(),
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: payment.userId,
+            action: 'PAYMENT_STATUS_UPDATED_FROM_WEBHOOK',
+            entity: 'PAYMENT',
+            entityId: payment.id,
+            metadata: {
+              externalEventId,
+              externalPaymentId: mpPayment.id?.toString(),
+              previousStatus: payment.status,
+              status,
+              mpStatus: mpPayment.status,
+            },
           },
         });
         return;
@@ -107,6 +149,24 @@ export class ProcessMercadoPagoWebhookService {
           status: PaymentStatus.APPROVED,
           isCredited: true,
           externalPaymentId: mpPayment.id?.toString(),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: payment.userId,
+          action: 'PAYMENT_APPROVED_AND_CREDITED',
+          entity: 'PAYMENT',
+          entityId: payment.id,
+          metadata: {
+            externalEventId,
+            externalPaymentId: mpPayment.id?.toString(),
+            previousStatus: payment.status,
+            status: PaymentStatus.APPROVED,
+            coinsAmount: payment.coinsAmount,
+            bonusCoins: payment.bonusCoins,
+            totalCredit,
+          },
         },
       });
     });

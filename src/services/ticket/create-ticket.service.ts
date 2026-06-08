@@ -112,21 +112,42 @@ export class CreateTicketService {
       /**
        * 5️⃣ Consumir benefícios
        */
+      const benefitConsumption: Array<{
+        type: BetType
+        quantity: number
+        freeUsed: number
+        inventoryUsed: number
+      }> = []
+
       if (doubles > 0) {
-        await ConsumeBenefitsService.execute({
+        const consumption = await ConsumeBenefitsService.execute({
           userId,
           roundId,
           type: BetType.DOUBLE,
-          quantity: doubles
+          quantity: doubles,
+          tx,
+        })
+        benefitConsumption.push({
+          type: BetType.DOUBLE,
+          quantity: doubles,
+          freeUsed: consumption.freeUsed,
+          inventoryUsed: consumption.inventoryUsed,
         })
       }
 
       if (superDoubles > 0) {
-        await ConsumeBenefitsService.execute({
+        const consumption = await ConsumeBenefitsService.execute({
           userId,
           roundId,
           type: BetType.SUPER_DOUBLE,
-          quantity: superDoubles
+          quantity: superDoubles,
+          tx,
+        })
+        benefitConsumption.push({
+          type: BetType.SUPER_DOUBLE,
+          quantity: superDoubles,
+          freeUsed: consumption.freeUsed,
+          inventoryUsed: consumption.inventoryUsed,
         })
       }
 
@@ -140,6 +161,23 @@ export class CreateTicketService {
           prediction,
           multipliers
         }
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'TICKET_SUBMITTED',
+          entity: 'TICKET',
+          entityId: ticket.id,
+          metadata: {
+            roundId,
+            prediction,
+            multipliers,
+            doubles,
+            superDoubles,
+            benefitConsumption,
+          },
+        },
       })
 
       return {

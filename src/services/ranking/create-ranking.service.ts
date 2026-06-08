@@ -51,37 +51,69 @@ export class CreateRankingService {
       }
     }
 
-    // 3️⃣ Criação do ranking
-    const ranking = await prisma.ranking.create({
-      data: {
-        id: randomUUID(), // ✅ INCREMENTO MÍNIMO
-        name: input.name,
-        description: input.description,
-        type: input.type,
-        startDate: input.startDate,
-        endDate: input.endDate
-      }
-    });
-
-    // 4️⃣ Criação dos participantes com scoreInitial
-    for (const userId of input.participantIds) {
-      const scoreInitial =
-        await RankingWindowScoreService.getScoreTotalBefore(
-          prisma,
-          userId,
-          input.startDate
-        );
-
-      await prisma.rankingParticipant.create({
+    return prisma.$transaction(async tx => {
+      // 3️⃣ Criação do ranking
+      const ranking = await tx.ranking.create({
         data: {
-          rankingId: ranking.id,
-          userId,
-          scoreInitial,
-          score: 0
+          id: randomUUID(), // ✅ INCREMENTO MÍNIMO
+          name: input.name,
+          description: input.description,
+          type: input.type,
+          startDate: input.startDate,
+          endDate: input.endDate
         }
       });
-    }
 
-    return ranking;
+      await tx.auditLog.create({
+        data: {
+          action: 'RANKING_CREATED',
+          entity: 'RANKING',
+          entityId: ranking.id,
+          metadata: {
+            name: input.name,
+            description: input.description ?? null,
+            type: input.type,
+            startDate: input.startDate.toISOString(),
+            endDate: input.endDate?.toISOString() ?? null,
+            participantCount: input.participantIds.length,
+          },
+        },
+      });
+
+      // 4️⃣ Criação dos participantes com scoreInitial
+      for (const userId of input.participantIds) {
+        const scoreInitial =
+          await RankingWindowScoreService.getScoreTotalBefore(
+            tx,
+            userId,
+            input.startDate
+          );
+
+        const participant = await tx.rankingParticipant.create({
+          data: {
+            rankingId: ranking.id,
+            userId,
+            scoreInitial,
+            score: 0
+          }
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: 'RANKING_PARTICIPANT_ADDED',
+            entity: 'RANKING_PARTICIPANT',
+            entityId: participant.id,
+            metadata: {
+              rankingId: ranking.id,
+              scoreInitial,
+              source: 'ranking_creation',
+            },
+          },
+        });
+      }
+
+      return ranking;
+    });
   }
 }

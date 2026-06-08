@@ -98,6 +98,22 @@ export class CreateBolaoService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId: createdByUserId,
+          action: 'BOLAO_CREATED',
+          entity: 'RANKING',
+          entityId: bolao.id,
+          metadata: {
+            name,
+            description: description ?? null,
+            maxParticipants,
+            durationDays,
+            creatorScoreInitial: 0,
+          },
+        },
+      });
+
       /**
        * 3.3 Atualizar contador de participantes
        */

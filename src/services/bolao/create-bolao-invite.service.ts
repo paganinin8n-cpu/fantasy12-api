@@ -44,6 +44,20 @@ export class CreateBolaoInviteService {
       },
     });
 
+    await prisma.auditLog.create({
+      data: {
+        userId: createdByUserId,
+        action: 'BOLAO_INVITE_CREATED',
+        entity: 'BOLAO_INVITE',
+        entityId: invite.id,
+        metadata: {
+          rankingId,
+          maxUses: invite.maxUses,
+          expiresAt: invite.expiresAt?.toISOString() ?? null,
+        },
+      },
+    });
+
     return {
       id: invite.id,
       code: invite.code,

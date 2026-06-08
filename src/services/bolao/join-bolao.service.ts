@@ -74,6 +74,21 @@ export class JoinBolaoService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'BOLAO_JOINED',
+          entity: 'RANKING',
+          entityId: rankingId,
+          metadata: {
+            statusBefore: bolao.status,
+            scoreInitial: 0,
+            currentParticipantsBefore: bolao.currentParticipants,
+            maxParticipants: bolao.maxParticipants,
+          },
+        },
+      });
+
       /**
        * 4️⃣ Incrementar contador
        */
@@ -108,6 +123,21 @@ export class JoinBolaoService {
             where: { id: participant.id },
             data: { scoreInitial },
           });
+
+          await tx.auditLog.create({
+            data: {
+              userId: participant.userId,
+              action: 'BOLAO_PARTICIPANT_BASELINE_CAPTURED',
+              entity: 'RANKING_PARTICIPANT',
+              entityId: participant.id,
+              metadata: {
+                rankingId,
+                startDate: startDate.toISOString(),
+                scoreInitial,
+                formula: 'scoreTotalCurrent - scoreInitial',
+              },
+            },
+          });
         }
 
         await tx.ranking.update({
@@ -117,6 +147,20 @@ export class JoinBolaoService {
             status: 'ACTIVE',
             startDate,
             endDate,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: 'BOLAO_ACTIVATED',
+            entity: 'RANKING',
+            entityId: rankingId,
+            metadata: {
+              currentParticipants: updatedParticipants,
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString(),
+            },
           },
         });
 

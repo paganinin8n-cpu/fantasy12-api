@@ -58,6 +58,48 @@ export const paymentRateLimiter = rateLimit({
 })
 
 /**
+ * 🧾 Cadastro: limita criação de contas por IP.
+ */
+export const accountCreationRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8 * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_account_creation_requests',
+    message: 'Muitas tentativas de cadastro. Aguarde alguns minutos.',
+  },
+})
+
+/**
+ * 🧩 Benefícios e Bar: protege compras de extras com fichas.
+ */
+export const benefitPurchaseRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20 * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_benefit_purchase_requests',
+    message: 'Muitas tentativas de compra. Aguarde um instante.',
+  },
+})
+
+/**
+ * 👑 Assinaturas: protege criação/cancelamento de checkout/plano.
+ */
+export const subscriptionRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10 * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_subscription_requests',
+    message: 'Muitas solicitações de assinatura. Aguarde um instante.',
+  },
+})
+
+/**
  * 🎟️ Ticket: 20 envios por minuto por IP
  */
 export const ticketRateLimiter = rateLimit({
@@ -68,6 +110,34 @@ export const ticketRateLimiter = rateLimit({
   message: {
     error: 'too_many_ticket_requests',
     message: 'Você está enviando palpites muito rápido. Aguarde um instante.',
+  },
+})
+
+/**
+ * 🔔 Webhooks externos: limite próprio porque /internal não usa o global.
+ */
+export const webhookRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_WEBHOOK_MAX ?? 240) * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_webhook_requests',
+    message: 'Volume de webhooks acima do limite operacional.',
+  },
+})
+
+/**
+ * ⚙️ Jobs internos: protege endpoints de cron contra abuso por segredo vazado.
+ */
+export const internalJobRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_INTERNAL_JOB_MAX ?? 60) * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_internal_job_requests',
+    message: 'Volume de jobs internos acima do limite operacional.',
   },
 })
 

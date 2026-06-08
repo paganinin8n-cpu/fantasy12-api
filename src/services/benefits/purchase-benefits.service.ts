@@ -52,6 +52,24 @@ export class PurchaseBenefitsService {
         select: { balance: true },
       })
 
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'BENEFIT_PACKAGE_PURCHASED',
+          entity: 'USER_BENEFIT_INVENTORY',
+          entityId: inventory.id,
+          metadata: {
+            packageId: pkg.id,
+            label: pkg.label,
+            type: pkg.type,
+            quantity: pkg.quantity,
+            totalCost: pkg.cost,
+            inventoryQuantity: inventory.quantity,
+            walletBalance: wallet?.balance ?? 0,
+          },
+        },
+      })
+
       return {
         packageId: pkg.id,
         label: pkg.label,
