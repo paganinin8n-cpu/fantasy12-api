@@ -68,12 +68,12 @@ export class CalculateTicketScoreService {
 
         if (multiplier === 2) {
           doubleHits++
-          multiplierBonus += 2
+          multiplierBonus += 1
         }
 
         if (multiplier === 4) {
           superDoubleHits++
-          multiplierBonus += 4
+          multiplierBonus += 3
         }
 
       } else {
