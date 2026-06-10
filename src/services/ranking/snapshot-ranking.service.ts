@@ -4,6 +4,8 @@ type SnapshotRow = {
   userId: string
   scoreTotal: number
   scoreRound: number
+  totalDoubles: number
+  totalSuperDoubles: number
 }
 
 export class SnapshotRankingService {
@@ -76,7 +78,9 @@ export class SnapshotRankingService {
           roundId: { in: validRoundIds }
         },
         _max: {
-          scoreTotal: true
+          scoreTotal: true,
+          totalDoubles: true,
+          totalSuperDoubles: true,
         }
       })
 
@@ -107,24 +111,20 @@ export class SnapshotRankingService {
       const rows: SnapshotRow[] = history.map(h => ({
         userId: h.userId,
         scoreTotal: h._max.scoreTotal ?? 0,
-        scoreRound: roundScoreMap.get(h.userId) ?? 0
+        scoreRound: roundScoreMap.get(h.userId) ?? 0,
+        totalDoubles: h._max.totalDoubles ?? 0,
+        totalSuperDoubles: h._max.totalSuperDoubles ?? 0,
       }))
 
       /**
        * 7️⃣ ordenação oficial
        */
       rows.sort((a, b) => {
-
-        if (b.scoreTotal !== a.scoreTotal) {
-          return b.scoreTotal - a.scoreTotal
-        }
-
-        if (b.scoreRound !== a.scoreRound) {
-          return b.scoreRound - a.scoreRound
-        }
-
+        if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal
+        if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound
+        if (b.totalDoubles !== a.totalDoubles) return b.totalDoubles - a.totalDoubles
+        if (b.totalSuperDoubles !== a.totalSuperDoubles) return b.totalSuperDoubles - a.totalSuperDoubles
         return a.userId.localeCompare(b.userId)
-
       })
 
       /**
@@ -133,17 +133,20 @@ export class SnapshotRankingService {
       let currentPosition = 1
       let lastScoreTotal: number | null = null
       let lastScoreRound: number | null = null
+      let lastTotalDoubles: number | null = null
+      let lastTotalSuperDoubles: number | null = null
       let index = 0
 
       const snapshots = rows.map(row => {
-
         index++
 
         if (
           lastScoreTotal !== null &&
           (
             row.scoreTotal !== lastScoreTotal ||
-            row.scoreRound !== lastScoreRound
+            row.scoreRound !== lastScoreRound ||
+            row.totalDoubles !== lastTotalDoubles ||
+            row.totalSuperDoubles !== lastTotalSuperDoubles
           )
         ) {
           currentPosition = index
@@ -151,17 +154,20 @@ export class SnapshotRankingService {
 
         lastScoreTotal = row.scoreTotal
         lastScoreRound = row.scoreRound
+        lastTotalDoubles = row.totalDoubles
+        lastTotalSuperDoubles = row.totalSuperDoubles
 
         return {
           roundId,
           userId: row.userId,
           scoreTotal: row.scoreTotal,
           scoreRound: row.scoreRound,
+          totalDoubles: row.totalDoubles,
+          totalSuperDoubles: row.totalSuperDoubles,
           position: currentPosition,
           snapshotType: 'GLOBAL',
           periodRef
         }
-
       })
 
       /**

@@ -14,7 +14,9 @@ export class CreateBolaoController {
       const result = await CreateBolaoService.execute({
         name: req.body.name,
         description: req.body.description,
-        durationDays: Number(req.body.durationDays),
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        entryFee: req.body.entryFee ? Number(req.body.entryFee) : 0,
         maxParticipants: req.body.maxParticipants
           ? Number(req.body.maxParticipants)
           : undefined,

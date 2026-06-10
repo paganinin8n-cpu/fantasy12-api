@@ -252,8 +252,10 @@ model UserScoreHistory {
   userId  String
   roundId String
 
-  scoreRound Int
-  scoreTotal Int
+  scoreRound        Int
+  scoreTotal        Int
+  totalDoubles      Int @default(0)
+  totalSuperDoubles Int @default(0)
 
   createdAt DateTime @default(now())
 
@@ -280,6 +282,7 @@ model Ranking {
   startDate DateTime?
   endDate   DateTime?
 
+  entryFee            Int  @default(0)
   maxParticipants     Int?
   currentParticipants Int  @default(0)
   durationDays        Int?
@@ -378,9 +381,11 @@ model RankingSnapshot {
   roundId String
   userId  String
 
-  scoreTotal Int
-  scoreRound Int
-  position   Int
+  scoreTotal        Int
+  scoreRound        Int
+  totalDoubles      Int @default(0)
+  totalSuperDoubles Int @default(0)
+  position          Int
 
   snapshotType String
   periodRef    String?

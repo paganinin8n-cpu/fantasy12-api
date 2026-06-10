@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
+import { WalletService } from '../wallet/wallet.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -24,6 +25,9 @@ export class JoinBolaoService {
           maxParticipants: true,
           currentParticipants: true,
           durationDays: true,
+          startDate: true,
+          endDate: true,
+          entryFee: true,
         },
       });
 
@@ -63,7 +67,19 @@ export class JoinBolaoService {
       }
 
       /**
-       * 3️⃣ Inserir participante
+       * 3️⃣ Cobrar entrada em fichas (se houver)
+       */
+      if (bolao.entryFee > 0) {
+        await WalletService.debit(
+          userId,
+          bolao.entryFee,
+          `Entrada na Mesa ${rankingId}`,
+          tx
+        );
+      }
+
+      /**
+       * 4️⃣ Inserir participante
        */
       await tx.rankingParticipant.create({
         data: {
@@ -85,24 +101,25 @@ export class JoinBolaoService {
             scoreInitial: 0,
             currentParticipantsBefore: bolao.currentParticipants,
             maxParticipants: bolao.maxParticipants,
+            entryFee: bolao.entryFee,
           },
         },
       });
 
       /**
-       * 4️⃣ Incrementar contador
+       * 5️⃣ Incrementar contador
        */
       const updatedParticipants = bolao.currentParticipants + 1;
 
       /**
-       * 5️⃣ Ativação automática se atingir o limite
+       * 6️⃣ Ativação automática se atingir o limite
        */
       if (
         bolao.maxParticipants !== null &&
         updatedParticipants === bolao.maxParticipants
       ) {
-        const startDate = new Date();
-        const endDate = new Date(
+        const startDate = bolao.startDate ?? new Date();
+        const endDate = bolao.endDate ?? new Date(
           startDate.getTime() + (bolao.durationDays ?? 0) * 24 * 60 * 60 * 1000
         );
 
@@ -174,7 +191,7 @@ export class JoinBolaoService {
       }
 
       /**
-       * 6️⃣ Apenas atualizar contador
+       * 7️⃣ Apenas atualizar contador
        */
       await tx.ranking.update({
         where: { id: rankingId },

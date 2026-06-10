@@ -40,47 +40,33 @@ export class ScoreRoundService {
 
       for (const ticket of round.tickets) {
 
-        const scoreRound = this.calculator.execute(
+        const breakdown = this.calculator.detail(
           ticket.prediction,
           round.result,
           ticket.multipliers
         )
 
-        const status =
-          scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST
+        const scoreRound = breakdown.total
+        const status = scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST
 
-        /**
-         * atualizar ticket
-         */
         await tx.ticket.update({
           where: { id: ticket.id },
-          data: {
-            scoreRound,
-            status
-          }
+          data: { scoreRound, status }
         })
 
-        /**
-         * buscar último histórico
-         */
         const lastHistory = await tx.userScoreHistory.findFirst({
           where: { userId: ticket.userId },
           orderBy: { scoreTotal: 'desc' }
         })
 
-        const previousTotal = lastHistory?.scoreTotal ?? 0
-
-        const scoreTotal = previousTotal + scoreRound
-
-        /**
-         * inserir histórico
-         */
         await tx.userScoreHistory.create({
           data: {
             userId: ticket.userId,
             roundId,
             scoreRound,
-            scoreTotal
+            scoreTotal: (lastHistory?.scoreTotal ?? 0) + scoreRound,
+            totalDoubles: (lastHistory?.totalDoubles ?? 0) + breakdown.doubleHits,
+            totalSuperDoubles: (lastHistory?.totalSuperDoubles ?? 0) + breakdown.superDoubleHits,
           }
         })
 

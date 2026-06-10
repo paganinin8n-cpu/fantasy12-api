@@ -1,13 +1,15 @@
 import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
-import { hasAnnualProSubscription } from '../../domain/subscription';
+import { hasActiveProSubscription } from '../../domain/subscription';
 import { AppError } from '../../errors/AppError';
 
 type CreateBolaoInput = {
   name: string;
   description?: string;
+  startDate: Date;
+  endDate: Date;
+  entryFee?: number;
   maxParticipants?: number; // default 50
-  durationDays: number;     // ex: 30, 60, 90
   createdByUserId: string;
 };
 
@@ -16,24 +18,19 @@ export class CreateBolaoService {
     const {
       name,
       description,
+      startDate,
+      endDate,
+      entryFee = 0,
       maxParticipants = 50,
-      durationDays,
       createdByUserId,
     } = input;
 
-    /**
-     * 1️⃣ Validar usuário PRO anual
-     */
     const user = await prisma.user.findUnique({
       where: { id: createdByUserId },
       select: {
         id: true,
         subscription: {
-          select: {
-            status: true,
-            plan: true,
-            endAt: true,
-          },
+          select: { status: true, plan: true, endAt: true },
         },
       },
     });
@@ -42,53 +39,51 @@ export class CreateBolaoService {
       throw AppError.notFound('Usuário', 'user_not_found');
     }
 
-    if (!hasAnnualProSubscription(user.subscription)) {
+    if (!hasActiveProSubscription(user.subscription)) {
       throw AppError.forbidden(
-        'Montar Mesa é exclusivo para usuários com assinatura PRO anual ativa.',
-        'annual_pro_subscription_required'
+        'Montar Mesa é exclusivo para usuários com assinatura PRO ativa.',
+        'pro_subscription_required'
       );
     }
 
-    /**
-     * 2️⃣ Validar parâmetros
-     */
     if (!name || name.trim().length < 3) {
       throw new Error('O nome da Mesa deve ter pelo menos 3 caracteres');
     }
 
-    if (durationDays <= 0) {
-      throw new Error('durationDays must be greater than zero');
+    if (endDate <= startDate) {
+      throw new Error('A data de fim deve ser posterior à data de início');
+    }
+
+    if (entryFee < 0) {
+      throw new Error('A entrada em fichas não pode ser negativa');
     }
 
     if (maxParticipants !== 50) {
-      // regra congelada neste bloco
       throw new Error('maxParticipants must be 50');
     }
 
-    /**
-     * 3️⃣ Transação atômica
-     */
+    const durationDays = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     const result = await prisma.$transaction(async tx => {
-      /**
-       * 3.1 Criar Ranking (Mesa privada) em DRAFT
-       */
       const bolao = await tx.ranking.create({
         data: {
-          id: randomUUID(), // ✅ INCREMENTO MÍNIMO
+          id: randomUUID(),
           name,
           description,
           type: 'BOLAO',
           status: 'DRAFT',
+          entryFee,
           maxParticipants,
           currentParticipants: 0,
           durationDays,
+          startDate,
+          endDate,
           createdByUserId,
         },
       });
 
-      /**
-       * 3.2 Criador entra automaticamente como participante
-       */
       await tx.rankingParticipant.create({
         data: {
           rankingId: bolao.id,
@@ -107,36 +102,33 @@ export class CreateBolaoService {
           metadata: {
             name,
             description: description ?? null,
+            entryFee,
             maxParticipants,
             durationDays,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
             creatorScoreInitial: 0,
           },
         },
       });
 
-      /**
-       * 3.3 Atualizar contador de participantes
-       */
       const updatedBolao = await tx.ranking.update({
         where: { id: bolao.id },
-        data: {
-          currentParticipants: 1,
-        },
+        data: { currentParticipants: 1 },
       });
 
       return updatedBolao;
     });
 
-    /**
-     * 4️⃣ Retorno controlado
-     */
     return {
       id: result.id,
       name: result.name,
       status: result.status,
+      entryFee: result.entryFee,
       maxParticipants: result.maxParticipants,
       currentParticipants: result.currentParticipants,
-      durationDays: result.durationDays,
+      startDate: result.startDate,
+      endDate: result.endDate,
     };
   }
 }

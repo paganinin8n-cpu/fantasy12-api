@@ -65,19 +65,19 @@ export class RecomputeScoredRoundsService {
 
       await prisma.$transaction(async tx => {
         for (const ticket of round.tickets) {
-          const scoreRound = calculator.execute(
+          const breakdown = calculator.detail(
             ticket.prediction,
             result,
             ticket.multipliers
           )
 
+          const scoreRound = breakdown.total
+
           const lastHistory = await tx.userScoreHistory.findFirst({
             where: { userId: ticket.userId },
             orderBy: [{ createdAt: 'desc' }, { scoreTotal: 'desc' }],
-            select: { scoreTotal: true },
+            select: { scoreTotal: true, totalDoubles: true, totalSuperDoubles: true },
           })
-
-          const scoreTotal = (lastHistory?.scoreTotal ?? 0) + scoreRound
 
           await tx.ticket.update({
             where: { id: ticket.id },
@@ -92,7 +92,9 @@ export class RecomputeScoredRoundsService {
               userId: ticket.userId,
               roundId: round.id,
               scoreRound,
-              scoreTotal,
+              scoreTotal: (lastHistory?.scoreTotal ?? 0) + scoreRound,
+              totalDoubles: (lastHistory?.totalDoubles ?? 0) + breakdown.doubleHits,
+              totalSuperDoubles: (lastHistory?.totalSuperDoubles ?? 0) + breakdown.superDoubleHits,
             },
           })
 
