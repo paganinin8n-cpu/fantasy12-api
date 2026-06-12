@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-06-08
+- 2026-06-11
 
 Objetivo:
 
@@ -262,7 +262,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-11`
 
 Tarefas:
 
@@ -745,7 +745,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-11`
 
 Tarefas:
 
@@ -769,14 +769,289 @@ Tarefas:
 - pipeline de deploy
 - padrao de release
 
+## P1. UX responsiva e separacao visual sem regressao funcional
+
+Principio desta frente:
+
+- as melhorias abaixo sao de organizacao visual, responsividade e clareza de fluxo
+- nao alterar regra de negocio, contratos de API, calculos, auditoria ou permissoes sem item tecnico separado
+- preservar rotas existentes e comportamento funcional ja validado
+- cada entrega deve ser validada em desktop e mobile antes de deploy
+- quando houver risco de mudanca funcional, abrir tarefa separada de backend/produto antes de implementar
+
+### 27. Reorganizar Admin > Rodadas por tarefa
+
+Tipo:
+
+- Frontend / UX Admin
+
+Status sugerido:
+
+- `Implementado localmente em 2026-06-12`
+
+Objetivo:
+
+- reduzir poluicao da tela de rodadas separando criacao, operacao da rodada ativa e historico
+
+Tarefas:
+
+- separar visualmente `Rodada ativa` de `Criar nova rodada`
+- mover rodadas encerradas, apuradas, canceladas ou em rascunho para area de `Historico de rodadas`
+- manter os fluxos existentes de criar, editar jogos, abrir, fechar, lancar resultado e apurar
+- preservar a exigencia de 12 jogos por rodada
+- manter estados internos atuais (`DRAFT`, `OPEN`, `CLOSED`, `SCORED`, `CANCELLED`), mas exibir labels em portugues
+- no mobile, transformar criacao/edicao em fluxo vertical com secoes curtas
+- evitar cards competindo entre si; usar blocos e divisorias por tarefa
+
+Critérios de aceite:
+
+- admin entende rapidamente qual rodada esta ativa
+- criacao de rodada nao disputa espaco com historico
+- nenhuma regra de apuracao ou criacao e alterada
+- resultado e apuracao seguem funcionando como antes
+
+### 28. Reorganizar Admin > Usuarios com detalhe progressivo
+
+Tipo:
+
+- Frontend / UX Admin
+
+Status sugerido:
+
+- `Implementado localmente em 2026-06-12`
+
+Objetivo:
+
+- preservar a grade operacional de usuarios, mas reduzir excesso visual no detalhe inferior
+
+Tarefas:
+
+- manter busca, paginacao e ordenacao por usuarios recentes
+- manter colunas operacionais de plano, fichas, duplas, super duplas e status
+- substituir o conjunto de muitos cards inferiores por detalhe progressivo
+- no desktop, abrir detalhe em painel lateral ou area dedicada com abas
+- no mobile, abrir detalhe em tela/drawer full-screen
+- organizar detalhes em abas: `Resumo`, `Acesso`, `Plano`, `Fichas e beneficios`, `Historico`
+- manter ajustes rapidos auditaveis e com motivo
+- manter bloqueio, liberacao, plano manual, debito/credito e historico funcionando
+- traduzir qualquer status tecnico visivel para portugues
+
+Critérios de aceite:
+
+- tabela continua eficiente para muitos usuarios
+- detalhe nao aparece todo de uma vez
+- admin consegue executar as mesmas acoes atuais
+- historico e auditoria seguem visiveis quando solicitados
+
+### 29. Revisar Dashboard do jogador como tela de decisao rapida
+
+Tipo:
+
+- Frontend / UX Jogador
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- fazer a primeira tela responder rapidamente o que o jogador deve fazer agora
+
+Tarefas:
+
+- destacar o estado principal: rodada aberta, palpite enviado, rodada fechada ou sem rodada ativa
+- exibir CTA principal conforme estado: `Fazer palpites`, `Ver meus palpites`, `Acompanhar ranking` ou `Ir ao Bar`
+- reduzir resumos redundantes
+- deixar fichas, duplas e super duplas como indicadores secundarios, nao como excesso de cards
+- melhorar hierarquia mobile-first
+- preservar links e rotas atuais
+
+Critérios de aceite:
+
+- usuario identifica o proximo passo em ate poucos segundos
+- nenhuma chamada de API ou regra de rodada muda
+- dashboard continua levando para palpites, historico, Bar e Mesas
+
+### 30. Polir fluxo de palpites sem alterar motor de jogo
+
+Tipo:
+
+- Frontend / UX Jogador
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- reduzir ruído visual na tela mais importante do jogador preservando regras atuais
+
+Tarefas:
+
+- manter 12 jogos e progresso claro
+- preservar regras de dupla e super dupla, incluindo consumo gratis/comprado
+- manter modal de revisao antes do envio
+- simplificar visual dos jogos no mobile
+- deixar CTA final fixo ou facilmente acessivel quando todos os palpites estiverem prontos
+- reforcar pontuacao esperada e multiplicadores sem virar texto explicativo longo
+
+Critérios de aceite:
+
+- envio de ticket continua igual tecnicamente
+- consumo de duplas/super duplas segue auditavel e correto
+- mobile nao exige rolagem confusa para concluir a rodada
+
+### 31. Reorganizar Meus palpites e historico do jogador
+
+Tipo:
+
+- Frontend / UX Jogador
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- deixar historico mais limpo e legivel, principalmente no celular
+
+Tarefas:
+
+- exibir por rodada: pontuacao, acertos, duplas acertadas, super duplas acertadas e status em portugues
+- esconder detalhes dos 12 jogos em acordeao/expandir
+- separar palpite enviado, resultado oficial e criterios de desempate
+- remover termos internos como `SCORED`, `OPEN`, `CLOSED` da interface final
+- preservar dados e calculos existentes
+
+Critérios de aceite:
+
+- jogador entende por que pontuou
+- desempate por duplas/super duplas fica claro
+- tela nao vira uma lista extensa de informacoes sempre abertas
+
+### 32. Revisar Bar/Balcao como hub do jogador
+
+Tipo:
+
+- Frontend / UX Jogador / Monetizacao
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- fazer o Bar parecer uma area viva do produto, nao apenas uma loja
+
+Tarefas:
+
+- separar saldo, compra de fichas, compra de duplas/super e atalhos de jogo
+- manter regra comercial atual de fichas e extras
+- reduzir excesso de cards e repeticao
+- reforcar linguagem de Bar/Balcao quando fizer sentido para o negocio
+- garantir que usuario normal e PRO vejam opcoes permitidas sem confusao
+
+Critérios de aceite:
+
+- compra continua funcionando como hoje
+- usuario entende diferenca entre fichas, duplas e super duplas
+- layout mobile fica claro e escaneavel
+
+### 33. Revisar Mesas como experiencia social/gamificada
+
+Tipo:
+
+- Frontend / UX Jogador / Produto
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- simplificar criacao, entrada e acompanhamento de Mesas sem mudar regras atuais
+
+Tarefas:
+
+- organizar lista de Mesas com estado, participantes, custo e periodo
+- transformar criacao de Mesa em fluxo guiado
+- destacar convite/link/codigo quando aplicavel
+- no detalhe da Mesa, separar `Ranking`, `Participantes`, `Regras` e `Historico`
+- manter regras atuais de PRO, custo de entrada e janelas de ranking
+
+Critérios de aceite:
+
+- usuario entende como criar ou entrar em uma Mesa
+- regra de elegibilidade e cobranca continua igual
+- detalhe da Mesa nao concentra informacao demais em uma unica dobra
+
+### 34. Revisar Perfil, assinatura e conta
+
+Tipo:
+
+- Frontend / UX Jogador
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- reduzir poluicao visual no perfil e deixar conta/seguranca/assinatura mais previsiveis
+
+Tarefas:
+
+- separar visualmente `Dados pessoais`, `Seguranca`, `Assinatura`, `Pagamentos` e `Sair da conta`
+- reduzir cards em excesso; usar abas ou secoes simples
+- manter troca de senha exigindo senha atual
+- manter fluxo de assinatura e pagamento como ja existe
+- destacar status PRO sem competir com formulario de perfil
+
+Critérios de aceite:
+
+- perfil nao tem labels sobrepostos ou campos desalinhados
+- troca de senha segue segura
+- assinatura e dados de conta continuam acessiveis
+
+### 35. Criar checklist de regressao visual e funcional mobile-first
+
+Tipo:
+
+- Frontend / QA
+
+Status sugerido:
+
+- `Nao iniciado`
+
+Objetivo:
+
+- garantir que melhorias visuais nao quebrem fluxos ja entregues
+
+Tarefas:
+
+- criar checklist por tela: Dashboard, Palpites, Historico, Bar, Mesas, Perfil, Admin Rodadas e Admin Usuarios
+- validar breakpoints mobile, tablet e desktop
+- validar que botoes principais continuam visiveis e acionaveis
+- validar que status aparecem em portugues
+- validar que formularios nao quebram labels/campos
+- validar fluxos criticos: login, palpite, envio, compra, perfil, admin rodada, admin usuario
+- registrar screenshots de antes/depois para decisoes de produto
+
+Critérios de aceite:
+
+- cada refatoracao visual vem acompanhada de verificacao minima
+- nenhum fluxo funcional validado anteriormente e removido sem decisao explicita
+- bugs visuais de sobreposicao/quebra viram correcoes antes de deploy
+
 ## Ordem recomendada agora
 
-1. validar pagamento real de assinatura em producao e webhook de confirmacao
-2. observabilidade minima, checklist de incidente e visibilidade de jobs/pagamentos
-3. rotina documentada e testada de backup e restore
-4. concluir desacoplamento conceitual de `PRO` de `User.role`
-5. refinamentos do fluxo principal do jogador, bar e dashboard
-6. amadurecer administracao operacional de usuarios, logs e beneficios
+1. reorganizar `Admin > Rodadas` por tarefa, sem mudar regras
+2. reorganizar `Admin > Usuarios` com detalhe progressivo, mantendo a grade operacional
+3. revisar Dashboard do jogador como tela de decisao rapida
+4. polir fluxo de palpites e historico sem alterar motor de pontuacao
+5. revisar Bar/Balcao, Mesas e Perfil com foco mobile-first
+6. validar pagamento real de assinatura em producao e webhook de confirmacao
+7. manter rotina de observabilidade, backup e deploy como base operacional
 
 ## Observacao final
 
