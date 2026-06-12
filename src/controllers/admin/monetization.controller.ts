@@ -44,6 +44,24 @@ export class AdminMonetizationController {
     }
   }
 
+  static async debit(req: Request, res: Response) {
+    const adminUserId = (req as any).user.id;
+    const { userId } = req.params;
+    const { amount, reason } = req.body;
+
+    try {
+      const result = await AdminWalletCreditService.debit(
+        adminUserId,
+        userId,
+        Number(amount),
+        reason
+      );
+      return res.json(result);
+    } catch (e: any) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+
   static async benefits(req: Request, res: Response) {
     const { userId } = req.params;
     const roundId = typeof req.query.roundId === 'string'
@@ -80,6 +98,24 @@ export class AdminMonetizationController {
 
     try {
       const result = await AdminPaidBenefitsService.creditPaid(
+        adminUserId,
+        userId,
+        Number(amount),
+        type
+      );
+      return res.json(result);
+    } catch (e: any) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+
+  static async debitPaidBenefit(req: Request, res: Response) {
+    const adminUserId = (req as any).user.id;
+    const { userId } = req.params;
+    const { type, amount } = req.body;
+
+    try {
+      const result = await AdminPaidBenefitsService.debitPaid(
         adminUserId,
         userId,
         Number(amount),

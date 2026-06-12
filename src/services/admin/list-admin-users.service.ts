@@ -34,6 +34,7 @@ export class ListAdminUsersService {
           id: true,
           name: true,
           email: true,
+          cpf: true,
           nickname: true,
           phone: true,
           role: true,
@@ -47,6 +48,12 @@ export class ListAdminUsersService {
             select: {
               balance: true,
               updatedAt: true,
+            },
+          },
+          benefitInventory: {
+            select: {
+              type: true,
+              quantity: true,
             },
           },
           subscription: {
@@ -80,6 +87,7 @@ export class ListAdminUsersService {
         id: user.id,
         name: user.name,
         email: user.email,
+        cpf: user.cpf,
         nickname: user.nickname,
         phone: user.phone,
         role: user.role,
@@ -90,6 +98,14 @@ export class ListAdminUsersService {
         lockedUntil: user.lockedUntil,
         createdAt: user.createdAt,
         wallet: user.wallet,
+        benefits: {
+          paidDoubles:
+            user.benefitInventory.find(item => item.type === 'DOUBLE')
+              ?.quantity ?? 0,
+          paidSuperDoubles:
+            user.benefitInventory.find(item => item.type === 'SUPER_DOUBLE')
+              ?.quantity ?? 0,
+        },
         subscription: user.subscription,
         adminRoles: user.UserAdminRole.map(item => item.role.name),
       })),

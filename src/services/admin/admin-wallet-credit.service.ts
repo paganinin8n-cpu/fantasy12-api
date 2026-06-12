@@ -49,4 +49,55 @@ export class AdminWalletCreditService {
       };
     });
   }
+
+  static async debit(
+    adminUserId: string,
+    userId: string,
+    amount: number,
+    reason: string
+  ) {
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than zero');
+    }
+
+    return prisma.$transaction(async tx => {
+      const wallet = await tx.wallet.findUnique({
+        where: { userId },
+      });
+
+      if (!wallet || wallet.balance < amount) {
+        throw new Error('Saldo de fichas insuficiente');
+      }
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { decrement: amount } },
+      });
+
+      await tx.walletLedger.create({
+        data: {
+          walletId: wallet.id,
+          type: 'DEBIT',
+          amount,
+          description: `ADMIN DEBIT: ${reason}`,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: 'ADMIN_WALLET_DEBIT',
+          entity: 'Wallet',
+          entityId: wallet.id,
+          metadata: { targetUserId: userId, amount, reason },
+        },
+      });
+
+      return {
+        userId,
+        debited: amount,
+        balanceAfter: updatedWallet.balance,
+      };
+    });
+  }
 }

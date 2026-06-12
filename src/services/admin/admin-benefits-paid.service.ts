@@ -38,4 +38,50 @@ export class AdminPaidBenefitsService {
 
     return inventory;
   }
+
+  static async debitPaid(
+    adminUserId: string,
+    userId: string,
+    amount: number,
+    type: 'DOUBLE' | 'SUPER_DOUBLE'
+  ) {
+    if (amount <= 0) throw new Error('Invalid amount');
+
+    const current = await prisma.userBenefitInventory.findUnique({
+      where: {
+        userId_type: {
+          userId,
+          type,
+        },
+      },
+    });
+
+    if (!current || current.quantity < amount) {
+      throw new Error('Saldo de benefícios insuficiente');
+    }
+
+    const inventory = await prisma.userBenefitInventory.update({
+      where: {
+        userId_type: {
+          userId,
+          type,
+        },
+      },
+      data: {
+        quantity: { decrement: amount },
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'ADMIN_DEBIT_PAID_BENEFIT',
+        entity: 'UserBenefitInventory',
+        entityId: inventory.id,
+        metadata: { targetUserId: userId, type, amount },
+      },
+    });
+
+    return inventory;
+  }
 }

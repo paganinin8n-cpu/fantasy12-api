@@ -37,6 +37,17 @@ router.post(
   AdminMonetizationController.credit
 )
 
+router.post(
+  '/admin/monetization/wallet/:userId/debit',
+  authMiddleware,
+  authorize('FINANCE_EXECUTE', {
+    audit: true,
+    entity: 'WALLET',
+    getEntityId: (req) => req.params.userId
+  }),
+  AdminMonetizationController.debit
+)
+
 router.get(
   '/admin/monetization/benefits/:userId',
   authMiddleware,
@@ -64,6 +75,17 @@ router.post(
     getEntityId: (req) => req.params.userId
   }),
   AdminMonetizationController.creditPaidBenefit
+)
+
+router.post(
+  '/admin/monetization/benefits/:userId/paid/debit',
+  authMiddleware,
+  authorize('FINANCE_EXECUTE', {
+    audit: true,
+    entity: 'BENEFIT',
+    getEntityId: (req) => req.params.userId
+  }),
+  AdminMonetizationController.debitPaidBenefit
 )
 
 export default router

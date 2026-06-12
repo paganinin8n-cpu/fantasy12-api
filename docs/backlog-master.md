@@ -492,6 +492,9 @@ Referencia:
 Tarefas:
 
 - expor tela ativa para gestao de usuarios
+- listar por padrao os usuarios mais recentes cadastrados
+- permitir pesquisa por nome, email e apelido para operacao em bases grandes
+- paginar resultados de usuarios no backend e frontend
 - permitir ajuste operacional de coins e beneficios
 - alinhar com o modelo final de assinatura e roles
 - permitir bloqueio administrativo de usuario com motivo
@@ -519,6 +522,15 @@ Nota 2026-06-06:
 - ajuste de beneficios taticos foi separado de credito de carteira
 - beneficios pagos entram em `UserBenefitInventory`; beneficios gratis exigem rodada
 - bloqueio, liberacao e plano usam permissoes mais granulares (`USER_BLOCK`, `USER_UNBLOCK`, `USER_PLAN_WRITE`)
+
+Nota 2026-06-11:
+
+- referencia visual nova: grade operacional com usuario, papel/plano, fichas, duplas e super duplas em linhas editaveis
+- backend de `GET /api/admin/users` ja suporta `page`, `limit`, `q/query` e ordenacao por `createdAt desc`
+- pendente no frontend: expor controles de paginacao, preservar busca entre paginas e trocar a experiencia de lista/detalhe por uma grade operacional ou modo hibrido
+- pesquisa deve ser requisito de primeira linha, pois a gestao com milhares de usuarios fica impraticavel sem filtro server-side
+- paginacao deve ser server-side, com limite padrao conservador e opcao de navegar pagina anterior/proxima
+- ajustes rapidos de fichas, duplas e super duplas devem continuar auditaveis e exigir motivo quando alterarem saldo de forma administrativa
 
 ### 18. Consolidar logs operacionais no admin
 
