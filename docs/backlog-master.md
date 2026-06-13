@@ -851,7 +851,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-12`
 
 Objetivo:
 
@@ -880,7 +880,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-12`
 
 Objetivo:
 
@@ -909,7 +909,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-12`
 
 Objetivo:
 
