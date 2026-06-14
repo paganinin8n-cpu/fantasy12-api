@@ -31,6 +31,7 @@ import adminSubscriptionsRoutes from './routes/admin-subscriptions.routes'
 import adminUsersRoutes from './routes/admin-users.routes'
 import adminLogsRoutes from './routes/admin-logs.routes'
 import adminOperationalRoutes from './routes/admin-operational.routes'
+import teamRoutes from './routes/team.routes'
 
 /**
  * ⚙️ INTERNAL
@@ -181,6 +182,7 @@ app.use('/api', adminRoundRoutes)
 app.use('/api', adminUsersRoutes)
 app.use('/api', adminLogsRoutes)
 app.use('/api', adminOperationalRoutes)
+app.use('/', teamRoutes)
 
 /* ======================================================
    ❤️ HEALTH

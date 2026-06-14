@@ -70,6 +70,11 @@ enum WalletTransactionType {
   DEBIT
 }
 
+enum TeamType {
+  CLUB
+  NATIONAL
+}
+
 //////////////////////////////////////////////////////
 // ENUMS — PAGAMENTO
 //////////////////////////////////////////////////////
@@ -164,6 +169,32 @@ model PasswordResetToken {
 }
 
 //////////////////////////////////////////////////////
+// TEAM
+//////////////////////////////////////////////////////
+
+model Team {
+  id         String   @id @default(uuid())
+  name       String
+  shortName  String?
+  country    String?
+  type       TeamType @default(CLUB)
+  logoUrl    String?
+  externalId String?  @unique
+  active     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  homeMatches RoundMatch[] @relation("HomeTeam")
+  awayMatches RoundMatch[] @relation("AwayTeam")
+
+  @@index([name])
+  @@index([country])
+  @@index([type])
+  @@map("teams")
+}
+
+//////////////////////////////////////////////////////
 // ROUND
 //////////////////////////////////////////////////////
 
@@ -204,13 +235,20 @@ model RoundMatch {
   matchTime  DateTime?
   result     String?
 
+  homeTeamId String?
+  awayTeamId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  round        Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  homeTeamData Team?  @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamData Team?  @relation("AwayTeam", fields: [awayTeamId], references: [id])
 
   @@unique([roundId, position])
   @@index([roundId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
   @@map("round_matches")
 }
 
