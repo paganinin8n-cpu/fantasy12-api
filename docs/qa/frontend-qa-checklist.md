@@ -1,167 +1,244 @@
-# Roteiro de QA do Frontend
+# Checklist de QA frontend mobile-first
 
-Data de referencia: 2026-05-09
+Data de referencia: 2026-06-14
 
-Ambiente principal de teste:
+Ambientes principais:
 
-- Frontend: https://f12-prd-frontend.x18arx.easypanel.host/login
-- API health: https://f12-prd-api.x18arx.easypanel.host/health
-- API rodada aberta: https://f12-prd-api.x18arx.easypanel.host/api/rounds/open
+- Frontend publico: https://www.fantasy12.com
+- API publica: https://api.fantasy12.com/health
+- Frontend EasyPanel: https://f12-prd-frontend.x18arx.easypanel.host
+- API EasyPanel: https://f12-prd-api.x18arx.easypanel.host/health
 
-Credenciais de teste:
+Este roteiro existe para impedir que melhorias visuais removam ou quebrem fluxos ja entregues. Toda refatoracao visual relevante deve passar por esta lista antes de deploy.
 
-- Email: `admin@fantasy12.com`
-- Senha: `123456`
+## 1. Matriz minima de viewport
 
-## 1. Preparacao
+Validar as telas abaixo em:
 
-1. Abrir o frontend no ambiente de teste.
-2. Confirmar que a pagina carrega sem tela em branco.
-3. Abrir o console do navegador e verificar se nao existem erros criticos de carregamento.
-4. Confirmar que a API responde em `/health`.
+- Mobile: 390 x 844
+- Tablet: 768 x 1024
+- Desktop: 1366 x 900
 
-Resultado esperado:
+Critérios globais:
 
-- Frontend acessivel.
-- Console sem erros fatais.
-- API respondendo `{"api":"ok","db":"ok"}`.
+- textos nao sobrepoem labels, botoes ou cards
+- campos mantem label legivel e area de toque confortavel
+- botoes principais ficam visiveis sem depender de zoom
+- status de negocio aparecem em portugues
+- cards nao empilham informacao demais na primeira dobra
+- rotas protegidas redirecionam para login quando nao ha sessao
+- console sem erro critico de carregamento
 
 ## 2. Login e sessao
 
-1. Acessar `/login`.
-2. Fazer login com as credenciais de teste.
-3. Confirmar redirecionamento apos login.
-4. Recarregar a pagina.
-5. Confirmar que a sessao continua ativa.
-6. Fazer logout.
-7. Confirmar retorno para a tela de login.
-8. Tentar acessar uma rota protegida sem login.
+Roteiro:
+
+1. Abrir `/login`.
+2. Conferir logo, titulo, email, senha, botao principal, recuperacao e criacao de conta.
+3. Validar mobile, tablet e desktop.
+4. Acessar `/dashboard` sem sessao.
+5. Confirmar redirecionamento para `/login`.
+6. Fazer login com usuario de teste autorizado.
+7. Recarregar a pagina autenticada.
+8. Fazer logout.
 
 Resultado esperado:
 
-- Login concluido com sucesso.
-- Sessao persistida apos refresh.
-- Logout funcionando.
-- Rotas protegidas bloqueadas sem sessao.
+- login fica legivel nos tres tamanhos
+- sem texto cortado ou botao branco sem contraste
+- sessao autenticada persiste apos refresh
+- logout encerra a sessao
 
 ## 3. Dashboard
 
-1. Entrar no dashboard apos login.
-2. Confirmar carregamento das informacoes principais.
-3. Recarregar a tela.
-4. Verificar se nao ha mensagens de erro da API.
+Roteiro:
+
+1. Abrir `/dashboard` autenticado.
+2. Validar hero do jogador, CTA principal e cards de resumo.
+3. Confirmar ranking mensal e links para Palpites, Historico, Bar e Mesas.
+4. Validar que status de rodada aparece como `Aberta`, `Fechada`, `Apurada`, `Rascunho` ou `Cancelada`.
 
 Resultado esperado:
 
-- Dashboard visivel.
-- Sem erro visual.
-- Sessao mantida apos refresh.
+- primeira dobra informa a proxima acao do jogador
+- nao aparecem termos internos como `OPEN`, `SCORED` ou `CLOSED`
+- mobile nao exige rolagem horizontal
 
-## 4. Rodada aberta
+## 4. Palpites
 
-1. Confirmar exibicao da rodada aberta.
-2. Validar numero, status e datas da rodada.
-3. Validar o comportamento da tela mesmo com `matches` vazio.
+Roteiro:
 
-Resultado esperado:
-
-- Rodada `OPEN` visivel.
-- Interface estavel mesmo sem lista detalhada de partidas.
-
-## 5. Ticket / palpites
-
-1. Abrir a tela de ticket.
-2. Confirmar que o formulario carrega.
-3. Preencher os 12 palpites.
-4. Enviar o ticket.
-5. Confirmar feedback de sucesso.
-6. Tentar um envio invalido ou incompleto.
-7. Confirmar feedback de erro amigavel.
-8. Recarregar a pagina apos o envio.
+1. Abrir `/ticket`.
+2. Validar lista de jogos, selecao 1/X/2 e resumo lateral/inferior.
+3. Marcar 12 palpites.
+4. Marcar duplas e super duplas dentro do limite.
+5. Abrir o resumo antes de enviar.
+6. Enviar somente em ambiente apropriado para teste.
+7. Testar tentativa incompleta.
 
 Resultado esperado:
 
-- Palpites enviados com sucesso quando validos.
-- Mensagens de erro claras quando invalido.
-- Sem travamento ou perda inesperada de sessao.
+- selecao clara em mobile
+- duplas e super duplas aparecem com contadores corretos
+- envio incompleto tem erro amigavel
+- envio valido nao perde sessao
 
-## 6. Admin de rodadas
+## 5. Historico de palpites
 
-1. Acessar a area administrativa.
-2. Confirmar listagem de rodadas.
-3. Criar nova rodada.
-4. Abrir a rodada criada, se aplicavel.
-5. Confirmar atualizacao de status na interface.
+Roteiro:
 
-Resultado esperado:
-
-- Tela admin acessivel.
-- Operacoes principais de rodada funcionando.
-- Feedback de sucesso e erro coerente.
-
-## 7. Wallet, payments e bar
-
-1. Abrir carteira.
-2. Confirmar que a pagina carrega sem erro.
-3. Abrir pagamentos.
-4. Abrir bar.
-5. Confirmar que os pacotes aparecem.
-6. Acionar o fluxo de compra disponivel.
+1. Abrir `/tickets`.
+2. Validar cards por rodada.
+3. Conferir pontuacao, acertos, duplas certas, super duplas certas e status da rodada.
+4. Expandir detalhes dos palpites.
 
 Resultado esperado:
 
-- Paginas acessiveis.
-- Pacotes visiveis.
-- Sem quebra de interface ao iniciar compra.
+- status em portugues
+- criterios de desempate ficam claros
+- detalhes dos 12 jogos ficam recolhidos por padrao
 
-## 8. Navegacao geral
+## 6. Bar/Balcao
 
-1. Navegar entre login, dashboard, ticket, admin, wallet e bar.
-2. Usar o botao voltar do navegador.
-3. Confirmar que menus e links funcionam.
+Roteiro:
 
-Resultado esperado:
-
-- Navegacao consistente.
-- Sem loops, paginas em branco ou sessao perdida sem motivo.
-
-## 9. Responsividade
-
-1. Testar em largura desktop.
-2. Testar em largura mobile.
-3. Validar login, dashboard e ticket.
+1. Abrir `/bar`.
+2. Conferir atalhos: saldo, extras e regras rapidas.
+3. Conferir compra de fichas.
+4. Conferir compra de duplas e super duplas.
+5. Validar regra de consumo: bonus gratis primeiro, compras depois.
+6. Iniciar checkout somente em ambiente apropriado para pagamento de teste.
 
 Resultado esperado:
 
-- Fluxos principais continuam utilizaveis em telas menores.
+- usuario entende diferenca entre fichas, duplas e super duplas
+- botoes de compra ficam acionaveis em mobile
+- saldo insuficiente fica claro
 
-## 10. Tratamento de erro
+## 7. Mesas
 
-1. Observar mensagens quando alguma chamada falhar.
-2. Confirmar que nao ha stack trace exposta ao usuario.
-3. Confirmar que estados de loading aparecem quando necessario.
+Roteiro:
 
-Resultado esperado:
-
-- Erros amigaveis.
-- Sem exposicao de detalhes internos.
-- Indicacao visual durante carregamentos.
-
-## 11. Dominios
-
-1. Validar no dominio do EasyPanel.
-2. Depois da troca de DNS, repetir no dominio publico:
-   - `https://www.fantasy12.com/login`
-   - `https://api.fantasy12.com/health`
+1. Abrir `/mesas`.
+2. Validar area social, criar Mesa e entrar com convite.
+3. Conferir lista de Mesas do usuario e Mesas disponiveis.
+4. Abrir detalhe de uma Mesa.
+5. Alternar abas `Ranking`, `Participantes`, `Historico` e `Regras`.
+6. Validar convite privado quando usuario for dono da Mesa.
 
 Resultado esperado:
 
-- Mesmo comportamento no dominio final.
+- lista nao vira uma sequencia poluida de cards
+- detalhe separa leitura por tarefa
+- regras de PRO, entrada, custo e janela continuam preservadas
 
-## Registro sugerido do teste
+## 8. Perfil
 
-Para cada etapa, marcar:
+Roteiro:
 
-- Status: `Aprovado`, `Falhou` ou `Bloqueado`
-- Evidencia: print, video curto ou descricao do erro
-- Observacao: impacto percebido e passos para reproduzir
+1. Abrir `/profile`.
+2. Alternar `Dados pessoais`, `Seguranca` e `Conta`.
+3. Validar nome, apelido, telefone, imagem e bio.
+4. Validar troca de senha com senha atual.
+5. Conferir atalhos de assinatura, pagamentos e sair.
+
+Resultado esperado:
+
+- nenhum label sobrepoe campo
+- campos ficam alinhados em mobile, tablet e desktop
+- troca de senha continua exigindo senha atual
+- status PRO nao compete visualmente com o formulario
+
+## 9. Admin Rodadas
+
+Roteiro:
+
+1. Abrir `/admin/rounds` com usuario admin.
+2. Conferir separacao entre rodada ativa, criacao e historico.
+3. Criar rodada somente em ambiente de teste.
+4. Preencher os 12 jogos.
+5. Abrir/editar rodada.
+6. Lancar resultado com 1/X/2.
+7. Apurar rodada.
+
+Resultado esperado:
+
+- tarefas administrativas ficam separadas
+- jogos nao exigem campo `Grupo` visivel quando nao usado no produto
+- status aparece em portugues para o operador
+
+## 10. Admin Usuarios
+
+Roteiro:
+
+1. Abrir `/admin/users` com usuario admin.
+2. Filtrar por nome/email.
+3. Validar paginacao.
+4. Confirmar ordenacao padrao por usuarios mais recentes.
+5. Abrir detalhe progressivo do usuario.
+6. Ajustar permissao, plano, fichas, duplas e super duplas somente em ambiente apropriado.
+7. Conferir historico/auditoria do usuario.
+
+Resultado esperado:
+
+- grade fica escaneavel mesmo com muitos usuarios
+- acoes perigosas ficam claras e auditaveis
+- nao ha excesso de cards competindo na primeira dobra
+
+## 11. Admin Operacional e logs
+
+Roteiro:
+
+1. Abrir `/admin/operations`.
+2. Conferir estado geral, pagamentos, webhooks, assinaturas e jobs.
+3. Validar que avisos tecnicos aparecem com rotulo humano.
+4. Abrir `/admin/logs`.
+5. Usar filtros por acao, ator, severidade e periodo.
+
+Resultado esperado:
+
+- termos de sistema nao aparecem crus quando houver traducao de negocio
+- runbook fica legivel para operador nao tecnico
+- logs continuam rastreaveis para auditoria
+
+## 12. Registro de evidencia
+
+Para cada execucao, registrar:
+
+- data e ambiente
+- commit ou bundle testado
+- viewport validado
+- status: `Aprovado`, `Falhou` ou `Bloqueado`
+- evidencia: screenshot, video curto ou descricao objetiva
+- observacao: impacto e passos para reproduzir
+
+Sugestao de nomes:
+
+- `YYYY-MM-DD-tela-mobile.png`
+- `YYYY-MM-DD-tela-tablet.png`
+- `YYYY-MM-DD-tela-desktop.png`
+
+## Execucao parcial: 2026-06-14
+
+Ambiente:
+
+- https://www.fantasy12.com
+
+Escopo executado sem credenciais autenticadas:
+
+- login mobile, tablet e desktop
+- redirecionamento de `/dashboard` para `/login` sem sessao
+- API health publica
+
+Evidencias salvas:
+
+- `docs/qa/screenshots/2026-06-14-login-mobile.png`
+- `docs/qa/screenshots/2026-06-14-login-tablet.png`
+- `docs/qa/screenshots/2026-06-14-login-desktop.png`
+- `docs/qa/screenshots/2026-06-14-protected-dashboard-redirect-mobile.png`
+
+Resultado:
+
+- `Aprovado` para renderizacao publica do login nos tres breakpoints
+- `Aprovado` para protecao de rota sem sessao
+- `Bloqueado` para telas autenticadas ate execucao com usuario de teste/admin ativo no navegador de QA

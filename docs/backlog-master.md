@@ -1021,7 +1021,7 @@ Tipo:
 
 Status sugerido:
 
-- `Nao iniciado`
+- `Implementado localmente em 2026-06-14`
 
 Objetivo:
 
