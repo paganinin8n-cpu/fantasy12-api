@@ -1043,6 +1043,35 @@ Critérios de aceite:
 - nenhum fluxo funcional validado anteriormente e removido sem decisao explicita
 - bugs visuais de sobreposicao/quebra viram correcoes antes de deploy
 
+### 36. Evoluir Dashboard mobile com selo de plano e slot de campanha
+
+Tipo:
+
+- Frontend / UX Jogador / Monetizacao
+
+Status sugerido:
+
+- `Implementado localmente em 2026-06-14`
+
+Objetivo:
+
+- aproximar o Dashboard de uma experiencia mobile app-like sem mudar regras de negocio
+
+Tarefas:
+
+- exibir o plano do usuario ao lado da saudacao
+- remover o plano dos resumos numericos quando nao for informacao operacional
+- deixar um slot de campanha/patrocinio que aparece somente quando houver campanha ativa
+- manter CTA principal de palpite como primeira acao da tela
+- preservar ranking, Bar, Mesas e historico como areas secundarias
+
+Critérios de aceite:
+
+- usuario identifica rapidamente se esta Free, PRO, PRO anual ou Admin
+- campanha inativa nao ocupa espaco na tela
+- campanha ativa nao compete com o CTA de palpite
+- layout mobile continua sem sobreposicao ou rolagem horizontal
+
 ## Ordem recomendada agora
 
 1. reorganizar `Admin > Rodadas` por tarefa, sem mudar regras
