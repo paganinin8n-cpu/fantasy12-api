@@ -3,7 +3,7 @@ import { SearchTeamsService } from '../../services/team/search-teams.service'
 import { CreateTeamService } from '../../services/team/create-team.service'
 import { UpdateTeamService } from '../../services/team/update-team.service'
 import { prisma } from '../../lib/prisma'
-import { NotFoundError } from '../../errors'
+import { AppError } from '../../errors/AppError'
 
 export class TeamController {
   static async search(req: Request, res: Response, next: NextFunction) {
@@ -67,7 +67,7 @@ export class TeamController {
     try {
       const { id } = req.params
       const exists = await prisma.team.findUnique({ where: { id } })
-      if (!exists) throw new NotFoundError('Time não encontrado')
+      if (!exists) throw AppError.notFound('Time', 'team_not_found')
       await prisma.team.update({ where: { id }, data: { active: false } })
       return res.json({ ok: true })
     } catch (err) {

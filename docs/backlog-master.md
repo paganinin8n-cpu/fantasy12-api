@@ -160,6 +160,13 @@ Nota 2026-06-06:
 - `npm run product:rules:check` passa a impedir uso de `User.role` como fonte de elegibilidade PRO fora da camada estrutural/compatibilidade
 - `UserRole.PRO` permanece apenas como legado de schema/contrato para migracao futura, nao como regra de negocio ativa
 
+Nota 2026-06-20:
+
+- limpeza estrutural executada: `UserRole.PRO` removido do Prisma schema, baseline fresh e contratos de frontend
+- migracao `20260620_remove_userrole_pro` converte usuarios legados com `role = PRO` para `NORMAL`
+- assinatura ativa continua sendo a fonte unica de elegibilidade PRO
+- `npm run product:rules:check`, baseline fresh e build da API validam a regra
+
 ### 6. Canonizar beneficios por plano
 
 Tipo:
@@ -483,7 +490,7 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Referencia:
 
@@ -531,6 +538,14 @@ Nota 2026-06-11:
 - pesquisa deve ser requisito de primeira linha, pois a gestao com milhares de usuarios fica impraticavel sem filtro server-side
 - paginacao deve ser server-side, com limite padrao conservador e opcao de navegar pagina anterior/proxima
 - ajustes rapidos de fichas, duplas e super duplas devem continuar auditaveis e exigir motivo quando alterarem saldo de forma administrativa
+
+Nota 2026-06-20:
+
+- tela `Admin > Usuarios` consolidada com busca server-side, paginacao, ordenacao por cadastro recente e grade operacional
+- plano exibido passa a depender de assinatura ativa, sem fallback por `User.role = PRO`
+- detalhe progressivo por abas (`Resumo`, `Acesso`, `Plano`, `Saldos`, `Historico`) substitui a exibicao simultanea de muitos cards
+- aba `Resumo` passou a mostrar estado operacional da conta, plano, fichas, duplas e super duplas
+- ajustes rapidos de fichas, duplas e super duplas continuam exigindo motivo e gerando auditoria
 
 ### 18. Consolidar logs operacionais no admin
 
@@ -978,6 +993,14 @@ Tarefas:
 - destacar convite/link/codigo quando aplicavel
 - no detalhe da Mesa, separar `Ranking`, `Participantes`, `Regras` e `Historico`
 - manter regras atuais de PRO, custo de entrada e janelas de ranking
+
+Nota 2026-06-20:
+
+- passada responsiva consolidada nas telas principais do jogador e admin sem alterar regra de negocio
+- Dashboard virou tela de decisao rapida e moveu Ranking para rota propria `/ranking`
+- menu inferior mobile preserva `Home`, `Palpites`, `Ranking`, `Bar` e `Perfil`
+- Bar, Mesas, Meus palpites, Palpites e Admin Usuarios mantem dados/cálculos existentes com melhor separacao visual
+- termos tecnicos visiveis foram reduzidos nas superficies principais; estados seguem traduzidos para portugues quando exibidos ao usuario
 
 Critérios de aceite:
 

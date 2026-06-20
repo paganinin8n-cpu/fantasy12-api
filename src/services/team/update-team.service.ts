@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { TeamType } from '@prisma/client'
-import { NotFoundError } from '../../errors'
+import { AppError } from '../../errors/AppError'
 
 interface UpdateTeamInput {
   id: string
@@ -15,7 +15,7 @@ interface UpdateTeamInput {
 export class UpdateTeamService {
   static async execute(input: UpdateTeamInput) {
     const exists = await prisma.team.findUnique({ where: { id: input.id } })
-    if (!exists) throw new NotFoundError('Time não encontrado')
+    if (!exists) throw AppError.notFound('Time', 'team_not_found')
 
     return prisma.team.update({
       where: { id: input.id },

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'PRO', 'NORMAL');
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'NORMAL');
 
 -- CreateEnum
 CREATE TYPE "RoundStatus" AS ENUM ('DRAFT', 'PENDING', 'OPEN', 'CLOSED', 'SCORED', 'CANCELLED');
@@ -24,6 +24,9 @@ CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "WalletTransactionType" AS ENUM ('CREDIT', 'DEBIT');
+
+-- CreateEnum
+CREATE TYPE "TeamType" AS ENUM ('CLUB', 'NATIONAL');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'REFUNDED');
@@ -70,6 +73,22 @@ CREATE TABLE "password_reset_tokens" (
 );
 
 -- CreateTable
+CREATE TABLE "teams" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "shortName" TEXT,
+    "country" TEXT,
+    "type" "TeamType" NOT NULL DEFAULT 'CLUB',
+    "logoUrl" TEXT,
+    "externalId" TEXT,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "teams_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "rounds" (
     "id" TEXT NOT NULL,
     "number" INTEGER NOT NULL,
@@ -93,6 +112,8 @@ CREATE TABLE "round_matches" (
     "groupLabel" TEXT,
     "matchTime" TIMESTAMP(3),
     "result" TEXT,
+    "homeTeamId" TEXT,
+    "awayTeamId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -121,6 +142,8 @@ CREATE TABLE "user_score_history" (
     "roundId" TEXT NOT NULL,
     "scoreRound" INTEGER NOT NULL,
     "scoreTotal" INTEGER NOT NULL,
+    "totalDoubles" INTEGER NOT NULL DEFAULT 0,
+    "totalSuperDoubles" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "user_score_history_pkey" PRIMARY KEY ("id")
@@ -135,6 +158,7 @@ CREATE TABLE "rankings" (
     "status" "RankingStatus" NOT NULL DEFAULT 'DRAFT',
     "startDate" TIMESTAMP(3),
     "endDate" TIMESTAMP(3),
+    "entryFee" INTEGER NOT NULL DEFAULT 0,
     "maxParticipants" INTEGER,
     "currentParticipants" INTEGER NOT NULL DEFAULT 0,
     "durationDays" INTEGER,
@@ -191,6 +215,8 @@ CREATE TABLE "ranking_snapshots" (
     "userId" TEXT NOT NULL,
     "scoreTotal" INTEGER NOT NULL,
     "scoreRound" INTEGER NOT NULL,
+    "totalDoubles" INTEGER NOT NULL DEFAULT 0,
+    "totalSuperDoubles" INTEGER NOT NULL DEFAULT 0,
     "position" INTEGER NOT NULL,
     "snapshotType" TEXT NOT NULL,
     "periodRef" TEXT,
@@ -431,10 +457,28 @@ CREATE INDEX "password_reset_tokens_userId_idx" ON "password_reset_tokens"("user
 CREATE INDEX "password_reset_tokens_expiresAt_idx" ON "password_reset_tokens"("expiresAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "teams_externalId_key" ON "teams"("externalId");
+
+-- CreateIndex
+CREATE INDEX "teams_name_idx" ON "teams"("name");
+
+-- CreateIndex
+CREATE INDEX "teams_country_idx" ON "teams"("country");
+
+-- CreateIndex
+CREATE INDEX "teams_type_idx" ON "teams"("type");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "rounds_number_key" ON "rounds"("number");
 
 -- CreateIndex
 CREATE INDEX "round_matches_roundId_idx" ON "round_matches"("roundId");
+
+-- CreateIndex
+CREATE INDEX "round_matches_homeTeamId_idx" ON "round_matches"("homeTeamId");
+
+-- CreateIndex
+CREATE INDEX "round_matches_awayTeamId_idx" ON "round_matches"("awayTeamId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "round_matches_roundId_position_key" ON "round_matches"("roundId", "position");
@@ -600,6 +644,12 @@ ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId
 
 -- AddForeignKey
 ALTER TABLE "round_matches" ADD CONSTRAINT "round_matches_roundId_fkey" FOREIGN KEY ("roundId") REFERENCES "rounds"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "round_matches" ADD CONSTRAINT "round_matches_homeTeamId_fkey" FOREIGN KEY ("homeTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "round_matches" ADD CONSTRAINT "round_matches_awayTeamId_fkey" FOREIGN KEY ("awayTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

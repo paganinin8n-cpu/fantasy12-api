@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-type Role = 'ADMIN' | 'PRO' | 'NORMAL';
+type Role = 'ADMIN' | 'NORMAL';
 
 export const requireRole = (allowedRoles: Role[]) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {

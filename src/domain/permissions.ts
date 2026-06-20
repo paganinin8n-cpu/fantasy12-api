@@ -13,6 +13,5 @@ export type Permission =
 // Mapeamento de roles para permissões
 export const RolePermissions: Record<UserRole, Permission[]> = {
   ADMIN: ['USER_READ', 'USER_WRITE', 'ADMIN_PANEL', 'AUDIT_READ'],
-  PRO: ['USER_READ'],
   NORMAL: []
 };
