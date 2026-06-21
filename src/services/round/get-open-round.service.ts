@@ -3,9 +3,15 @@ import { RoundStatus } from '@prisma/client'
 
 export class GetOpenRoundService {
   static async execute() {
+    const now = new Date()
+
     const round = await prisma.round.findFirst({
       where: {
-        status: RoundStatus.OPEN
+        status: RoundStatus.OPEN,
+        OR: [
+          { closeAt: null },
+          { closeAt: { gt: now } },
+        ],
       },
       orderBy: {
         number: 'desc'

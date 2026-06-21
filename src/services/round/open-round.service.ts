@@ -69,7 +69,6 @@ export class OpenRoundService {
         where: { id: roundId },
         data: {
           status: RoundStatus.OPEN,
-          openAt: new Date(),
         },
       });
     });

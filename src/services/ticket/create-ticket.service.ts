@@ -26,13 +26,40 @@ export class CreateTicketService {
        */
       const round = await tx.round.findUnique({
         where: { id: roundId },
-        select: { status: true }
+        select: {
+          status: true,
+          openAt: true,
+          closeAt: true,
+        }
       })
 
-      if (!round || round.status !== 'OPEN') {
+      if (!round) {
         throw AppError.badRequest(
           'A rodada não está aberta para receber palpites.',
           'round_not_open'
+        )
+      }
+
+      const now = new Date()
+
+      if (round.status !== 'OPEN') {
+        if (round.openAt && now < round.openAt) {
+          throw AppError.badRequest(
+            'A rodada ainda não abriu para palpites.',
+            'round_not_open_yet'
+          )
+        }
+
+        throw AppError.badRequest(
+          'A rodada não está aberta para receber palpites.',
+          'round_not_open'
+        )
+      }
+
+      if (round.closeAt && now >= round.closeAt) {
+        throw AppError.badRequest(
+          'O prazo para palpites encerrou.',
+          'round_predictions_closed'
         )
       }
 

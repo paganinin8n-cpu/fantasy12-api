@@ -35,6 +35,35 @@ Responsabilidade:
 - abrir rodada
 - conceder benefícios FREE da rodada
 
+### Abertura automatica de rodadas agendadas
+
+- `POST /internal/jobs/open-scheduled-rounds`
+
+Responsabilidade:
+
+- localizar a primeira rodada `DRAFT` com `openAt <= now`
+- respeitar a regra de uma unica rodada `OPEN`
+- abrir a rodada via `OpenRoundService`
+- conceder beneficios FREE da rodada
+
+Frequencia recomendada em producao:
+
+- a cada 1 minuto
+
+### Fechamento automatico de palpites agendados
+
+- `POST /internal/jobs/close-scheduled-rounds`
+
+Responsabilidade:
+
+- localizar rodadas `OPEN` com `closeAt <= now`
+- fechar somente a janela de palpites (`OPEN -> CLOSED`)
+- manter a apuracao manual no fluxo administrativo
+
+Frequencia recomendada em producao:
+
+- a cada 1 minuto
+
 ### Revalidação de assinaturas
 
 - `POST /internal/jobs/subscriptions/revalidate`

@@ -5,6 +5,7 @@ import { ScoreRoundJobController } from '../../controllers/internal/score-round.
 import { CloseExpiredRankingsController } from '../../controllers/internal/close-expired-rankings.controller';
 import { OpenRoundJobController } from '../../controllers/internal/open-round.job.controller';
 import { RecomputeScoredRoundsController } from '../../controllers/internal/recompute-scored-rounds.controller';
+import { ScheduledRoundsJobController } from '../../controllers/internal/scheduled-rounds.job.controller';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ const scoreRoundController = new ScoreRoundJobController();
 const closeExpiredRankingsController = new CloseExpiredRankingsController();
 const openRoundJobController = new OpenRoundJobController();
 const recomputeScoredRoundsController = new RecomputeScoredRoundsController();
+const scheduledRoundsJobController = new ScheduledRoundsJobController();
 
 /**
  * Apuração de rodada
@@ -44,6 +46,28 @@ router.post(
   internalJobRateLimiter,
   internalJobAuth,
   (req, res) => openRoundJobController.execute(req, res)
+);
+
+/**
+ * Abertura automatica de rodadas agendadas
+ * POST /internal/jobs/open-scheduled-rounds
+ */
+router.post(
+  '/open-scheduled-rounds',
+  internalJobRateLimiter,
+  internalJobAuth,
+  (req, res) => scheduledRoundsJobController.openScheduled(req, res)
+);
+
+/**
+ * Fechamento automatico da janela de palpites
+ * POST /internal/jobs/close-scheduled-rounds
+ */
+router.post(
+  '/close-scheduled-rounds',
+  internalJobRateLimiter,
+  internalJobAuth,
+  (req, res) => scheduledRoundsJobController.closeScheduled(req, res)
 );
 
 /**
