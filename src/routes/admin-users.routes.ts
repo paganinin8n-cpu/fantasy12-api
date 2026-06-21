@@ -5,6 +5,7 @@ import { ListAdminUsersController } from '../controllers/admin/list-admin-users.
 import { validateRequest } from '../middleware/validate-request.middleware'
 import {
   AdminUserReasonSchema,
+  AdminUserRolesSchema,
   AdminUserSubscriptionSchema,
 } from '../validators/admin-user.validator'
 
@@ -22,6 +23,18 @@ router.get(
   authMiddleware,
   authorize('AUDIT_READ'),
   ListAdminUsersController.history
+)
+
+router.post(
+  '/admin/users/:userId/admin-roles',
+  authMiddleware,
+  authorize('USER_WRITE', {
+    audit: true,
+    entity: 'USER',
+    getEntityId: req => req.params.userId,
+  }),
+  validateRequest(AdminUserRolesSchema),
+  ListAdminUsersController.setAdminRoles
 )
 
 router.post(

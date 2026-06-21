@@ -11,3 +11,8 @@ export const AdminUserSubscriptionSchema = z.object({
   endAt: z.string().datetime('endAt deve ser uma data ISO valida').nullable().optional(),
   reason: z.string().min(3, 'motivo deve ter ao menos 3 caracteres').max(500),
 })
+
+export const AdminUserRolesSchema = z.object({
+  roles: z.array(z.enum(['ADMIN', 'SUPERADMIN'])).max(2),
+  reason: z.string().min(3, 'motivo deve ter ao menos 3 caracteres').max(500),
+})

@@ -15,7 +15,92 @@ type ManualSubscriptionInput = {
   reason: string
 }
 
+type AdminRolesInput = {
+  roles: Array<'ADMIN' | 'SUPERADMIN'>
+  reason: string
+}
+
 export class AdminUserManagementService {
+  static async setAdminRoles(
+    context: AdminContext,
+    targetUserId: string,
+    input: AdminRolesInput
+  ) {
+    const reason = input.reason.trim()
+    if (reason.length < 3) {
+      throw AppError.badRequest('Informe um motivo para alterar os papeis.', 'reason_required')
+    }
+
+    const roles = Array.from(new Set(input.roles))
+    if (context.adminUserId === targetUserId && roles.length === 0) {
+      throw AppError.badRequest(
+        'Voce nao pode remover todos os seus papeis administrativos.',
+        'cannot_remove_own_admin_roles'
+      )
+    }
+
+    return prisma.$transaction(async tx => {
+      const target = await tx.user.findUnique({
+        where: { id: targetUserId },
+        select: {
+          id: true,
+          UserAdminRole: {
+            select: {
+              role: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      })
+
+      if (!target) throw AppError.notFound('Usuario', 'user_not_found')
+
+      const roleRows =
+        roles.length > 0
+          ? await tx.adminRole.findMany({
+              where: { name: { in: roles } },
+              select: { id: true, name: true },
+            })
+          : []
+
+      if (roleRows.length !== roles.length) {
+        throw AppError.badRequest('Um ou mais papeis administrativos sao invalidos.', 'invalid_admin_roles')
+      }
+
+      await tx.userAdminRole.deleteMany({ where: { userId: targetUserId } })
+
+      if (roleRows.length > 0) {
+        await tx.userAdminRole.createMany({
+          data: roleRows.map(role => ({
+            userId: targetUserId,
+            roleId: role.id,
+          })),
+        })
+      }
+
+      await tx.adminAuditLog.create({
+        data: {
+          adminId: context.adminUserId,
+          action: 'USER_ADMIN_ROLES_SET',
+          entity: 'USER',
+          entityId: targetUserId,
+          payload: {
+            previousRoles: target.UserAdminRole.map(item => item.role.name),
+            nextRoles: roleRows.map(role => role.name),
+            reason,
+          },
+          ipAddress: context.ipAddress,
+        },
+      })
+
+      return {
+        userId: targetUserId,
+        adminRoles: roleRows.map(role => role.name),
+      }
+    })
+  }
+
   static async blockUser(
     context: AdminContext,
     targetUserId: string,
