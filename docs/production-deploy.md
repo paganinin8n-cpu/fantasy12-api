@@ -361,7 +361,80 @@ Esperado:
 - Header `last-modified` do frontend muda para o horario do deploy.
 - HTML aponta para novo asset `/assets/index-*.js`.
 
-### 7. Migrations Prisma
+### 7. Acesso SSH ao VPS
+
+Use SSH quando precisar validar container, crontab, logs ou arquivos operacionais no VPS Hostinger.
+
+Dados confirmados:
+
+```text
+host: 72.60.51.161
+user: root
+key: ~/.ssh/fantasy12_vps
+hostname remoto: srv969089
+```
+
+Comando padrao:
+
+```bash
+ssh root@72.60.51.161
+```
+
+Se o `~/.ssh/config` local estiver apontando para outro agent SSH, force a chave/agent correto:
+
+```bash
+ssh \
+  -o IdentitiesOnly=yes \
+  -o IdentityAgent="$SSH_AUTH_SOCK" \
+  -i ~/.ssh/fantasy12_vps \
+  root@72.60.51.161
+```
+
+Para comandos nao interativos:
+
+```bash
+ssh \
+  -o BatchMode=yes \
+  -o ConnectTimeout=20 \
+  -o StrictHostKeyChecking=no \
+  -o IdentitiesOnly=yes \
+  -o IdentityAgent="$SSH_AUTH_SOCK" \
+  -i ~/.ssh/fantasy12_vps \
+  root@72.60.51.161 \
+  'hostname && whoami'
+```
+
+Observacoes:
+
+- A chave privada local tem passphrase; desbloqueie com `ssh-add ~/.ssh/fantasy12_vps` quando necessario.
+- Nao registrar passphrase, `INTERNAL_JOB_SECRET`, tokens Easypanel ou senhas neste documento.
+- A chave publica esperada no painel Hostinger aparece como `fantasy12-vps`.
+
+Comandos uteis no VPS:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+crontab -l
+tail -40 /var/log/fantasy12-scheduler.log
+curl -sS https://api.fantasy12.com/health
+```
+
+Scheduler de rodadas instalado:
+
+```text
+script: /opt/fantasy12-infra/scripts/run-internal-job.sh
+env:    /etc/fantasy12/jobs.env
+log:    /var/log/fantasy12-scheduler.log
+```
+
+Validacao manual dos jobs:
+
+```bash
+/opt/fantasy12-infra/scripts/run-internal-job.sh /internal/open-scheduled-rounds
+/opt/fantasy12-infra/scripts/run-internal-job.sh /internal/close-scheduled-rounds
+```
+
+### 8. Migrations Prisma
 
 Producao esta configurada com `RUN_DB_MIGRATIONS=false`; portanto, o deploy publica codigo e migrations, mas nao aplica `prisma migrate deploy` automaticamente.
 
