@@ -8,6 +8,7 @@ const router = Router()
 
 router.use(webhooksRoutes)
 router.use(jobsRoutes)
+router.use('/jobs', jobsRoutes)
 router.use(subscriptionJobsRoutes)
 router.use(alertsJobsRoutes)
 
