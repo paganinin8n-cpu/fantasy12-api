@@ -1,7 +1,5 @@
 import { prisma } from '../../lib/prisma';
 import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
-import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
-import { WalletService } from '../wallet/wallet.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -13,21 +11,16 @@ export class JoinBolaoService {
     await AssertActiveProUserService.execute(userId);
 
     return prisma.$transaction(async tx => {
-      /**
-       * 1️⃣ Buscar Mesa com lock lógico
-       */
       const bolao = await tx.ranking.findUnique({
         where: { id: rankingId },
         select: {
           id: true,
           type: true,
           status: true,
+          entryFee: true,
           maxParticipants: true,
           currentParticipants: true,
-          durationDays: true,
-          startDate: true,
-          endDate: true,
-          entryFee: true,
+          createdByUserId: true,
         },
       });
 
@@ -43,6 +36,10 @@ export class JoinBolaoService {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
 
+      if (bolao.createdByUserId === userId) {
+        throw new Error('O criador já administra esta Mesa');
+      }
+
       if (
         bolao.maxParticipants !== null &&
         bolao.currentParticipants >= bolao.maxParticipants
@@ -50,10 +47,18 @@ export class JoinBolaoService {
         throw new Error('Esta Mesa já está cheia');
       }
 
-      /**
-       * 2️⃣ Verificar se usuário já é participante
-       */
-      const alreadyParticipant = await tx.rankingParticipant.findUnique({
+      if (bolao.entryFee > 0) {
+        const wallet = await tx.wallet.findUnique({
+          where: { userId },
+          select: { balance: true },
+        });
+
+        if (!wallet || wallet.balance < bolao.entryFee) {
+          throw new Error('Você não possui fichas suficientes para solicitar entrada nesta Mesa');
+        }
+      }
+
+      const existingParticipant = await tx.rankingParticipant.findUnique({
         where: {
           rankingId_userId: {
             rankingId,
@@ -62,148 +67,56 @@ export class JoinBolaoService {
         },
       });
 
-      if (alreadyParticipant) {
+      if (existingParticipant?.status === 'APPROVED') {
         throw new Error('Você já participa desta Mesa');
       }
 
-      /**
-       * 3️⃣ Cobrar entrada em fichas (se houver)
-       */
-      if (bolao.entryFee > 0) {
-        await WalletService.debit(
-          userId,
-          bolao.entryFee,
-          `Entrada na Mesa ${rankingId}`,
-          tx
-        );
+      if (existingParticipant?.status === 'PENDING') {
+        return {
+          status: 'PENDING',
+          rankingId,
+          participantId: existingParticipant.id,
+        };
       }
 
-      /**
-       * 4️⃣ Inserir participante
-       */
-      await tx.rankingParticipant.create({
-        data: {
-          rankingId,
-          userId,
-          score: 0,
-          scoreInitial: 0,
-        },
-      });
+      const participant = existingParticipant
+        ? await tx.rankingParticipant.update({
+            where: { id: existingParticipant.id },
+            data: {
+              status: 'PENDING',
+              rejectedAt: null,
+              approvedAt: null,
+              approvedByUserId: null,
+            },
+          })
+        : await tx.rankingParticipant.create({
+            data: {
+              rankingId,
+              userId,
+              score: 0,
+              scoreInitial: 0,
+              status: 'PENDING',
+            },
+          });
 
       await tx.auditLog.create({
         data: {
           userId,
-          action: 'BOLAO_JOINED',
+          action: 'BOLAO_JOIN_REQUESTED',
           entity: 'RANKING',
           entityId: rankingId,
           metadata: {
-            statusBefore: bolao.status,
-            scoreInitial: 0,
-            currentParticipantsBefore: bolao.currentParticipants,
+            minimumChips: bolao.entryFee,
+            currentParticipants: bolao.currentParticipants,
             maxParticipants: bolao.maxParticipants,
-            entryFee: bolao.entryFee,
           },
-        },
-      });
-
-      /**
-       * 5️⃣ Incrementar contador
-       */
-      const updatedParticipants = bolao.currentParticipants + 1;
-
-      /**
-       * 6️⃣ Ativação automática se atingir o limite
-       */
-      if (
-        bolao.maxParticipants !== null &&
-        updatedParticipants === bolao.maxParticipants
-      ) {
-        const startDate = bolao.startDate ?? new Date();
-        const endDate = bolao.endDate ?? new Date(
-          startDate.getTime() + (bolao.durationDays ?? 0) * 24 * 60 * 60 * 1000
-        );
-
-        const participants = await tx.rankingParticipant.findMany({
-          where: { rankingId },
-          select: { id: true, userId: true },
-        });
-
-        for (const participant of participants) {
-          const scoreInitial =
-            await RankingWindowScoreService.getScoreTotalBefore(
-              tx,
-              participant.userId,
-              startDate
-            );
-
-          await tx.rankingParticipant.update({
-            where: { id: participant.id },
-            data: { scoreInitial },
-          });
-
-          await tx.auditLog.create({
-            data: {
-              userId: participant.userId,
-              action: 'BOLAO_PARTICIPANT_BASELINE_CAPTURED',
-              entity: 'RANKING_PARTICIPANT',
-              entityId: participant.id,
-              metadata: {
-                rankingId,
-                startDate: startDate.toISOString(),
-                scoreInitial,
-                formula: 'scoreTotalCurrent - scoreInitial',
-              },
-            },
-          });
-        }
-
-        await tx.ranking.update({
-          where: { id: rankingId },
-          data: {
-            currentParticipants: updatedParticipants,
-            status: 'ACTIVE',
-            startDate,
-            endDate,
-          },
-        });
-
-        await tx.auditLog.create({
-          data: {
-            userId,
-            action: 'BOLAO_ACTIVATED',
-            entity: 'RANKING',
-            entityId: rankingId,
-            metadata: {
-              currentParticipants: updatedParticipants,
-              startDate: startDate.toISOString(),
-              endDate: endDate.toISOString(),
-            },
-          },
-        });
-
-        return {
-          status: 'ACTIVATED',
-          rankingId,
-          currentParticipants: updatedParticipants,
-          startDate,
-          endDate,
-        };
-      }
-
-      /**
-       * 7️⃣ Apenas atualizar contador
-       */
-      await tx.ranking.update({
-        where: { id: rankingId },
-        data: {
-          currentParticipants: updatedParticipants,
         },
       });
 
       return {
-        status: 'JOINED',
+        status: 'PENDING',
         rankingId,
-        currentParticipants: updatedParticipants,
+        participantId: participant.id,
       };
     });
   }

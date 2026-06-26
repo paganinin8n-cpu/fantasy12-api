@@ -61,7 +61,7 @@ export class RankingWindowScoreService {
     ranking: RankingWindow
   ): Promise<RankingWindowRow[]> {
     const participants = await tx.rankingParticipant.findMany({
-      where: { rankingId: ranking.id },
+      where: { rankingId: ranking.id, status: 'APPROVED' },
       select: {
         id: true,
         userId: true,

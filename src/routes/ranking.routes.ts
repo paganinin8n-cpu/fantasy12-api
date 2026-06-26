@@ -4,6 +4,7 @@ import { MonthlyRankingController } from '../controllers/ranking/monthly-ranking
 import { SemesterRankingController } from '../controllers/ranking/semester-ranking.controller';
 import { WeeklyRankingController } from '../controllers/ranking/weekly-ranking.controller';
 import { JoinBolaoController } from '../services/bolao/join-bolao.controller';
+import { ReviewBolaoRequestController } from '../controllers/bolao/review-bolao-request.controller';
 import { BolaoRankingController } from '../controllers/bolao/bolao-ranking.controller';
 import { CreateBolaoInviteController } from '../controllers/bolao/create-bolao-invite.controller';
 import { UseBolaoInviteController } from '../controllers/bolao/use-bolao-invite.controller';
@@ -38,6 +39,11 @@ router.get('/rankings/:rankingId', controller.show);
 // 🔹 Entrada direta em bolão
 //
 router.post('/rankings/:rankingId/join', authMiddleware, JoinBolaoController.handle);
+router.patch(
+  '/rankings/:rankingId/participants/:participantId',
+  authMiddleware,
+  ReviewBolaoRequestController.handle
+);
 
 //
 // 🔹 Ranking de leitura do bolão

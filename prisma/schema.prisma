@@ -53,6 +53,12 @@ enum RankingStatus {
   CLOSED
 }
 
+enum RankingParticipantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SubscriptionPlan {
   MONTHLY
   ANNUAL
@@ -124,6 +130,7 @@ model User {
 
   tickets          Ticket[]
   rankings         RankingParticipant[]
+  approvedBolaoParticipants RankingParticipant[] @relation("BolaoParticipantApprover")
   auditLogs        AuditLog[]
   scoreHistory     UserScoreHistory[]
   rankingSnapshots RankingSnapshot[]
@@ -350,16 +357,22 @@ model RankingParticipant {
   score        Int  @default(0)
   scoreInitial Int  @default(0)
   position     Int?
+  status       RankingParticipantStatus @default(APPROVED)
+  approvedByUserId String?
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   ranking Ranking @relation(fields: [rankingId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy User? @relation("BolaoParticipantApprover", fields: [approvedByUserId], references: [id])
 
   @@unique([rankingId, userId])
   @@index([rankingId])
   @@index([userId])
+  @@index([status])
   @@map("ranking_participants")
 }
 

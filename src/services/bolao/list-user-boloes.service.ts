@@ -12,6 +12,7 @@ export class ListUserBoloesService {
     const participations = await prisma.rankingParticipant.findMany({
       where: {
         userId,
+        status: 'APPROVED',
         ranking: { type: RankingType.BOLAO },
       },
       include: {
