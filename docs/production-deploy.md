@@ -301,7 +301,73 @@ service: frontend  type: app
 service: postgres  type: postgres
 ```
 
-### 5. Acionar deploy
+### 5. Sincronizar arquivos no VPS e acionar deploy
+
+> **Comportamento confirmado em 2026-06-27:** o `deployService` do EasyPanel reconstrói a
+> imagem Docker a partir do diretório local `/etc/easypanel/projects/f12-prd/{service}/code/`
+> no VPS. Ele **nao** faz `git pull` do GitHub antes do build quando `autoDeploy: false`.
+> Por isso, é necessario copiar os arquivos alterados para o VPS antes de chamar o deploy.
+
+#### 5a. Copiar arquivos alterados para o VPS (obrigatório)
+
+Variáveis de contexto necessárias (ajuste `$CHANGED_FILES` conforme o que mudou):
+
+```bash
+VPS="root@72.60.51.161"
+VPS_KEY="~/.ssh/fantasy12_vps"
+API_CODE="/etc/easypanel/projects/f12-prd/api/code"
+FE_CODE="/etc/easypanel/projects/f12-prd/frontend/code"
+LOCAL_API="/Users/roberson/dev/personal/fantasy12-api"
+LOCAL_FE="/Users/roberson/dev/personal/fantasy12-frontend"
+```
+
+Para a **API** (se houve mudança de código — exceto só docs):
+
+```bash
+# Copiar arquivos alterados da API para o VPS
+# Listar os arquivos com: git diff --name-only origin/main
+scp -i $VPS_KEY \
+  $LOCAL_API/src/path/to/changed.ts \
+  $VPS:$API_CODE/src/path/to/changed.ts
+```
+
+Para o **frontend** (listar arquivos com `git diff --name-only origin/master`):
+
+```bash
+# Exemplo: mudanças em componentes e páginas
+scp -i $VPS_KEY \
+  $LOCAL_FE/src/components/AppLayout.tsx \
+  $VPS:$FE_CODE/src/components/AppLayout.tsx
+
+scp -i $VPS_KEY \
+  $LOCAL_FE/src/pages/Dashboard.tsx \
+  $VPS:$FE_CODE/src/pages/Dashboard.tsx
+
+# Para novas páginas, verificar se o diretório existe no VPS antes
+scp -i $VPS_KEY \
+  $LOCAL_FE/src/pages/NovaPage.tsx \
+  $VPS:$FE_CODE/src/pages/NovaPage.tsx
+```
+
+A chave `~/.ssh/fantasy12_vps` tem passphrase. Para evitar digitar repetidamente:
+
+```bash
+ssh-add ~/.ssh/fantasy12_vps
+# digitar a passphrase uma vez; ela fica no agent até o fim da sessão
+```
+
+Para copiar **múltiplos arquivos de uma vez** sem digitar a passphrase a cada scp:
+
+```bash
+# Lista os arquivos diff, monta o rsync
+git -C $LOCAL_FE diff --name-only origin/master | while read f; do
+  scp -i $VPS_KEY "$LOCAL_FE/$f" "$VPS:$FE_CODE/$f"
+done
+```
+
+#### 5b. Acionar deploy via RPC
+
+Após sincronizar os arquivos no VPS, chamar `deployService` para reconstruir a imagem e reiniciar o container:
 
 ```bash
 TOKEN=$(cat /tmp/easypanel-token.txt)
@@ -325,7 +391,7 @@ curl -sS \
   --data @/tmp/easypanel-deploy-frontend.json
 ```
 
-Se a chamada demorar ou ficar aberta, conferir o status em `actions/listActions`.
+Conferir progresso:
 
 ```bash
 curl -sS \
@@ -343,8 +409,11 @@ projectName: f12-prd
 serviceName: api|frontend
 type: deployment
 status: done
-description: Deploy service: <mensagem do commit>
 ```
+
+Builds reais demoram 2–5 min (npm install + tsc/vite). Se completar em menos de 30 s,
+o EasyPanel usou cache Docker com arquivos nao atualizados — verificar se o SCP foi feito
+corretamente antes de tentar de novo.
 
 ### 6. Validacao pos-deploy
 
