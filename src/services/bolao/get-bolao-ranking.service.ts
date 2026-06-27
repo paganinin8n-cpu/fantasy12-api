@@ -40,6 +40,9 @@ export class GetBolaoRankingService {
     }
 
     const isOwner = bolao.createdByUserId === viewerUserId;
+    const viewerParticipant = viewerUserId
+      ? bolao.participants.find(p => p.userId === viewerUserId)
+      : undefined;
     const approvedParticipants = bolao.participants.filter(
       participant => participant.status === 'APPROVED'
     );
@@ -72,7 +75,9 @@ export class GetBolaoRankingService {
       maxParticipants: bolao.maxParticipants,
       participants: bolao.currentParticipants,
       isOwner,
-      joined: entries.some(entry => entry.userId === viewerUserId),
+      joined: viewerParticipant?.status === 'APPROVED',
+      participantId: viewerParticipant?.id ?? null,
+      participantStatus: viewerParticipant?.status ?? null,
       ownerName:
         bolao.createdBy?.nickname?.trim() ||
         bolao.createdBy?.name?.trim() ||
