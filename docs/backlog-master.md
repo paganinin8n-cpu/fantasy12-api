@@ -1261,3 +1261,101 @@ Os documentos abaixo continuam valiosos, mas agora devem ser lidos como analise 
 - [`docs/updates-2026-05-21-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-21-review.md)
 
 A fonte oficial de prioridades passa a ser este arquivo.
+### 38. Redesenhar navegacao mobile-first, dashboard de entrada e vitrine de premios
+
+Status: Backlog
+Prioridade: Alta
+Frente: Frontend mobile-first / conversao / usabilidade
+
+Objetivo:
+Simplificar o acesso mobile dos usuarios e deixar mais visiveis as areas que vendem a proposta do Fantasy12: Bar, Mesas, Ranking e Premios. A tela inicial deve ser mais leve, direta e orientada para a proxima acao do usuario.
+
+Escopo funcional:
+
+1. Navegacao inferior mobile
+- Substituir as opcoes atuais por apenas:
+  - Inicio
+  - Bar
+  - Mesas
+  - Ranking
+  - Premios
+- Remover Palpites da barra inferior.
+- Manter o fluxo de Palpites acessivel pelo CTA principal do Inicio quando houver rodada aberta.
+- A navegacao deve ser pensada primeiro para mobile, com toque confortavel, estados claros e sem excesso de texto.
+
+2. Visual da barra inferior
+- Usar a mesma cor escura da barra superior/header.
+- Item selecionado deve ficar laranja, seguindo a cor principal da aplicacao.
+- Itens nao selecionados devem ter contraste suficiente sobre fundo escuro.
+- Evitar que a barra inferior pareca um componente separado do app; ela deve parecer parte da casca principal.
+
+3. Nova area Premios
+- Criar rota/pagina "Premios".
+- Primeira versao pode ser uma landing page simples.
+- Objetivo da pagina:
+  - listar premios possiveis;
+  - explicar que os premios serao entregues conforme regras das rodadas/mesas/campanhas;
+  - aumentar curiosidade e desejo de participar.
+- Conteudo inicial sugerido:
+  - titulo direto: "Premios Fantasy12";
+  - lista/cards simples de premios previstos;
+  - aviso de que disponibilidade, periodo e criterios podem variar por campanha.
+- A pagina precisa funcionar bem no mobile antes de qualquer refinamento desktop.
+
+4. Card principal do Inicio/dashboard
+- Reduzir o tamanho vertical do card superior mostrado ao usuario.
+- Manter:
+  - saudacao: "Ola, {nome}";
+  - informacao do plano atual;
+  - uma frase divertida/leve no espaco central.
+- Remover do card principal:
+  - pontos;
+  - rodada;
+  - metricas secundarias que ocupam espaco sem orientar a proxima acao.
+- Manter fichas somente se for essencial para conversao/decisao; se mantiver, deve ficar discreto.
+
+5. Regra do CTA principal laranja no Inicio
+- Se existir rodada aberta e o usuario ainda nao fez palpite:
+  - botao deve levar para montar o palpite;
+  - texto sugerido: "Montar meu palpite".
+- Se existir rodada aberta e o usuario ja fez palpite:
+  - botao deve mudar para visualizar/acompanhamento;
+  - texto sugerido: "Ver meu palpite" ou "Acompanhar palpite".
+- Apos o usuario enviar um palpite e voltar para o Inicio:
+  - exibir uma confirmacao clara de sucesso;
+  - pode ser no proprio botao, em destaque proximo ao botao ou em uma mensagem curta no card;
+  - texto precisa ser simples e atrativo, por exemplo:
+    - "Palpite confirmado. Acompanhe por aqui."
+    - "Palpite enviado. Agora e torcer."
+    - "Tudo certo com seu palpite. Veja o acompanhamento."
+- Se nao houver rodada aberta:
+  - manter mensagem curta de indisponibilidade;
+  - botao pode direcionar para Bar ou Ranking, mas nao deve prometer acao de palpite indisponivel.
+
+6. Regras de usabilidade mobile
+- Primeiro viewport deve mostrar:
+  - header compacto;
+  - card principal reduzido;
+  - CTA principal visivel sem exigir muita rolagem.
+- Evitar componentes muito altos, cards aninhados e informacoes repetidas.
+- Botoes principais devem ter area de toque confortavel.
+- Textos precisam caber em telas pequenas sem quebra visual estranha.
+- Validar em tela mobile real ou em Playwright/mobile viewport.
+
+Criterios de aceite:
+- Barra inferior contem somente Inicio, Bar, Mesas, Ranking e Premios.
+- Barra inferior usa fundo escuro e estado ativo laranja.
+- Rota/pagina Premios existe e e acessivel pela barra inferior.
+- Card superior do Inicio fica visivelmente menor no mobile.
+- Card superior nao mostra mais pontos e rodada como metricas principais.
+- CTA principal muda corretamente entre montar palpite, visualizar/acompanhamento e estado sem rodada aberta.
+- Apos envio de palpite, usuario recebe feedback claro ao retornar para Inicio.
+- Fluxo continua funcional para usuario normal, PRO mensal e PRO anual.
+- Build frontend passa sem erros.
+- Validacao visual mobile feita antes de deploy.
+
+Notas de implementacao:
+- Priorizar alteracoes no frontend.
+- Evitar criar novas regras de backend se o estado de palpite/rodada ja estiver disponivel nos contratos atuais.
+- Se o frontend nao tiver informacao suficiente para saber se o usuario ja fez palpite na rodada aberta, mapear contrato necessario antes da implementacao.
+- Premios pode comecar estatico, mas deve ser estruturado para futura integracao com backend/campanhas.
