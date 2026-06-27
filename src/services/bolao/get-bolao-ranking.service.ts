@@ -58,6 +58,8 @@ export class GetBolaoRankingService {
         'Jogador',
       score: participant.score,
       scoreInitial: participant.scoreInitial,
+      scoreTotal: participant.score,
+      scoreRound: 0,
       position: participant.position ?? index + 1,
       participantStatus: participant.status,
       approvedAt: participant.approvedAt,
