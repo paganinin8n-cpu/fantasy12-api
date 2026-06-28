@@ -7,27 +7,45 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sync src e prisma para o VPS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: SCP dist compilado para o VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
-          source: 'src/,prisma/'
-          target: /etc/easypanel/projects/f12-prd/api/code/
+          source: 'dist/'
+          target: /tmp/f12-api-${{ github.sha }}
+          strip_components: 1
 
-      - name: Trigger rebuild no EasyPanel
-        run: |
-          curl -sS --fail -X POST "${{ secrets.EASYPANEL_URL }}/api/rpc/services/app/deployService" \
-            -H "content-type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
-            --data '{"json":{"projectName":"f12-prd","serviceName":"api"}}'
+      - name: Injetar dist no container e reiniciar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            docker cp /tmp/f12-api-${{ github.sha }}/. ${{ secrets.API_CONTAINER_ID }}:/app/dist/
+            docker restart ${{ secrets.API_CONTAINER_ID }}
+            rm -rf /tmp/f12-api-${{ github.sha }}
+            echo "Deploy concluído: ${{ github.sha }}"
 
       - name: Aguardar API saudável
         run: |
