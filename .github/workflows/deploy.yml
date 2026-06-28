@@ -1,0 +1,43 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync src e prisma para o VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          source: 'src/,prisma/'
+          target: /etc/easypanel/projects/f12-prd/api/code/
+
+      - name: Trigger rebuild no EasyPanel
+        run: |
+          curl -sS --fail -X POST "${{ secrets.EASYPANEL_URL }}/api/rpc/services/app/deployService" \
+            -H "content-type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.EASYPANEL_TOKEN }}" \
+            --data '{"json":{"projectName":"f12-prd","serviceName":"api"}}'
+
+      - name: Aguardar API saudável
+        run: |
+          echo "Aguardando API..."
+          for i in $(seq 1 18); do
+            if curl -sf --max-time 5 https://api.fantasy12.com/health | grep -q '"api":"ok"'; then
+              echo "API OK"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timeout aguardando API"
+          exit 1
