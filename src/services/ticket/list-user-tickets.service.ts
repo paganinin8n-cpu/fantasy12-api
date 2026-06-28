@@ -43,6 +43,10 @@ export class ListUserTicketsService {
             status: true,
             closeAt: true,
             result: true,
+            matches: {
+              select: { position: true, homeTeam: true, awayTeam: true },
+              orderBy: { position: 'asc' },
+            },
           },
         },
       },
