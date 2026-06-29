@@ -49,6 +49,7 @@ router.patch(
 // 🔹 Ranking de leitura do bolão
 //
 router.get('/rankings/:rankingId/bolao', authMiddleware, BolaoRankingController.handle);
+router.post('/rankings/:rankingId/bolao/close', authMiddleware, BolaoRankingController.close);
 
 //
 // 🔹 Convites de bolão

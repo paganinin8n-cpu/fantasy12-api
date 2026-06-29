@@ -75,18 +75,8 @@ export class RankingWindowScoreService {
       },
     })
 
-    if (!ranking.startDate || participants.length === 0) {
-      return participants.map((participant, index) => ({
-        participantId: participant.id,
-        userId: participant.userId,
-        score: 0,
-        scoreRound: 0,
-        position: index + 1,
-        scoreInitial: participant.scoreInitial,
-        scoreTotalCurrent: participant.scoreInitial,
-        previousScore: participant.score,
-        previousPosition: participant.position,
-      }))
+    if (participants.length === 0) {
+      return []
     }
 
     const participantIds = participants.map(participant => participant.userId)
@@ -125,7 +115,7 @@ export class RankingWindowScoreService {
         userId: { in: participantIds },
         round: {
           closeAt: {
-            gte: ranking.startDate,
+            ...(ranking.startDate ? { gte: ranking.startDate } : {}),
             lte: endDate,
           },
         },

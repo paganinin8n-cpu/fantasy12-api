@@ -10,11 +10,17 @@ export class CloseExpiredRankingsService {
      */
     const expiredRankings = await prisma.ranking.findMany({
       where: {
-        status: 'ACTIVE',
-        endDate: {
-          not: null,
-          lt: now,
-        },
+        OR: [
+          {
+            status: 'ACTIVE',
+            endDate: { not: null, lt: now },
+          },
+          {
+            status: 'DRAFT',
+            type: 'BOLAO',
+            endDate: { not: null, lt: now },
+          },
+        ],
       },
       select: {
         id: true,

@@ -7,8 +7,10 @@ export class RecalculateRankingService {
     await prisma.$transaction(async tx => {
       const rankings = await tx.ranking.findMany({
         where: {
-          status: 'ACTIVE',
-          startDate: { not: null },
+          OR: [
+            { status: 'ACTIVE', startDate: { not: null } },
+            { type: 'BOLAO', status: 'DRAFT' },
+          ],
         },
         select: {
           id: true,

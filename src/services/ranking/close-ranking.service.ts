@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from './ranking-window-score.service';
 
 export class CloseRankingService {
-  async execute(rankingId: string) {
+  async execute(rankingId: string, options: { force?: boolean } = {}) {
     await prisma.$transaction(async (tx) => {
       /**
        * 1️⃣ Buscar ranking
@@ -11,6 +11,7 @@ export class CloseRankingService {
         where: { id: rankingId },
         select: {
           id: true,
+          type: true,
           status: true,
           endDate: true,
           startDate: true,
@@ -21,11 +22,17 @@ export class CloseRankingService {
         throw new Error('Ranking não encontrado');
       }
 
-      if (ranking.status !== 'ACTIVE') {
+      if (ranking.status === 'CLOSED') {
         throw new Error('Ranking já está encerrado');
       }
 
-      if (!ranking.endDate || ranking.endDate > new Date()) {
+      const isBolao = ranking.type === 'BOLAO';
+      const allowedStatuses = isBolao ? ['ACTIVE', 'DRAFT'] : ['ACTIVE'];
+      if (!allowedStatuses.includes(ranking.status)) {
+        throw new Error('Ranking não pode ser encerrado neste estado');
+      }
+
+      if (!options.force && (!ranking.endDate || ranking.endDate > new Date())) {
         throw new Error('Ranking ainda não expirou');
       }
 

@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
 import { hasActiveProSubscription } from '../../domain/subscription';
 import { AppError } from '../../errors/AppError';
+import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 
 type CreateBolaoInput = {
   name: string;
@@ -84,12 +85,18 @@ export class CreateBolaoService {
         },
       });
 
+      const creatorScoreInitial =
+        (await RankingWindowScoreService.getScoreTotalBefore(tx, createdByUserId, new Date())) ?? 0;
+
       await tx.rankingParticipant.create({
         data: {
           rankingId: bolao.id,
           userId: createdByUserId,
           score: 0,
-          scoreInitial: 0,
+          scoreInitial: creatorScoreInitial,
+          status: 'APPROVED',
+          approvedAt: new Date(),
+          approvedByUserId: createdByUserId,
         },
       });
 
@@ -107,7 +114,7 @@ export class CreateBolaoService {
             durationDays,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
-            creatorScoreInitial: 0,
+            creatorScoreInitial,
           },
         },
       });

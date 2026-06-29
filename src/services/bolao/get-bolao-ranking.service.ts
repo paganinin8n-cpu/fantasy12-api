@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 
 type ExecuteInput = {
   rankingId: string;
@@ -50,20 +51,37 @@ export class GetBolaoRankingService {
       ? bolao.participants.filter(participant => participant.status === 'PENDING')
       : [];
 
-    const entries = approvedParticipants.map((participant, index) => ({
-      userId: participant.userId,
-      name:
-        participant.user.nickname?.trim() ||
-        participant.user.name?.trim() ||
-        'Jogador',
-      score: participant.score,
-      scoreInitial: participant.scoreInitial,
-      scoreTotal: participant.score,
-      scoreRound: 0,
-      position: participant.position ?? index + 1,
-      participantStatus: participant.status,
-      approvedAt: participant.approvedAt,
-    }));
+    const liveRows = await RankingWindowScoreService.buildRows(prisma, {
+      id: bolao.id,
+      startDate: bolao.startDate,
+      endDate: bolao.endDate,
+    });
+
+    const liveByUserId = new Map(liveRows.map(row => [row.userId, row]));
+    const userInfoById = new Map(
+      approvedParticipants.map(p => [
+        p.userId,
+        { name: p.user.nickname?.trim() || p.user.name?.trim() || 'Jogador', participantStatus: p.status, approvedAt: p.approvedAt },
+      ])
+    );
+
+    const entries = liveRows
+      .map((row, index) => {
+        const info = userInfoById.get(row.userId);
+        return {
+          userId: row.userId,
+          name: info?.name ?? 'Jogador',
+          score: row.score,
+          scoreInitial: row.scoreInitial,
+          scoreTotal: row.score,
+          scoreRound: row.scoreRound,
+          position: index + 1,
+          participantStatus: info?.participantStatus ?? 'APPROVED',
+          approvedAt: info?.approvedAt ?? null,
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.position - b.position)
+      .map((entry, index) => ({ ...entry, position: index + 1 }));
 
     return {
       ranking: {
