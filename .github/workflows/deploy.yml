@@ -1,40 +1,94 @@
-name: Deploy API
+name: CI/CD API
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: fantasy12-api-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+  EASYPANEL_PROJECT: f12-prd
+  EASYPANEL_SERVICE: api
+  EASYPANEL_CODE_DIR: /etc/easypanel/projects/f12-prd/api/code
+  API_HEALTH_URL: ${{ vars.API_HEALTH_URL || 'https://api.fantasy12.com/health' }}
 
 jobs:
-  deploy:
+  ci:
+    name: Build and release checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build TypeScript
-        run: npm run build
+      - name: Generate Prisma client
+        run: npx prisma generate
 
-      - name: SCP dist compilado para o VPS
+      - name: Run CI checks
+        run: npm run ci:check
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: npm run docker:build
+
+  deploy:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [ci, docker-build]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package release source
+        run: |
+          set -euo pipefail
+          mkdir -p .release
+          tar --exclude-from=.deployignore -czf ".release/fantasy12-api-${GITHUB_SHA}.tgz" .
+
+      - name: Upload release package to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
-          source: 'dist/'
-          target: /tmp/f12-api-${{ github.sha }}
+          source: ".release/fantasy12-api-${{ github.sha }}.tgz"
+          target: /tmp
           strip_components: 1
 
-      - name: Injetar dist no container e reiniciar
+      - name: Sync release into EasyPanel code directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -42,20 +96,100 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           script: |
-            docker cp /tmp/f12-api-${{ github.sha }}/. ${{ secrets.API_CONTAINER_ID }}:/app/dist/
-            docker restart ${{ secrets.API_CONTAINER_ID }}
-            rm -rf /tmp/f12-api-${{ github.sha }}
-            echo "Deploy concluído: ${{ github.sha }}"
+            set -eu
+            RELEASE="/tmp/fantasy12-api-${{ github.sha }}.tgz"
+            STAGE="/tmp/fantasy12-api-${{ github.sha }}"
+            CODE_DIR="${{ env.EASYPANEL_CODE_DIR }}"
 
-      - name: Aguardar API saudável
+            rm -rf "$STAGE"
+            mkdir -p "$STAGE" "$CODE_DIR"
+            tar -xzf "$RELEASE" -C "$STAGE"
+
+            if command -v rsync >/dev/null 2>&1; then
+              rsync -a --delete \
+                --exclude '.env' \
+                --exclude '.env.*' \
+                --exclude 'node_modules' \
+                --exclude 'dist' \
+                "$STAGE"/ "$CODE_DIR"/
+            else
+              find "$CODE_DIR" -mindepth 1 -maxdepth 1 \
+                ! -name '.env' \
+                ! -name '.env.local' \
+                -exec rm -rf {} +
+              cp -a "$STAGE"/. "$CODE_DIR"/
+            fi
+
+            rm -rf "$STAGE" "$RELEASE"
+            echo "Release source synced to $CODE_DIR"
+
+      - name: Trigger EasyPanel deploy
+        env:
+          EASYPANEL_URL: ${{ secrets.EASYPANEL_URL }}
+          EASYPANEL_EMAIL: ${{ secrets.EASYPANEL_EMAIL }}
+          EASYPANEL_PASSWORD: ${{ secrets.EASYPANEL_PASSWORD }}
         run: |
-          echo "Aguardando API..."
-          for i in $(seq 1 18); do
-            if curl -sf --max-time 5 https://api.fantasy12.com/health | grep -q '"api":"ok"'; then
-              echo "API OK"
+          set -euo pipefail
+          node <<'NODE'
+          const required = ['EASYPANEL_URL', 'EASYPANEL_EMAIL', 'EASYPANEL_PASSWORD']
+          for (const name of required) {
+            if (!process.env[name]) throw new Error(`${name} is required`)
+          }
+
+          const base = process.env.EASYPANEL_URL.replace(/\/$/, '')
+
+          async function rpc(path, json, token) {
+            const response = await fetch(`${base}${path}`, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                ...(token ? { authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({ json }),
+            })
+
+            const text = await response.text()
+            let body
+            try {
+              body = text ? JSON.parse(text) : {}
+            } catch {
+              body = { raw: text }
+            }
+
+            if (!response.ok) {
+              throw new Error(`RPC ${path} failed with ${response.status}: ${text}`)
+            }
+
+            return body
+          }
+
+          const login = await rpc('/api/rpc/auth/login', {
+            email: process.env.EASYPANEL_EMAIL,
+            password: process.env.EASYPANEL_PASSWORD,
+            rememberMe: false,
+          })
+
+          const token = login?.json?.token
+          if (!token) throw new Error('EasyPanel login did not return a token')
+
+          await rpc('/api/rpc/services/app/deployService', {
+            projectName: process.env.EASYPANEL_PROJECT || 'f12-prd',
+            serviceName: process.env.EASYPANEL_SERVICE || 'api',
+          }, token)
+
+          console.log('EasyPanel deploy requested.')
+          NODE
+
+      - name: Wait for healthy API
+        run: |
+          set -euo pipefail
+          echo "Waiting for $API_HEALTH_URL"
+          for i in $(seq 1 36); do
+            if curl -fsS --max-time 10 "$API_HEALTH_URL" | grep -q '"api":"ok"'; then
+              echo "API is healthy."
               exit 0
             fi
             sleep 10
           done
-          echo "Timeout aguardando API"
+          echo "Timed out waiting for healthy API."
           exit 1

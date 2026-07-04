@@ -1,0 +1,11 @@
+.git
+.github
+.release
+node_modules
+dist
+coverage
+backups
+.DS_Store
+.env
+.env.*
+npm-debug.log*

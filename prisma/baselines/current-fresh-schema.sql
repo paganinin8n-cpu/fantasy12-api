@@ -17,6 +17,9 @@ CREATE TYPE "RankingType" AS ENUM ('GLOBAL', 'PRO', 'BOLAO');
 CREATE TYPE "RankingStatus" AS ENUM ('DRAFT', 'ACTIVE', 'CLOSED');
 
 -- CreateEnum
+CREATE TYPE "RankingParticipantStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
 CREATE TYPE "SubscriptionPlan" AS ENUM ('MONTHLY', 'ANNUAL');
 
 -- CreateEnum
@@ -177,6 +180,10 @@ CREATE TABLE "ranking_participants" (
     "score" INTEGER NOT NULL DEFAULT 0,
     "scoreInitial" INTEGER NOT NULL DEFAULT 0,
     "position" INTEGER,
+    "status" "RankingParticipantStatus" NOT NULL DEFAULT 'APPROVED',
+    "approvedByUserId" TEXT,
+    "approvedAt" TIMESTAMP(3),
+    "rejectedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -517,6 +524,9 @@ CREATE INDEX "ranking_participants_rankingId_idx" ON "ranking_participants"("ran
 CREATE INDEX "ranking_participants_userId_idx" ON "ranking_participants"("userId");
 
 -- CreateIndex
+CREATE INDEX "ranking_participants_status_idx" ON "ranking_participants"("status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ranking_participants_rankingId_userId_key" ON "ranking_participants"("rankingId", "userId");
 
 -- CreateIndex
@@ -671,6 +681,9 @@ ALTER TABLE "ranking_participants" ADD CONSTRAINT "ranking_participants_rankingI
 
 -- AddForeignKey
 ALTER TABLE "ranking_participants" ADD CONSTRAINT "ranking_participants_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ranking_participants" ADD CONSTRAINT "ranking_participants_approvedByUserId_fkey" FOREIGN KEY ("approvedByUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ranking_rounds" ADD CONSTRAINT "ranking_rounds_rankingId_fkey" FOREIGN KEY ("rankingId") REFERENCES "rankings"("id") ON DELETE CASCADE ON UPDATE CASCADE;

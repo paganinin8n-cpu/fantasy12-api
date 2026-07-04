@@ -191,6 +191,57 @@ Mesmo com o mecanismo de boot controlado, o ideal é tratar migrations em produ�
 
 Registro do fluxo validado em 2026-06-21 para publicar API e frontend em producao.
 
+## CI/CD automatizado da API
+
+Status:
+
+- automatizado em .github/workflows/deploy.yml
+
+O workflow CI/CD API é a trilha oficial para a API:
+
+- em pull_request para main:
+  - instala dependências com npm ci
+  - gera Prisma Client
+  - roda npm run ci:check
+  - valida build da imagem Docker com npm run docker:build
+- em push para main ou execução manual:
+  - repete os checks
+  - empacota o código-fonte sem .env, node_modules, dist, backups ou artefatos locais
+  - sincroniza o pacote no diretório do serviço api do EasyPanel no VPS
+  - chama deployService via RPC do EasyPanel
+  - aguarda https://api.fantasy12.com/health retornar api: ok
+
+Segredos/variáveis necessários no GitHub:
+
+~~~text
+VPS_HOST
+VPS_USER
+VPS_SSH_KEY
+VPS_SSH_PASSPHRASE
+EASYPANEL_URL
+EASYPANEL_EMAIL
+EASYPANEL_PASSWORD
+~~~
+
+Variável opcional:
+
+~~~text
+API_HEALTH_URL
+~~~
+
+Se API_HEALTH_URL não for definida, o workflow usa:
+
+~~~text
+https://api.fantasy12.com/health
+~~~
+
+Observações:
+
+- o deploy continua não aplicando migrations automaticamente; produção permanece com RUN_DB_MIGRATIONS=false
+- mudanças de schema devem passar por npm run prisma:schema:release:check e seguir a seção de migrations deste documento
+- o workflow substitui o antigo deploy parcial que copiava apenas dist/ para dentro do container
+- a sincronização preserva .env e .env.local remotos quando existirem no diretório do serviço
+
 ### Premissas
 
 - Backend remoto: `fantasy12-api` branch `main`.

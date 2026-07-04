@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y \
 # Copiar package files
 COPY package*.json ./
 
-# Instalar TODAS as dependências (inclui dev)
-RUN npm install
+# Instalar TODAS as dependências de forma reproduzível (inclui dev)
+RUN npm ci
 
 # Copiar código
 COPY . .
@@ -38,6 +38,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
   openssl \
   ca-certificates \
+  curl \
   && rm -rf /var/lib/apt/lists/*
 
 # Copiar apenas o necessário
@@ -51,5 +52,8 @@ COPY --from=build /app/scripts ./scripts
 RUN npx prisma generate
 
 EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS "http://127.0.0.1:${PORT:-3001}/health" >/dev/null || exit 1
 
 CMD ["sh", "./scripts/start-production.sh"]

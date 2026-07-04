@@ -776,13 +776,21 @@ Tipo:
 
 Status sugerido:
 
-- `Parcial`
+- `Concluido`
 
 Tarefas:
 
 - pipeline de build
 - pipeline de deploy
 - padrao de release
+
+Nota 2026-07-04:
+
+- workflow .github/workflows/deploy.yml consolidado como CI/CD oficial da API
+- pull requests para main passam por npm ci, Prisma Client, npm run ci:check e build Docker
+- push para main empacota o codigo-fonte, sincroniza o diretorio do serviço api no EasyPanel, aciona deploy via RPC e valida /health
+- baseline fresh Prisma foi realinhada ao schema atual para que o check de release seja confiavel
+- deploy continua sem aplicar migrations automaticamente; migrations seguem como etapa explicita de release controlada
 
 ## P1. UX responsiva e separacao visual sem regressao funcional
 
