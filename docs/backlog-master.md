@@ -952,6 +952,15 @@ Critérios de aceite:
 - desempate por duplas/super duplas fica claro
 - tela nao vira uma lista extensa de informacoes sempre abertas
 
+Nota 2026-07-05:
+
+- historico de palpites nao deve sumir quando houver rodada aberta ou palpite atual
+- tela Meus palpites deve priorizar o palpite atual em aberto, mas manter o historico visivel logo abaixo
+- dashboard e menu do usuario devem manter atalho claro para Meus palpites
+- copy do fluxo de envio deve falar em conferir/confirmar palpites, nao em finalizar analise
+- Dupla e Super so podem ser marcadas depois que o usuario escolher Casa, Empate ou Fora no jogo
+- envio definitivo continua exigindo palpite marcado nos 12 jogos da rodada
+
 ### 32. Revisar Bar/Balcao como hub do jogador
 
 Tipo:
