@@ -1,115 +1,108 @@
-import { prisma } from '../../lib/prisma';
-import { MercadoPagoClient } from '../../lib/mercado-pago.client';
+import { randomUUID } from 'crypto'
 import {
   PaymentProvider,
+  PaymentPurpose,
   PaymentStatus,
-  SubscriptionPlan,
   Prisma,
-} from '@prisma/client';
-import { RenewSubscriptionFromPaymentService } from '../subscription/renew-subscription-from-payment.service';
-import { WalletService } from '../wallet/wallet.service';
-import { randomUUID } from 'crypto';
+} from '@prisma/client'
+import { MercadoPagoClient } from '../../lib/mercado-pago.client'
+import { prisma } from '../../lib/prisma'
+import { RenewSubscriptionFromPaymentService } from '../subscription/renew-subscription-from-payment.service'
+import { WalletService } from '../wallet/wallet.service'
+import {
+  normalizeMercadoPagoPaymentEvent,
+  validateMercadoPagoPayment,
+} from './mercado-pago-payment.helpers'
 
 export class ProcessMercadoPagoWebhookService {
-  static async execute(event: any): Promise<void> {
-    const externalEventId = event?.id;
-    const mpPaymentId = event?.data?.id;
+  static async execute(event: unknown): Promise<void> {
+    const normalizedEvent = normalizeMercadoPagoPaymentEvent(
+      event as { id?: string | number; data?: { id?: string | number } }
+    )
+    if (!normalizedEvent) return
 
-    if (!externalEventId || !mpPaymentId) {
-      return;
+    const accessToken = process.env.MP_ACCESS_TOKEN
+    if (!accessToken) {
+      throw new Error('MP_ACCESS_TOKEN nao configurado')
     }
 
-    if (!process.env.MP_ACCESS_TOKEN) {
-      return;
-    }
-
-    const mpClient = new MercadoPagoClient(process.env.MP_ACCESS_TOKEN);
-    const mpPayment = await mpClient.getPayment(mpPaymentId);
-    let shouldProcessSubscription = false;
+    const mpClient = new MercadoPagoClient(accessToken)
+    const mpPayment = await mpClient.getPayment(
+      normalizedEvent.externalPaymentId
+    )
 
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      /**
-       * 1️⃣ Idempotência race-safe.
-       * Tenta criar o evento direto: se já existir (P2002 do Prisma),
-       * outro processamento já cuidou disso e devemos sair em silêncio.
-       * Esse padrão evita TOCTOU entre findUnique + create.
-       */
       try {
         await tx.paymentWebhookEvent.create({
           data: {
             id: randomUUID(),
             provider: PaymentProvider.MERCADO_PAGO,
-            externalEventId,
+            externalEventId: normalizedEvent.externalEventId,
             payload: mpPayment,
           },
-        });
-        shouldProcessSubscription = true;
-      } catch (err) {
+        })
+      } catch (error) {
         if (
-          err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === 'P2002'
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
         ) {
-          // Evento já processado — descarta de forma idempotente
-          return;
+          return
         }
-        throw err;
+        throw error
       }
 
-      /**
-       * 2️⃣ Localizar Payment interno
-       */
-      const payment = await tx.payment.findFirst({
-        where: {
-          externalReference: mpPayment.external_reference ?? undefined,
-        },
-      });
+      const externalReference =
+        typeof mpPayment.external_reference === 'string'
+          ? mpPayment.external_reference
+          : null
+      const payment = externalReference
+        ? await tx.payment.findUnique({
+            where: { externalReference },
+          })
+        : null
 
       if (!payment) {
         await tx.auditLog.create({
           data: {
             action: 'PAYMENT_WEBHOOK_UNMATCHED',
             entity: 'PAYMENT_WEBHOOK_EVENT',
-            entityId: externalEventId,
+            entityId: normalizedEvent.externalEventId,
             metadata: {
-              externalPaymentId: mpPayment.id?.toString(),
-              externalReference: mpPayment.external_reference ?? null,
+              externalPaymentId: normalizedEvent.externalPaymentId,
+              externalReference,
               status: mpPayment.status ?? null,
             },
           },
-        });
-        return;
+        })
+        return
       }
 
-      if (payment.isCredited) {
+      if (payment.processedAt) {
         await tx.auditLog.create({
           data: {
             userId: payment.userId,
-            action: 'PAYMENT_WEBHOOK_ALREADY_CREDITED',
+            action: 'PAYMENT_WEBHOOK_ALREADY_PROCESSED',
             entity: 'PAYMENT',
             entityId: payment.id,
             metadata: {
-              externalEventId,
-              externalPaymentId: mpPayment.id?.toString(),
+              externalEventId: normalizedEvent.externalEventId,
+              externalPaymentId: normalizedEvent.externalPaymentId,
               status: payment.status,
             },
           },
-        });
-        return;
+        })
+        return
       }
 
-      /**
-       * 4️⃣ Atualizar status se não aprovado
-       */
       if (mpPayment.status !== 'approved') {
-        const status = this.mapMpStatus(mpPayment.status);
+        const status = this.mapMpStatus(String(mpPayment.status ?? ''))
         await tx.payment.update({
           where: { id: payment.id },
           data: {
             status,
-            externalPaymentId: mpPayment.id?.toString(),
+            externalPaymentId: normalizedEvent.externalPaymentId,
           },
-        });
-
+        })
         await tx.auditLog.create({
           data: {
             userId: payment.userId,
@@ -117,92 +110,99 @@ export class ProcessMercadoPagoWebhookService {
             entity: 'PAYMENT',
             entityId: payment.id,
             metadata: {
-              externalEventId,
-              externalPaymentId: mpPayment.id?.toString(),
+              externalEventId: normalizedEvent.externalEventId,
+              externalPaymentId: normalizedEvent.externalPaymentId,
               previousStatus: payment.status,
               status,
-              mpStatus: mpPayment.status,
+              mpStatus: mpPayment.status ?? null,
             },
           },
-        });
-        return;
+        })
+        return
       }
 
-      /**
-       * 5️⃣ Crédito financeiro via WalletService
-       */
-      const totalCredit = payment.coinsAmount + payment.bonusCoins;
+      const validation = validateMercadoPagoPayment(payment, mpPayment)
+      if (!validation.valid) {
+        await tx.auditLog.create({
+          data: {
+            userId: payment.userId,
+            action: 'PAYMENT_WEBHOOK_VALIDATION_FAILED',
+            entity: 'PAYMENT',
+            entityId: payment.id,
+            metadata: {
+              reason: validation.reason,
+              externalEventId: normalizedEvent.externalEventId,
+              externalPaymentId: normalizedEvent.externalPaymentId,
+              expectedAmountCents: payment.amountCents,
+              receivedAmount: mpPayment.transaction_amount ?? null,
+              receivedCurrency: mpPayment.currency_id ?? null,
+            },
+          },
+        })
+        return
+      }
 
-      await WalletService.credit(
-        payment.userId,
-        totalCredit,
-        'Pagamento aprovado via Mercado Pago',
-        tx
-      );
+      if (payment.purpose === PaymentPurpose.WALLET_CREDIT) {
+        await WalletService.credit(
+          payment.userId,
+          payment.coinsAmount + payment.bonusCoins,
+          `Pagamento Mercado Pago ${normalizedEvent.externalPaymentId}`,
+          tx
+        )
+      } else {
+        if (!payment.subscriptionPlan) {
+          throw new Error(`Pagamento ${payment.id} sem plano de assinatura`)
+        }
+        await RenewSubscriptionFromPaymentService.execute(
+          { userId: payment.userId, plan: payment.subscriptionPlan },
+          tx
+        )
+      }
 
-      /**
-       * 6️⃣ Atualizar Payment
-       */
       await tx.payment.update({
         where: { id: payment.id },
         data: {
           status: PaymentStatus.APPROVED,
-          isCredited: true,
-          externalPaymentId: mpPayment.id?.toString(),
+          isCredited: payment.purpose === PaymentPurpose.WALLET_CREDIT,
+          processedAt: new Date(),
+          externalPaymentId: normalizedEvent.externalPaymentId,
         },
-      });
+      })
 
       await tx.auditLog.create({
         data: {
           userId: payment.userId,
-          action: 'PAYMENT_APPROVED_AND_CREDITED',
+          action:
+            payment.purpose === PaymentPurpose.WALLET_CREDIT
+              ? 'PAYMENT_APPROVED_AND_CREDITED'
+              : 'SUBSCRIPTION_PAYMENT_APPROVED',
           entity: 'PAYMENT',
           entityId: payment.id,
           metadata: {
-            externalEventId,
-            externalPaymentId: mpPayment.id?.toString(),
+            externalEventId: normalizedEvent.externalEventId,
+            externalPaymentId: normalizedEvent.externalPaymentId,
             previousStatus: payment.status,
             status: PaymentStatus.APPROVED,
-            coinsAmount: payment.coinsAmount,
-            bonusCoins: payment.bonusCoins,
-            totalCredit,
+            purpose: payment.purpose,
+            amountCents: payment.amountCents,
           },
         },
-      });
-    });
-
-    /**
-     * 7️⃣ Renovação fora da transação principal
-     */
-    const metadata = mpPayment.metadata ?? {};
-    const plan = metadata.plan as SubscriptionPlan | undefined;
-    const userId = metadata.userId ?? metadata.user_id;
-
-    if (
-      shouldProcessSubscription &&
-      mpPayment.status === 'approved' &&
-      typeof userId === 'string' &&
-      (plan === SubscriptionPlan.MONTHLY || plan === SubscriptionPlan.ANNUAL)
-    ) {
-      await RenewSubscriptionFromPaymentService.execute({
-        userId,
-        plan,
-      });
-    }
+      })
+    })
   }
 
   private static mapMpStatus(mpStatus: string): PaymentStatus {
     switch (mpStatus) {
       case 'approved':
-        return PaymentStatus.APPROVED;
+        return PaymentStatus.APPROVED
       case 'rejected':
-        return PaymentStatus.REJECTED;
+        return PaymentStatus.REJECTED
       case 'cancelled':
-        return PaymentStatus.CANCELLED;
+        return PaymentStatus.CANCELLED
       case 'refunded':
-        return PaymentStatus.REFUNDED;
+        return PaymentStatus.REFUNDED
       default:
-        return PaymentStatus.PENDING;
+        return PaymentStatus.PENDING
     }
   }
 }

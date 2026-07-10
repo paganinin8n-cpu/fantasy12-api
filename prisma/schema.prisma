@@ -101,6 +101,11 @@ enum PaymentProvider {
   MERCADO_PAGO
 }
 
+enum PaymentPurpose {
+  WALLET_CREDIT
+  SUBSCRIPTION
+}
+
 //////////////////////////////////////////////////////
 // USER
 //////////////////////////////////////////////////////
@@ -608,11 +613,14 @@ model Payment {
 
   provider PaymentProvider
   method   PaymentMethod
+  purpose  PaymentPurpose  @default(WALLET_CREDIT)
 
   status PaymentStatus @default(PENDING)
 
-  packageId String         @db.Text
-  package   PaymentPackage @relation(fields: [packageId], references: [id])
+  packageId String?         @db.Text
+  package   PaymentPackage? @relation(fields: [packageId], references: [id])
+
+  subscriptionPlan SubscriptionPlan?
 
   amountCents Int
   coinsAmount Int
@@ -620,8 +628,11 @@ model Payment {
 
   externalPaymentId String? @unique @db.Text
   externalReference String? @unique @db.Text
+  externalPreferenceId String? @unique @db.Text
+  checkoutUrl String? @db.Text
 
   isCredited Boolean @default(false)
+  processedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

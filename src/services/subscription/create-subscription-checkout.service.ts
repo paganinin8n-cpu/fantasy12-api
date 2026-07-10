@@ -3,6 +3,16 @@ import { prisma } from '../../lib/prisma'
 import { MercadoPagoClient } from '../../lib/mercado-pago.client'
 import { AppError } from '../../errors/AppError'
 import {
+  PaymentMethod,
+  PaymentProvider,
+  PaymentPurpose,
+  PaymentStatus,
+} from '@prisma/client'
+import {
+  getMercadoPagoCheckoutUrl,
+  getMercadoPagoNotificationUrl,
+} from '../payment/mercado-pago-payment.helpers'
+import {
   getSubscriptionPlanOffer,
   SubscriptionPlanOffer,
 } from './subscription-plans.config'
@@ -55,48 +65,41 @@ function getFrontendUrl() {
   )
 }
 
-function getNotificationUrl() {
-  const explicit = process.env.MP_NOTIFICATION_URL?.trim()
-  if (explicit) return explicit
-
-  const apiUrl = process.env.API_PUBLIC_URL?.trim()?.replace(/\/+$/, '')
-  if (!apiUrl) return undefined
-
-  return `${apiUrl}/internal/webhooks/mercado-pago`
-}
-
 function getPaymentMethods(plan: SubscriptionPlanOffer): PreferencePayload['payment_methods'] {
   if (plan.id === 'pro_annual_card') {
     return {
       installments: 12,
       default_installments: 12,
-      excluded_payment_types: [{ id: 'ticket' }],
+      excluded_payment_types: [
+        { id: 'bank_transfer' },
+        { id: 'ticket' },
+        { id: 'atm' },
+      ],
     }
   }
 
   if (plan.id === 'pro_annual_pix') {
     return {
       installments: 1,
-      excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }],
+      excluded_payment_types: [
+        { id: 'credit_card' },
+        { id: 'debit_card' },
+        { id: 'prepaid_card' },
+        { id: 'ticket' },
+        { id: 'atm' },
+      ],
     }
   }
 
   return {
     installments: 1,
     default_installments: 1,
-    excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }],
+    excluded_payment_types: [
+      { id: 'bank_transfer' },
+      { id: 'ticket' },
+      { id: 'atm' },
+    ],
   }
-}
-
-function getCheckoutUrl(preference: any, accessToken: string) {
-  if (
-    accessToken.startsWith('TEST-') &&
-    process.env.MP_USE_SANDBOX_INIT_POINT === 'true'
-  ) {
-    return preference.sandbox_init_point ?? preference.init_point ?? null
-  }
-
-  return preference.init_point ?? preference.sandbox_init_point ?? null
 }
 
 export class CreateSubscriptionCheckoutService {
@@ -124,7 +127,42 @@ export class CreateSubscriptionCheckoutService {
 
     const checkoutId = randomUUID()
     const frontendUrl = getFrontendUrl()
-    const notificationUrl = getNotificationUrl()
+    const notificationUrl = getMercadoPagoNotificationUrl()
+    const externalReference = `f12_sub_${checkoutId}`
+    const method = plan.paymentMethod === 'PIX' ? PaymentMethod.PIX : PaymentMethod.CARD
+
+    await prisma.$transaction(async tx => {
+      await tx.payment.create({
+        data: {
+          id: checkoutId,
+          userId: user.id,
+          provider: PaymentProvider.MERCADO_PAGO,
+          method,
+          purpose: PaymentPurpose.SUBSCRIPTION,
+          status: PaymentStatus.PENDING,
+          subscriptionPlan: plan.plan,
+          amountCents: plan.totalCents,
+          coinsAmount: 0,
+          bonusCoins: 0,
+          externalReference,
+        },
+      })
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'SUBSCRIPTION_PAYMENT_CREATED',
+          entity: 'PAYMENT',
+          entityId: checkoutId,
+          metadata: {
+            planId: plan.id,
+            plan: plan.plan,
+            method,
+            amountCents: plan.totalCents,
+            externalReference,
+          },
+        },
+      })
+    })
 
     const payload: PreferencePayload = {
       items: [
@@ -141,7 +179,7 @@ export class CreateSubscriptionCheckoutService {
         email: user.email,
         name: user.name,
       },
-      external_reference: `f12_sub_${checkoutId}`,
+      external_reference: externalReference,
       metadata: {
         checkout_type: 'subscription',
         user_id: user.id,
@@ -162,14 +200,43 @@ export class CreateSubscriptionCheckoutService {
 
     const accessToken = process.env.MP_ACCESS_TOKEN
     const mp = new MercadoPagoClient(accessToken)
-    const preference = await mp.createPreference(payload)
+    const preference = await mp.createPreference(payload, checkoutId)
+    const checkoutUrl = getMercadoPagoCheckoutUrl(preference, accessToken)
+
+    if (!preference.id || !checkoutUrl) {
+      throw AppError.internal(
+        'Mercado Pago não retornou uma URL de checkout',
+        'mp_checkout_url_missing'
+      )
+    }
+
+    await prisma.$transaction(async tx => {
+      await tx.payment.update({
+        where: { id: checkoutId },
+        data: {
+          externalPreferenceId: String(preference.id),
+          checkoutUrl,
+        },
+      })
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'SUBSCRIPTION_CHECKOUT_CREATED',
+          entity: 'PAYMENT',
+          entityId: checkoutId,
+          metadata: {
+            externalPreferenceId: String(preference.id),
+          },
+        },
+      })
+    })
 
     return {
       checkoutId,
       planId: plan.id,
       provider: 'MERCADO_PAGO',
-      checkoutUrl: getCheckoutUrl(preference, accessToken),
-      preferenceId: preference.id ?? null,
+      checkoutUrl,
+      preferenceId: String(preference.id),
       status: 'PENDING',
     }
   }

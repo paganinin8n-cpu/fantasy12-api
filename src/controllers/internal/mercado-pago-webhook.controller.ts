@@ -1,8 +1,12 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { ProcessMercadoPagoWebhookService } from '../../services/payment/process-mercado-pago-webhook.service'
 
 export class MercadoPagoWebhookController {
-  static async handle(req: Request, res: Response): Promise<Response> {
+  static async handle(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
     const event = req.body
     const timestamp = new Date().toISOString()
 
@@ -30,8 +34,7 @@ export class MercadoPagoWebhookController {
         timestamp,
       })
 
-      // Webhook SEMPRE responde 200
-      return res.status(200).json({ error: 'error_logged' })
+      return next(error)
     }
   }
 }

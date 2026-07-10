@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma';
-import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
+import { Prisma, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 
 type Input = {
   userId: string;
@@ -7,8 +7,12 @@ type Input = {
 };
 
 export class RenewSubscriptionFromPaymentService {
-  static async execute({ userId, plan }: Input): Promise<void> {
-    const subscription = await prisma.subscription.findUnique({
+  static async execute(
+    { userId, plan }: Input,
+    tx?: Prisma.TransactionClient
+  ): Promise<void> {
+    const db = tx ?? prisma;
+    const subscription = await db.subscription.findUnique({
       where: { userId },
     });
 
@@ -22,24 +26,26 @@ export class RenewSubscriptionFromPaymentService {
       : new Date(now.getTime() + periodDays * 86400000);
 
     if (!subscription) {
-      await prisma.subscription.create({
+      await db.subscription.create({
         data: {
           userId,
           plan,
           status: SubscriptionStatus.ACTIVE,
           startAt: now,
           endAt: newEndAt,
+          provider: 'MERCADO_PAGO',
         },
       });
       return;
     }
 
-    await prisma.subscription.update({
+    await db.subscription.update({
       where: { userId },
       data: {
         plan,
         status: SubscriptionStatus.ACTIVE,
         endAt: newEndAt,
+        provider: 'MERCADO_PAGO',
       },
     });
   }
