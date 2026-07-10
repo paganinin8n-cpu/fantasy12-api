@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 function hasActiveProSubscription(subscription) {
   if (!subscription) return false
-  if (subscription.status !== 'ACTIVE') return false
+  if (subscription.status === 'EXPIRED') return false
   return !subscription.endAt || subscription.endAt > new Date()
 }
 
