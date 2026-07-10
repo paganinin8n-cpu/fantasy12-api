@@ -1,0 +1,43 @@
+name: Competition simulation
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type SIMULATE to create competition test data
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    name: Run detailed competition scenario
+    if: inputs.confirmation == 'SIMULATE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Run simulator in active API container
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            REPORT=/tmp/f12-competition-simulation-detailed.json
+
+            if [ -z "$API_CONTAINER" ]; then
+              echo "Active Fantasy12 API container not found" >&2
+              exit 1
+            fi
+
+            docker exec "$API_CONTAINER" node /app/scripts/simulate-competition.js > "$REPORT"
+            node -e 'const r=require(process.argv[1]); if(r.status!=="ok") process.exit(1)' "$REPORT"
+            printf 'REPORT_BASE64=' && gzip -c "$REPORT" | base64 | tr -d '\n'
+            printf '\n'
