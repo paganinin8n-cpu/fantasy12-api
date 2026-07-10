@@ -1,7 +1,5 @@
 import { prisma } from '../../lib/prisma'
-import { ScoreRoundService } from './score-round.service'
-import { RecalculateRankingService } from '../ranking/recalculate-ranking.service'
-import { SnapshotRankingService } from '../ranking/snapshot-ranking.service'
+import { ScoreRoundService } from '../score/score-round.service'
 
 export class ProcessRoundService {
 
@@ -39,17 +37,7 @@ export class ProcessRoundService {
       await scoreService.execute(roundId)
 
       /**
-       * 2️⃣ RANKING
-       */
-      await RecalculateRankingService.execute()
-
-      /**
-       * 3️⃣ SNAPSHOT (FONTE DA VERDADE)
-       */
-      await SnapshotRankingService.execute(roundId)
-
-      /**
-       * 4️⃣ FINALIZAR JOB
+       * 2️⃣ FINALIZAR JOB
        */
       await prisma.internalJobExecution.update({
         where: { id: job.id },

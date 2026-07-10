@@ -1,99 +1,26 @@
-import { prisma } from '../../lib/prisma';
-
-type WeeklyRankingItem = {
-  userId: string;
-  scoreTotal: number;
-  scoreRound: number;
-};
+import { BuildPeriodRankingFromHistoryService } from './build-period-ranking-from-history.service'
 
 export class GetWeeklyRankingService {
   static async execute(periodRef: string) {
-    /**
-     * 1️⃣ Validar período (YYYY-WW)
-     */
-    if (!/^\d{4}-\d{2}$/.test(periodRef)) {
-      throw new Error('Invalid period format. Expected YYYY-WW');
+    const match = /^(\d{4})-(\d{2})$/.exec(periodRef)
+    if (!match) throw new Error('Invalid period format. Expected YYYY-WW')
+
+    const year = Number(match[1])
+    const week = Number(match[2])
+    if (week < 1 || week > 53) {
+      throw new Error('Invalid ISO week. Expected a value from 01 to 53')
     }
 
-    /**
-     * 2️⃣ Buscar snapshots da semana (read-only)
-     */
-    const snapshots = await prisma.rankingSnapshot.findMany({
-      where: {
-        snapshotType: 'WEEKLY',
-        periodRef,
-      },
-      select: {
-        userId: true,
-        scoreTotal: true,
-        scoreRound: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const januaryFourth = new Date(Date.UTC(year, 0, 4))
+    const day = januaryFourth.getUTCDay() || 7
+    const firstMonday = new Date(januaryFourth)
+    firstMonday.setUTCDate(januaryFourth.getUTCDate() - day + 1)
 
-    if (snapshots.length === 0) {
-      return [];
-    }
+    const start = new Date(firstMonday)
+    start.setUTCDate(firstMonday.getUTCDate() + (week - 1) * 7)
+    const end = new Date(start)
+    end.setUTCDate(start.getUTCDate() + 7)
 
-    /**
-     * 3️⃣ Consolidar último snapshot da semana por usuário
-     */
-    const latestByUser = new Map<string, WeeklyRankingItem>();
-
-    for (const snap of snapshots) {
-      if (!latestByUser.has(snap.userId)) {
-        latestByUser.set(snap.userId, {
-          userId: snap.userId,
-          scoreTotal: snap.scoreTotal,
-          scoreRound: snap.scoreRound,
-        });
-      }
-    }
-
-    /**
-     * 4️⃣ Ordenação final (read-only)
-     */
-    const ranking = Array.from(latestByUser.values()).sort((a, b) => {
-      if (b.scoreTotal !== a.scoreTotal) {
-        return b.scoreTotal - a.scoreTotal;
-      }
-
-      if (b.scoreRound !== a.scoreRound) {
-        return b.scoreRound - a.scoreRound;
-      }
-
-      return a.userId.localeCompare(b.userId);
-    });
-
-    /**
-     * 5️⃣ Calcular posições (empate real)
-     */
-    let position = 1;
-    let lastScoreTotal: number | null = null;
-    let lastScoreRound: number | null = null;
-    let index = 0;
-
-    return ranking.map(item => {
-      index++;
-
-      if (
-        lastScoreTotal !== null &&
-        (item.scoreTotal !== lastScoreTotal ||
-          item.scoreRound !== lastScoreRound)
-      ) {
-        position = index;
-      }
-
-      lastScoreTotal = item.scoreTotal;
-      lastScoreRound = item.scoreRound;
-
-      return {
-        ...item,
-        position,
-      };
-    });
+    return BuildPeriodRankingFromHistoryService.execute({ start, end })
   }
 }

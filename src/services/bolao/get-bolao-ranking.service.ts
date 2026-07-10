@@ -57,7 +57,6 @@ export class GetBolaoRankingService {
       endDate: bolao.endDate,
     });
 
-    const liveByUserId = new Map(liveRows.map(row => [row.userId, row]));
     const userInfoById = new Map(
       approvedParticipants.map(p => [
         p.userId,
@@ -66,7 +65,7 @@ export class GetBolaoRankingService {
     );
 
     const entries = liveRows
-      .map((row, index) => {
+      .map(row => {
         const info = userInfoById.get(row.userId);
         return {
           userId: row.userId,
@@ -75,13 +74,11 @@ export class GetBolaoRankingService {
           scoreInitial: row.scoreInitial,
           scoreTotal: row.score,
           scoreRound: row.scoreRound,
-          position: index + 1,
+          position: row.position,
           participantStatus: info?.participantStatus ?? 'APPROVED',
           approvedAt: info?.approvedAt ?? null,
         };
-      })
-      .sort((a, b) => b.score - a.score || a.position - b.position)
-      .map((entry, index) => ({ ...entry, position: index + 1 }));
+      });
 
     return {
       ranking: {

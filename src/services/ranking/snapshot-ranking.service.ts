@@ -49,7 +49,7 @@ export class SnapshotRankingService {
       })
 
       if (snapshotExists) {
-        throw new Error('Snapshot already generated for this round')
+        return
       }
 
       /**
@@ -72,16 +72,21 @@ export class SnapshotRankingService {
       /**
        * 4️⃣ score acumulado
        */
-      const history = await tx.userScoreHistory.groupBy({
-        by: ['userId'],
+      const history = await tx.userScoreHistory.findMany({
         where: {
           roundId: { in: validRoundIds }
         },
-        _max: {
+        select: {
+          userId: true,
           scoreTotal: true,
+          scoreRound: true,
           totalDoubles: true,
           totalSuperDoubles: true,
-        }
+        },
+        orderBy: [
+          { round: { number: 'desc' } },
+          { createdAt: 'desc' },
+        ],
       })
 
       if (history.length === 0) {
@@ -108,13 +113,18 @@ export class SnapshotRankingService {
       /**
        * 6️⃣ normalizar dados
        */
-      const rows: SnapshotRow[] = history.map(h => ({
-        userId: h.userId,
-        scoreTotal: h._max.scoreTotal ?? 0,
-        scoreRound: roundScoreMap.get(h.userId) ?? 0,
-        totalDoubles: h._max.totalDoubles ?? 0,
-        totalSuperDoubles: h._max.totalSuperDoubles ?? 0,
-      }))
+      const latestByUser = new Map<string, SnapshotRow>()
+      for (const item of history) {
+        if (latestByUser.has(item.userId)) continue
+        latestByUser.set(item.userId, {
+          userId: item.userId,
+          scoreTotal: item.scoreTotal,
+          scoreRound: roundScoreMap.get(item.userId) ?? 0,
+          totalDoubles: item.totalDoubles,
+          totalSuperDoubles: item.totalSuperDoubles,
+        })
+      }
+      const rows = Array.from(latestByUser.values())
 
       /**
        * 7️⃣ ordenação oficial

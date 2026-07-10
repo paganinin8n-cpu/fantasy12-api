@@ -68,6 +68,7 @@ export class RankingWindowScoreService {
         score: true,
         scoreInitial: true,
         position: true,
+        approvedAt: true,
         createdAt: true,
       },
       orderBy: {
@@ -82,35 +83,7 @@ export class RankingWindowScoreService {
     const participantIds = participants.map(participant => participant.userId)
     const endDate = ranking.endDate ?? new Date()
 
-    const latestTotalRows = await tx.userScoreHistory.findMany({
-      where: {
-        userId: { in: participantIds },
-        round: {
-          closeAt: {
-            lte: endDate,
-          },
-        },
-      },
-      select: {
-        userId: true,
-        scoreTotal: true,
-        scoreRound: true,
-        createdAt: true,
-      },
-      orderBy: [
-        { round: { closeAt: 'desc' } },
-        { createdAt: 'desc' },
-      ],
-    })
-
-    const scoreTotalByUser = new Map<string, number>()
-    for (const row of latestTotalRows) {
-      if (!scoreTotalByUser.has(row.userId)) {
-        scoreTotalByUser.set(row.userId, row.scoreTotal)
-      }
-    }
-
-    const latestRows = await tx.userScoreHistory.findMany({
+    const historyRows = await tx.userScoreHistory.findMany({
       where: {
         userId: { in: participantIds },
         round: {
@@ -122,38 +95,47 @@ export class RankingWindowScoreService {
       },
       select: {
         userId: true,
+        scoreTotal: true,
         scoreRound: true,
         createdAt: true,
+        round: {
+          select: { closeAt: true },
+        },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { round: { closeAt: 'desc' } },
+        { createdAt: 'desc' },
+      ],
     })
-
-    const scoreRoundByUser = new Map<string, number>()
-    for (const row of latestRows) {
-      if (!scoreRoundByUser.has(row.userId)) {
-        scoreRoundByUser.set(row.userId, row.scoreRound)
-      }
-    }
 
     const participantOrder = new Map(
       participants.map((participant, index) => [participant.userId, index])
     )
 
     const rows = participants.map(participant => {
-      const scoreTotalCurrent =
-        scoreTotalByUser.get(participant.userId) ?? participant.scoreInitial
-      const scoreByBaseline = RankingWindowScoreService.calculateScoreFromBaseline(
-        scoreTotalCurrent,
-        participant.scoreInitial
+      const admissionDate = participant.approvedAt ?? participant.createdAt
+      const effectiveStart =
+        ranking.startDate && ranking.startDate > admissionDate
+          ? ranking.startDate
+          : admissionDate
+      const eligibleHistory = historyRows.filter(row =>
+        row.userId === participant.userId &&
+        row.round.closeAt != null &&
+        row.round.closeAt >= effectiveStart &&
+        row.round.closeAt <= endDate
       )
+      const score = Math.max(
+        0,
+        eligibleHistory.reduce((total, row) => total + row.scoreRound, 0)
+      )
+      const latestHistory = eligibleHistory[0]
+      const scoreTotalCurrent = latestHistory?.scoreTotal ?? participant.scoreInitial
 
       return {
         participantId: participant.id,
         userId: participant.userId,
-        score: scoreByBaseline,
-        scoreRound: scoreRoundByUser.get(participant.userId) ?? 0,
+        score,
+        scoreRound: latestHistory?.scoreRound ?? 0,
         position: 0,
         scoreInitial: participant.scoreInitial,
         scoreTotalCurrent,

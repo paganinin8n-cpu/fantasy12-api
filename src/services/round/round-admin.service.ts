@@ -1,8 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { RoundStatus } from '@prisma/client';
-import { ScoreRoundService } from './score-round.service';
-import { RecalculateRankingService } from '../ranking/recalculate-ranking.service';
-import { SnapshotRankingService } from '../ranking/snapshot-ranking.service';
+import { ScoreRoundService } from '../score/score-round.service';
 
 export class RoundAdminService {
   private scoringService = new ScoreRoundService();
@@ -145,7 +143,5 @@ export class RoundAdminService {
      */
     await this.scoringService.execute(roundId);
 
-    await RecalculateRankingService.execute();
-    await SnapshotRankingService.execute(roundId);
   }
 }

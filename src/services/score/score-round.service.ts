@@ -10,7 +10,7 @@ export class ScoreRoundService {
 
   async execute(roundId: string): Promise<void> {
 
-    await prisma.$transaction(async (tx) => {
+    const scored = await prisma.$transaction(async (tx) => {
 
       const round = await tx.round.findUnique({
         where: { id: roundId },
@@ -27,7 +27,7 @@ export class ScoreRoundService {
        * idempotência
        */
       if (round.status === RoundStatus.SCORED) {
-        return
+        return false
       }
 
       if (round.status !== RoundStatus.CLOSED) {
@@ -56,7 +56,15 @@ export class ScoreRoundService {
 
         const lastHistory = await tx.userScoreHistory.findFirst({
           where: { userId: ticket.userId },
-          orderBy: { scoreTotal: 'desc' }
+          orderBy: [
+            { round: { number: 'desc' } },
+            { createdAt: 'desc' },
+          ],
+          select: {
+            scoreTotal: true,
+            totalDoubles: true,
+            totalSuperDoubles: true,
+          },
         })
 
         await tx.userScoreHistory.create({
@@ -82,7 +90,11 @@ export class ScoreRoundService {
         }
       })
 
+      return true
+
     })
+
+    if (!scored) return
 
     /**
      * 🔥 atualizar ranking

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../lib/prisma';
-import { hasActiveProSubscription } from '../../domain/subscription';
 import { BuildMonthlyRankingFromHistoryService } from '../../services/ranking/build-monthly-ranking-from-history.service';
 
 export class MonthlyRankingController {
@@ -63,104 +62,17 @@ export class MonthlyRankingController {
           createdAt: new Date(),
         } as const);
 
-      const snapshots = await prisma.rankingSnapshot.findMany({
-        where: {
-          periodRef,
-          snapshotType: 'GLOBAL',
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        select: {
-          userId: true,
-          scoreTotal: true,
-          scoreRound: true,
-          createdAt: true,
-          user: {
-            select: {
-              name: true,
-              subscription: {
-                select: {
-                  status: true,
-                  plan: true,
-                  endAt: true,
-                },
-              },
-            },
-          },
-        },
+      const monthlyRows = await BuildMonthlyRankingFromHistoryService.execute({
+        periodRef,
+        scope,
       });
-
-      const latestByUser = new Map<
-        string,
-        {
-          userId: string;
-          userName: string;
-          scoreTotal: number;
-          scoreRound: number;
-          isPro: boolean;
-        }
-      >();
-
-      for (const snapshot of snapshots) {
-        if (latestByUser.has(snapshot.userId)) continue;
-
-        latestByUser.set(snapshot.userId, {
-          userId: snapshot.userId,
-          userName: snapshot.user.name,
-          scoreTotal: snapshot.scoreTotal,
-          scoreRound: snapshot.scoreRound,
-          isPro: hasActiveProSubscription(snapshot.user.subscription),
-        });
-      }
-
-      const consolidated =
-        latestByUser.size > 0
-          ? Array.from(latestByUser.values())
-              .filter(item => (scope === 'pro' ? item.isPro : true))
-              .sort((a, b) => {
-                if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
-                if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound;
-                return a.userId.localeCompare(b.userId);
-              })
-          : (
-              await BuildMonthlyRankingFromHistoryService.execute({
-                periodRef,
-                scope,
-              })
-            ).map(item => ({
-              userId: item.userId,
-              userName: item.userName,
-              scoreTotal: item.monthlyPoints,
-              scoreRound: item.lastRoundPoints,
-              isPro: item.isPro,
-            }));
-
-      let position = 1;
-      let lastScoreTotal: number | null = null;
-      let lastScoreRound: number | null = null;
-      let index = 0;
-
-      const ranked = consolidated.map(item => {
-        index += 1;
-        if (
-          lastScoreTotal !== null &&
-          (item.scoreTotal !== lastScoreTotal || item.scoreRound !== lastScoreRound)
-        ) {
-          position = index;
-        }
-
-        lastScoreTotal = item.scoreTotal;
-        lastScoreRound = item.scoreRound;
-
-        return {
+      const ranked = monthlyRows.map(item => ({
           userId: item.userId,
           userName: item.userName,
-          points: item.scoreTotal,
-          position,
+          points: item.monthlyPoints,
+          position: item.position,
           isPro: item.isPro,
-        };
-      });
+        }));
 
       const meEntry = userId ? ranked.find(item => item.userId === userId) ?? null : null;
       const me = userId
