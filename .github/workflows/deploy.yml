@@ -123,6 +123,28 @@ jobs:
             rm -rf "$STAGE" "$RELEASE"
             echo "Release source synced to $CODE_DIR"
 
+      - name: Apply database migrations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            CODE_DIR="${{ env.EASYPANEL_CODE_DIR }}"
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+
+            if [ -z "$API_CONTAINER" ]; then
+              echo "Active Fantasy12 API container not found" >&2
+              exit 1
+            fi
+
+            docker cp "$CODE_DIR/prisma/schema.prisma" "$API_CONTAINER:/app/prisma/schema.prisma"
+            docker cp "$CODE_DIR/prisma/migrations/." "$API_CONTAINER:/app/prisma/migrations/"
+            docker exec "$API_CONTAINER" npx prisma migrate deploy
+            docker exec "$API_CONTAINER" npx prisma migrate status
+
       - name: Trigger EasyPanel deploy
         env:
           EASYPANEL_URL: ${{ secrets.EASYPANEL_URL }}
