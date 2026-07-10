@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "ci:check": "npm run prisma:schema:release:check && npm run test:ranking",
+    "ci:check": "npm run prisma:schema:release:check && npm run test:ranking && npm run test:payments",
     "docker:build": "docker build -t fantasy12-api:local .",
     "test:ranking": "npm run build && node --test tests/ranking-window-score.test.js",
     "test:payments": "npm run build && node --test tests/mercado-pago-*.test.js tests/subscription-access.test.js",

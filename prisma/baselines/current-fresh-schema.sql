@@ -40,6 +40,9 @@ CREATE TYPE "PaymentMethod" AS ENUM ('PIX', 'CARD');
 -- CreateEnum
 CREATE TYPE "PaymentProvider" AS ENUM ('MERCADO_PAGO');
 
+-- CreateEnum
+CREATE TYPE "PaymentPurpose" AS ENUM ('WALLET_CREDIT', 'SUBSCRIPTION');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -320,14 +323,19 @@ CREATE TABLE "payments" (
     "userId" TEXT NOT NULL,
     "provider" "PaymentProvider" NOT NULL,
     "method" "PaymentMethod" NOT NULL,
+    "purpose" "PaymentPurpose" NOT NULL DEFAULT 'WALLET_CREDIT',
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
-    "packageId" TEXT NOT NULL,
+    "packageId" TEXT,
+    "subscriptionPlan" "SubscriptionPlan",
     "amountCents" INTEGER NOT NULL,
     "coinsAmount" INTEGER NOT NULL,
     "bonusCoins" INTEGER NOT NULL DEFAULT 0,
     "externalPaymentId" TEXT,
     "externalReference" TEXT,
+    "externalPreferenceId" TEXT,
+    "checkoutUrl" TEXT,
     "isCredited" BOOLEAN NOT NULL DEFAULT false,
+    "processedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -599,6 +607,9 @@ CREATE UNIQUE INDEX "payments_externalPaymentId_key" ON "payments"("externalPaym
 CREATE UNIQUE INDEX "payments_externalReference_key" ON "payments"("externalReference");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "payments_externalPreferenceId_key" ON "payments"("externalPreferenceId");
+
+-- CreateIndex
 CREATE INDEX "payments_userId_idx" ON "payments"("userId");
 
 -- CreateIndex
@@ -728,7 +739,7 @@ ALTER TABLE "bolao_invites" ADD CONSTRAINT "bolao_invites_createdByUserId_fkey" 
 ALTER TABLE "payments" ADD CONSTRAINT "payments_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "payments" ADD CONSTRAINT "payments_packageId_fkey" FOREIGN KEY ("packageId") REFERENCES "PaymentPackage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "payments" ADD CONSTRAINT "payments_packageId_fkey" FOREIGN KEY ("packageId") REFERENCES "PaymentPackage"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AdminRolePermission" ADD CONSTRAINT "AdminRolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "AdminRole"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
