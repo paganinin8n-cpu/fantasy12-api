@@ -7,7 +7,17 @@ export class MercadoPagoWebhookController {
     res: Response,
     next: NextFunction
   ): Promise<Response | void> {
-    const event = req.body
+    const legacyPaymentId =
+      req.query.topic === 'payment' && typeof req.query.id === 'string'
+        ? req.query.id
+        : null
+    const event = legacyPaymentId
+      ? {
+          id: `legacy-payment-${legacyPaymentId}`,
+          type: 'payment',
+          data: { id: legacyPaymentId },
+        }
+      : req.body
     const timestamp = new Date().toISOString()
 
     console.info({

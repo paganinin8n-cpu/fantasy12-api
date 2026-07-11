@@ -19,7 +19,7 @@ test('propaga falha do webhook para o error handler permitir retentativa', async
     throw expectedError
   }
 
-  const req = { body: { id: 1, type: 'payment', data: { id: 2 } } }
+  const req = { body: { id: 1, type: 'payment', data: { id: 2 } }, query: {} }
   const res = {
     statusCode: null,
     payload: null,
@@ -40,4 +40,41 @@ test('propaga falha do webhook para o error handler permitir retentativa', async
 
   assert.equal(propagatedError, expectedError)
   assert.equal(res.statusCode, null)
+})
+
+test('normaliza notificacao legacy de pagamento antes de processar', async t => {
+  const originalExecute = ProcessMercadoPagoWebhookService.execute
+  t.after(() => {
+    ProcessMercadoPagoWebhookService.execute = originalExecute
+  })
+
+  let receivedEvent = null
+  ProcessMercadoPagoWebhookService.execute = async event => {
+    receivedEvent = event
+  }
+
+  const req = { body: {}, query: { topic: 'payment', id: '167391550855' } }
+  const res = {
+    statusCode: null,
+    payload: null,
+    status(code) {
+      this.statusCode = code
+      return this
+    },
+    json(payload) {
+      this.payload = payload
+      return this
+    },
+  }
+
+  await MercadoPagoWebhookController.handle(req, res, error => {
+    throw error
+  })
+
+  assert.deepEqual(receivedEvent, {
+    id: 'legacy-payment-167391550855',
+    type: 'payment',
+    data: { id: '167391550855' },
+  })
+  assert.equal(res.statusCode, 200)
 })
