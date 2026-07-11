@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type SIMULATE to create competition test data
+        description: Type SIMULATE to create data or COLLECT to retrieve the last report
         required: true
         type: string
 
@@ -14,7 +14,7 @@ permissions:
 jobs:
   simulate:
     name: Run detailed competition scenario
-    if: inputs.confirmation == 'SIMULATE'
+    if: inputs.confirmation == 'SIMULATE' || inputs.confirmation == 'COLLECT'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
@@ -37,7 +37,11 @@ jobs:
               exit 1
             fi
 
-            docker exec "$API_CONTAINER" node /app/scripts/simulate-competition.js > "$REPORT"
-            node -e 'const r=require(process.argv[1]); if(r.status!=="ok") process.exit(1)' "$REPORT"
+            if [ "${{ inputs.confirmation }}" = "SIMULATE" ]; then
+              docker exec "$API_CONTAINER" node /app/scripts/simulate-competition.js > "$REPORT"
+            fi
+
+            test -s "$REPORT"
+            docker exec -i "$API_CONTAINER" node -e 'let s=""; process.stdin.on("data",c=>s+=c).on("end",()=>{if(JSON.parse(s).status!=="ok")process.exit(1)})' < "$REPORT"
             printf 'REPORT_BASE64=' && gzip -c "$REPORT" | base64 | tr -d '\n'
             printf '\n'
