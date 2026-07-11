@@ -1,0 +1,92 @@
+name: Reconcile Mercado Pago payment
+
+on:
+  workflow_dispatch:
+    inputs:
+      transaction_id:
+        description: Approved Mercado Pago payment ID
+        required: true
+        type: string
+      user_email:
+        description: Expected Fantasy12 user email
+        required: true
+        type: string
+      confirmation:
+        description: Type RECONCILE
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    if: inputs.confirmation == 'RECONCILE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      TRANSACTION_ID: ${{ inputs.transaction_id }}
+      USER_EMAIL: ${{ inputs.user_email }}
+
+    steps:
+      - name: Validate and process approved payment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          envs: TRANSACTION_ID,USER_EMAIL
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -i \
+              -e TRANSACTION_ID="$TRANSACTION_ID" \
+              -e USER_EMAIL="$USER_EMAIL" \
+              "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { MercadoPagoClient } = require('/app/dist/lib/mercado-pago.client')
+            const { ProcessMercadoPagoWebhookService } = require('/app/dist/services/payment/process-mercado-pago-webhook.service')
+
+            async function main() {
+              const transactionId = process.env.TRANSACTION_ID
+              const email = process.env.USER_EMAIL.trim().toLowerCase()
+              const user = await prisma.user.findUnique({ where: { email } })
+              if (!user) throw new Error('Expected user not found')
+
+              const mp = await new MercadoPagoClient(process.env.MP_ACCESS_TOKEN).getPayment(transactionId)
+              if (mp.status !== 'approved') throw new Error(`Payment is not approved: ${mp.status}`)
+              if (mp.currency_id !== 'BRL') throw new Error('Payment currency is not BRL')
+              if (mp.metadata?.user_id !== user.id) throw new Error('Payment metadata belongs to another user')
+
+              const payment = await prisma.payment.findUnique({
+                where: { externalReference: mp.external_reference },
+              })
+              if (!payment || payment.userId !== user.id) throw new Error('Local payment does not belong to expected user')
+              if (payment.amountCents !== Math.round(Number(mp.transaction_amount) * 100)) {
+                throw new Error('Payment amount does not match local payment')
+              }
+
+              await ProcessMercadoPagoWebhookService.execute({
+                id: `manual-reconcile-${transactionId}`,
+                type: 'payment',
+                data: { id: transactionId },
+              })
+
+              const result = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: {
+                  subscription: { select: { plan: true, status: true, startAt: true, endAt: true, provider: true } },
+                  payments: {
+                    where: { id: payment.id },
+                    select: { status: true, externalPaymentId: true, processedAt: true },
+                  },
+                },
+              })
+              console.log(JSON.stringify(result, null, 2))
+            }
+
+            main().finally(() => prisma.$disconnect())
+            NODE
