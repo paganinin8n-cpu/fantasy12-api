@@ -123,6 +123,10 @@ export function verifyMercadoPagoSignature(
       message: 'Assinatura invalida',
       requestId,
       dataId,
+      timestamp: ts,
+      manifest,
+      expectedSignature: expected,
+      receivedSignature: v1,
     })
     return res.status(401).json({ error: 'invalid_signature' })
   }
