@@ -60,22 +60,22 @@ export function verifyMercadoPagoSignature(
     return next()
   }
 
+  const legacyTopic = req.query.topic
+  const legacyPaymentId = req.query.id
+  if (
+    legacyTopic === 'payment' &&
+    typeof legacyPaymentId === 'string' &&
+    /^\d+$/.test(legacyPaymentId)
+  ) {
+    // Legacy IPN may include headers that do not sign the modern manifest.
+    // The handler uses only this ID and validates the payment through MP.
+    return next()
+  }
+
   const signatureHeader = req.headers['x-signature']
   const requestId = req.headers['x-request-id']
 
   if (typeof signatureHeader !== 'string' || typeof requestId !== 'string') {
-    const legacyTopic = req.query.topic
-    const legacyPaymentId = req.query.id
-    if (
-      legacyTopic === 'payment' &&
-      typeof legacyPaymentId === 'string' &&
-      /^\d+$/.test(legacyPaymentId)
-    ) {
-      // Legacy IPN has no HMAC. The handler never trusts its payload: it uses
-      // this ID only to fetch and validate the payment through Mercado Pago.
-      return next()
-    }
-
     return res.status(401).json({ error: 'missing_signature_headers' })
   }
 

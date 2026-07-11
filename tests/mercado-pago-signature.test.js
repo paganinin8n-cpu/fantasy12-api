@@ -40,6 +40,32 @@ test('aceita IPN legacy numerica para validacao posterior na API do MP', () => {
   assert.equal(res.statusCode, null)
 })
 
+test('prioriza IPN legacy mesmo quando ela inclui cabecalhos de assinatura', () => {
+  const previousSecret = process.env.MP_WEBHOOK_SECRET
+  process.env.MP_WEBHOOK_SECRET = 'configured-secret'
+
+  let called = false
+  const res = response()
+  verifyMercadoPagoSignature(
+    {
+      headers: {
+        'x-request-id': 'legacy-request',
+        'x-signature': 'ts=123,v1=invalid-for-modern-manifest',
+      },
+      query: { topic: 'payment', id: '167484866865' },
+      body: {},
+    },
+    res,
+    () => { called = true }
+  )
+
+  if (previousSecret === undefined) delete process.env.MP_WEBHOOK_SECRET
+  else process.env.MP_WEBHOOK_SECRET = previousSecret
+
+  assert.equal(called, true)
+  assert.equal(res.statusCode, null)
+})
+
 test('rejeita webhook moderno sem assinatura e formatos legacy invalidos', () => {
   const previousSecret = process.env.MP_WEBHOOK_SECRET
   process.env.MP_WEBHOOK_SECRET = 'configured-secret'
