@@ -1,0 +1,695 @@
+{
+  "status": "ok",
+  "scenarioId": "20260710235919",
+  "timezone": "UTC (datas persistidas); America/Sao_Paulo = UTC-3",
+  "generatedAt": "2026-07-10T23:59:19.024Z",
+  "schedule": {
+    "usersCreated": {
+      "utc": "2026-07-01T12:00:00.000Z",
+      "saoPaulo": "01/07/2026, 09:00:00"
+    },
+    "preRoundClosed": {
+      "utc": "2026-07-02T12:00:00.000Z",
+      "saoPaulo": "02/07/2026, 09:00:00"
+    },
+    "mesaStarted": {
+      "utc": "2026-07-03T12:00:00.000Z",
+      "saoPaulo": "03/07/2026, 09:00:00"
+    },
+    "firstMesaRoundClosed": {
+      "utc": "2026-07-04T12:00:00.000Z",
+      "saoPaulo": "04/07/2026, 09:00:00"
+    },
+    "lateUserAdmitted": {
+      "utc": "2026-07-05T12:00:00.000Z",
+      "saoPaulo": "05/07/2026, 09:00:00"
+    },
+    "finalMesaRoundClosed": {
+      "utc": "2026-07-06T12:00:00.000Z",
+      "saoPaulo": "06/07/2026, 09:00:00"
+    },
+    "mesaEnds": {
+      "utc": "2026-07-10T12:00:00.000Z",
+      "saoPaulo": "10/07/2026, 09:00:00"
+    }
+  },
+  "users": {
+    "creator": {
+      "id": "49abc8c9-cdd0-4e0c-8f53-be1f05677788",
+      "email": "sim-20260710235919-creator@simulation.fantasy12.test",
+      "plan": "PRO_ANNUAL"
+    },
+    "early": {
+      "id": "d6c41269-9ccf-4285-9f3d-c18aafdb7da7",
+      "email": "sim-20260710235919-early@simulation.fantasy12.test",
+      "plan": "PRO_MONTHLY"
+    },
+    "late": {
+      "id": "73cd38e7-6e65-4a1d-b1bc-10c4a72464ec",
+      "email": "sim-20260710235919-late@simulation.fantasy12.test",
+      "plan": "PRO_MONTHLY"
+    },
+    "free": {
+      "id": "78c3e100-7b3a-434e-9cfc-1068b68dfd88",
+      "email": "sim-20260710235919-free@simulation.fantasy12.test",
+      "plan": "FREE"
+    }
+  },
+  "rounds": [
+    {
+      "id": "96a0ec93-e068-4687-b7ac-7d81e9f60580",
+      "number": 1,
+      "label": "PRE_MESA",
+      "openedAt": {
+        "utc": "2026-07-01T12:00:00.000Z",
+        "saoPaulo": "01/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-02T12:00:00.000Z",
+        "saoPaulo": "02/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "creator": {
+          "scoreRound": 12,
+          "hits": 12,
+          "misses": 0,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "early": {
+          "scoreRound": 0,
+          "hits": 0,
+          "misses": 12,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "late": {
+          "scoreRound": 5,
+          "hits": 5,
+          "misses": 7,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "free": {
+          "scoreRound": 6,
+          "hits": 6,
+          "misses": 6,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        }
+      }
+    },
+    {
+      "id": "33fee2a4-60de-4d8a-bcb6-5e2bca211b49",
+      "number": 2,
+      "label": "MESA_ROUND_1",
+      "openedAt": {
+        "utc": "2026-07-03T12:00:00.000Z",
+        "saoPaulo": "03/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-04T12:00:00.000Z",
+        "saoPaulo": "04/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "creator": {
+          "scoreRound": 0,
+          "hits": 0,
+          "misses": 12,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "early": {
+          "scoreRound": 0,
+          "hits": 0,
+          "misses": 12,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "late": {
+          "scoreRound": 12,
+          "hits": 12,
+          "misses": 0,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "free": {
+          "scoreRound": 6,
+          "hits": 6,
+          "misses": 6,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        }
+      }
+    },
+    {
+      "id": "cb98d3dd-ce22-4aac-b00b-ef0cae37b4bd",
+      "number": 3,
+      "label": "MESA_ROUND_2",
+      "openedAt": {
+        "utc": "2026-07-05T12:00:00.000Z",
+        "saoPaulo": "05/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-06T12:00:00.000Z",
+        "saoPaulo": "06/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "creator": {
+          "scoreRound": -16,
+          "hits": 0,
+          "misses": 12,
+          "doubleHits": 0,
+          "doubleMisses": 4,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 2,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 16
+        },
+        "early": {
+          "scoreRound": 12,
+          "hits": 12,
+          "misses": 0,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "late": {
+          "scoreRound": 12,
+          "hits": 12,
+          "misses": 0,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        },
+        "free": {
+          "scoreRound": 6,
+          "hits": 6,
+          "misses": 6,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0,
+          "multiplierBonus": 0,
+          "multiplierPenalty": 0
+        }
+      }
+    }
+  ],
+  "mesa": {
+    "id": "191c0b2d-4016-4018-b534-16c48238288f",
+    "startDate": {
+      "utc": "2026-07-03T12:00:00.000Z",
+      "saoPaulo": "03/07/2026, 09:00:00"
+    },
+    "endDate": {
+      "utc": "2026-07-10T12:00:00.000Z",
+      "saoPaulo": "10/07/2026, 09:00:00"
+    },
+    "admissions": [
+      {
+        "role": "creator",
+        "approvedAt": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "scoreInitial": 12,
+        "rule": "A Mesa conta apenas rodadas com closeAt >= approvedAt e dentro da janela."
+      },
+      {
+        "role": "early",
+        "approvedAt": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "scoreInitial": 0,
+        "rule": "A Mesa conta apenas rodadas com closeAt >= approvedAt e dentro da janela."
+      },
+      {
+        "role": "late",
+        "approvedAt": {
+          "utc": "2026-07-05T12:00:00.000Z",
+          "saoPaulo": "05/07/2026, 09:00:00"
+        },
+        "scoreInitial": 17,
+        "rule": "A Mesa conta apenas rodadas com closeAt >= approvedAt e dentro da janela."
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "step": "USERS_CREATED",
+      "effectiveAt": {
+        "utc": "2026-07-01T12:00:00.000Z",
+        "saoPaulo": "01/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.243Z",
+      "details": {
+        "explanation": "Todos começam com zero; ainda não há rodada nem Mesa."
+      },
+      "global": {
+        "creator": 0,
+        "early": 0,
+        "late": 0,
+        "free": 0
+      },
+      "monthlyGeneral": {},
+      "monthlyPro": {},
+      "mesa": null
+    },
+    {
+      "step": "PRE_MESA_ROUND_SCORED",
+      "effectiveAt": {
+        "utc": "2026-07-02T12:00:00.000Z",
+        "saoPaulo": "02/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.319Z",
+      "details": {
+        "explanation": "Esta rodada altera o Global, mas deve ficar fora da futura Mesa.",
+        "roundNumber": 1
+      },
+      "global": {
+        "creator": 12,
+        "early": 0,
+        "late": 5,
+        "free": 6
+      },
+      "monthlyGeneral": {
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "free": {
+          "points": 6,
+          "lastRoundPoints": 6,
+          "position": 2
+        },
+        "late": {
+          "points": 5,
+          "lastRoundPoints": 5,
+          "position": 3
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 4
+        }
+      },
+      "monthlyPro": {
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "late": {
+          "points": 5,
+          "lastRoundPoints": 5,
+          "position": 2
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 3
+        }
+      },
+      "mesa": null
+    },
+    {
+      "step": "MESA_CREATED",
+      "effectiveAt": {
+        "utc": "2026-07-03T12:00:00.000Z",
+        "saoPaulo": "03/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.365Z",
+      "details": {
+        "explanation": "Creator e early entram no início. O scoreInitial registra o Global acumulado anterior."
+      },
+      "global": {
+        "creator": 12,
+        "early": 0,
+        "late": 5,
+        "free": 6
+      },
+      "monthlyGeneral": {
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "free": {
+          "points": 6,
+          "lastRoundPoints": 6,
+          "position": 2
+        },
+        "late": {
+          "points": 5,
+          "lastRoundPoints": 5,
+          "position": 3
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 4
+        }
+      },
+      "monthlyPro": {
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "late": {
+          "points": 5,
+          "lastRoundPoints": 5,
+          "position": 2
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 3
+        }
+      },
+      "mesa": {
+        "startDate": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "endDate": {
+          "utc": "2026-07-10T12:00:00.000Z",
+          "saoPaulo": "10/07/2026, 09:00:00"
+        },
+        "entries": {
+          "creator": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 12
+          },
+          "early": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 0
+          }
+        }
+      }
+    },
+    {
+      "step": "FIRST_MESA_ROUND_SCORED",
+      "effectiveAt": {
+        "utc": "2026-07-04T12:00:00.000Z",
+        "saoPaulo": "04/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.429Z",
+      "details": {
+        "explanation": "Late pontua no Global, mas ainda não participa da Mesa.",
+        "roundNumber": 2
+      },
+      "global": {
+        "creator": 12,
+        "early": 0,
+        "late": 17,
+        "free": 12
+      },
+      "monthlyGeneral": {
+        "late": {
+          "points": 17,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "free": {
+          "points": 12,
+          "lastRoundPoints": 6,
+          "position": 2
+        },
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 0,
+          "position": 3
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 4
+        }
+      },
+      "monthlyPro": {
+        "late": {
+          "points": 17,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 0,
+          "position": 2
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 3
+        }
+      },
+      "mesa": {
+        "startDate": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "endDate": {
+          "utc": "2026-07-10T12:00:00.000Z",
+          "saoPaulo": "10/07/2026, 09:00:00"
+        },
+        "entries": {
+          "creator": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 12
+          },
+          "early": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 0
+          }
+        }
+      }
+    },
+    {
+      "step": "LATE_USER_ADMITTED",
+      "effectiveAt": {
+        "utc": "2026-07-05T12:00:00.000Z",
+        "saoPaulo": "05/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.474Z",
+      "details": {
+        "explanation": "Late entra com baseline 17. Os 12 pontos da rodada anterior continuam somente no Global."
+      },
+      "global": {
+        "creator": 12,
+        "early": 0,
+        "late": 17,
+        "free": 12
+      },
+      "monthlyGeneral": {
+        "late": {
+          "points": 17,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "free": {
+          "points": 12,
+          "lastRoundPoints": 6,
+          "position": 2
+        },
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 0,
+          "position": 3
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 4
+        }
+      },
+      "monthlyPro": {
+        "late": {
+          "points": 17,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "creator": {
+          "points": 12,
+          "lastRoundPoints": 0,
+          "position": 2
+        },
+        "early": {
+          "points": 0,
+          "lastRoundPoints": 0,
+          "position": 3
+        }
+      },
+      "mesa": {
+        "startDate": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "endDate": {
+          "utc": "2026-07-10T12:00:00.000Z",
+          "saoPaulo": "10/07/2026, 09:00:00"
+        },
+        "entries": {
+          "creator": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 12
+          },
+          "early": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 0
+          },
+          "late": {
+            "score": 0,
+            "scoreRound": 0,
+            "position": 1,
+            "scoreInitial": 17
+          }
+        }
+      }
+    },
+    {
+      "step": "FINAL_MESA_ROUND_SCORED",
+      "effectiveAt": {
+        "utc": "2026-07-06T12:00:00.000Z",
+        "saoPaulo": "06/07/2026, 09:00:00"
+      },
+      "recordedAt": "2026-07-10T23:59:19.545Z",
+      "details": {
+        "explanation": "Creator recebe -16; a Mesa limita o acumulado exibido a zero. Early e late empatam com 12.",
+        "roundNumber": 3
+      },
+      "global": {
+        "creator": -4,
+        "early": 12,
+        "late": 29,
+        "free": 18
+      },
+      "monthlyGeneral": {
+        "late": {
+          "points": 29,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "free": {
+          "points": 18,
+          "lastRoundPoints": 6,
+          "position": 2
+        },
+        "early": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 3
+        },
+        "creator": {
+          "points": -4,
+          "lastRoundPoints": -16,
+          "position": 4
+        }
+      },
+      "monthlyPro": {
+        "late": {
+          "points": 29,
+          "lastRoundPoints": 12,
+          "position": 1
+        },
+        "early": {
+          "points": 12,
+          "lastRoundPoints": 12,
+          "position": 2
+        },
+        "creator": {
+          "points": -4,
+          "lastRoundPoints": -16,
+          "position": 3
+        }
+      },
+      "mesa": {
+        "startDate": {
+          "utc": "2026-07-03T12:00:00.000Z",
+          "saoPaulo": "03/07/2026, 09:00:00"
+        },
+        "endDate": {
+          "utc": "2026-07-10T12:00:00.000Z",
+          "saoPaulo": "10/07/2026, 09:00:00"
+        },
+        "entries": {
+          "early": {
+            "score": 12,
+            "scoreRound": 12,
+            "position": 1,
+            "scoreInitial": 0
+          },
+          "late": {
+            "score": 12,
+            "scoreRound": 12,
+            "position": 1,
+            "scoreInitial": 17
+          },
+          "creator": {
+            "score": 0,
+            "scoreRound": -16,
+            "position": 3,
+            "scoreInitial": 12
+          }
+        }
+      }
+    }
+  ],
+  "completedAt": "2026-07-10T23:59:19.546Z"
+}
