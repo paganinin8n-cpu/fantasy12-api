@@ -109,3 +109,18 @@ jobs:
 
             main().finally(() => prisma.$disconnect())
             NODE
+
+      - name: Read recent webhook logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker logs --since 2h "$API_CONTAINER" 2>&1 \
+              | grep -Ei 'mercado|webhook|signature|assinatura' \
+              | tail -n 100 || true
