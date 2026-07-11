@@ -20,7 +20,10 @@ export function verifyMercadoPagoSignature(
   res: Response,
   next: NextFunction
 ): void | Response {
-  const secret = process.env.MP_WEBHOOK_SECRET
+  const secrets = [
+    process.env.MP_WEBHOOK_SECRET,
+    process.env.MP_TEST_WEBHOOK_SECRET,
+  ].filter((value): value is string => Boolean(value))
   const allowUnsignedTestWebhooks =
     process.env.MP_ALLOW_UNSIGNED_TEST_WEBHOOKS === 'true' &&
     process.env.MP_ACCESS_TOKEN?.startsWith('TEST-')
@@ -28,7 +31,7 @@ export function verifyMercadoPagoSignature(
   // Em ambientes de desenvolvimento permitimos pular a validação
   // explicitamente para facilitar testes locais. Em producao, a unica
   // excecao aceita e sandbox Mercado Pago com token TEST-* e flag explicita.
-  if (!secret) {
+  if (secrets.length === 0) {
     if (allowUnsignedTestWebhooks) {
       console.warn({
         level: 'WARN',
@@ -104,19 +107,19 @@ export function verifyMercadoPagoSignature(
   }
 
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(manifest)
-    .digest('hex')
-
-  // timing-safe comparison
-  const expectedBuf = Buffer.from(expected, 'hex')
   const receivedBuf = Buffer.from(v1, 'hex')
+  const expectedSignatures = secrets.map(secret =>
+    crypto.createHmac('sha256', secret).update(manifest).digest('hex')
+  )
+  const valid = expectedSignatures.some(expected => {
+    const expectedBuf = Buffer.from(expected, 'hex')
+    return (
+      expectedBuf.length === receivedBuf.length &&
+      crypto.timingSafeEqual(expectedBuf, receivedBuf)
+    )
+  })
 
-  if (
-    expectedBuf.length !== receivedBuf.length ||
-    !crypto.timingSafeEqual(expectedBuf, receivedBuf)
-  ) {
+  if (!valid) {
     console.warn({
       level: 'WARN',
       service: 'verifyMercadoPagoSignature',
@@ -125,7 +128,7 @@ export function verifyMercadoPagoSignature(
       dataId,
       timestamp: ts,
       manifest,
-      expectedSignature: expected,
+      expectedSignatures,
       receivedSignature: v1,
     })
     return res.status(401).json({ error: 'invalid_signature' })
