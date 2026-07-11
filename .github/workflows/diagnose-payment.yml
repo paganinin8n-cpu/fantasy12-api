@@ -78,6 +78,13 @@ jobs:
                 headers: { authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
               })
               const mp = await response.json()
+              const localPreferenceId = user?.payments?.[0]?.externalPreferenceId
+              const preferenceResponse = localPreferenceId
+                ? await fetch(`https://api.mercadopago.com/checkout/preferences/${encodeURIComponent(localPreferenceId)}`, {
+                    headers: { authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+                  })
+                : null
+              const preference = preferenceResponse ? await preferenceResponse.json() : null
               const webhookEvents = await prisma.paymentWebhookEvent.findMany({
                 where: { receivedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
                 orderBy: { receivedAt: 'desc' },
@@ -101,6 +108,16 @@ jobs:
                   preferenceId: mp.preference_id ?? null,
                   metadata: mp.metadata ?? null,
                   dateApproved: mp.date_approved ?? null,
+                },
+                preference: {
+                  id: preference?.id ?? localPreferenceId ?? null,
+                  httpStatus: preferenceResponse?.status ?? null,
+                  notificationUrl: preference?.notification_url ?? null,
+                },
+                environment: {
+                  apiPublicUrl: process.env.API_PUBLIC_URL ?? null,
+                  explicitNotificationUrl: process.env.MP_NOTIFICATION_URL ?? null,
+                  webhookSecretConfigured: Boolean(process.env.MP_WEBHOOK_SECRET),
                 },
                 user,
                 matchingWebhookEvents: matchingEvents,
