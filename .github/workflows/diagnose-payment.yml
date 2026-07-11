@@ -94,6 +94,34 @@ jobs:
               const matchingEvents = webhookEvents
                 .filter(event => String(event.payload?.id ?? '') === transactionId)
                 .map(event => ({ externalEventId: event.externalEventId, receivedAt: event.receivedAt }))
+              const pendingSearches = []
+              for (const payment of user?.payments?.filter(item => item.status === 'PENDING') ?? []) {
+                const searchResponse = await fetch(
+                  `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(payment.externalReference)}`,
+                  { headers: { authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+                )
+                const search = await searchResponse.json()
+                pendingSearches.push({
+                  localPaymentId: payment.id,
+                  externalReference: payment.externalReference,
+                  httpStatus: searchResponse.status,
+                  results: (search.results ?? []).map(item => ({
+                    id: item.id,
+                    status: item.status,
+                    statusDetail: item.status_detail,
+                    transactionAmount: item.transaction_amount,
+                    dateApproved: item.date_approved,
+                  })),
+                })
+              }
+              const recentAuditLogs = user
+                ? await prisma.auditLog.findMany({
+                    where: { userId: user.id },
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: { action: true, entity: true, entityId: true, metadata: true, createdAt: true },
+                  })
+                : []
 
               console.log(JSON.stringify({
                 checkedAt: new Date().toISOString(),
@@ -121,6 +149,8 @@ jobs:
                 },
                 user,
                 matchingWebhookEvents: matchingEvents,
+                pendingSearches,
+                recentAuditLogs,
               }, null, 2))
             }
 
