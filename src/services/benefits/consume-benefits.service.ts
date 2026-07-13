@@ -29,11 +29,7 @@ export class ConsumeBenefitsService {
         where: { userId_roundId: { userId, roundId } }
       })
 
-      if (!benefit) {
-        throw new Error('Round benefits not found')
-      }
-
-      if (type === 'DOUBLE' && benefit.freeDoubles > 0) {
+      if (type === 'DOUBLE' && benefit && benefit.freeDoubles > 0) {
 
         const used = Math.min(benefit.freeDoubles, remaining)
 
@@ -49,7 +45,7 @@ export class ConsumeBenefitsService {
 
       }
 
-      if (type === 'SUPER_DOUBLE' && benefit.freeSuperDoubles > 0) {
+      if (type === 'SUPER_DOUBLE' && benefit && benefit.freeSuperDoubles > 0) {
 
         const used = Math.min(benefit.freeSuperDoubles, remaining)
 

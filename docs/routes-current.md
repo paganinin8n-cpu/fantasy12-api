@@ -81,7 +81,9 @@ Observação:
 Observação:
 
 - `GET /api/benefits/balance` pode receber `roundId` para somar benefícios gratuitos da rodada ao inventário comprado
+- o saldo separa quantidades grátis e pagas e também retorna `totalDoubles`/`totalSuperDoubles` (com aliases legados `availableDoubles`/`availableSuperDoubles`)
 - `POST /api/benefits/purchase` compra pacotes de duplas/super duplas com fichas da wallet
+- no envio do ticket, o limite é o saldo total disponível; o consumo usa primeiro o saldo grátis da rodada e depois o inventário pago
 - os pacotes atuais são `double_single`, `double_combo`, `double_total`, `super_single` e `super_master`
 
 ## Pagamentos

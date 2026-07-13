@@ -40,6 +40,8 @@ export class GetBenefitBalanceService {
     const freeSuperDoubles = roundBenefit?.freeSuperDoubles ?? 0
     const paidDoubles = doubleInventory?.quantity ?? 0
     const paidSuperDoubles = superInventory?.quantity ?? 0
+    const totalDoubles = freeDoubles + paidDoubles
+    const totalSuperDoubles = freeSuperDoubles + paidSuperDoubles
 
     return {
       roundId: roundId ?? null,
@@ -47,8 +49,10 @@ export class GetBenefitBalanceService {
       freeSuperDoubles,
       paidDoubles,
       paidSuperDoubles,
-      availableDoubles: freeDoubles + paidDoubles,
-      availableSuperDoubles: freeSuperDoubles + paidSuperDoubles,
+      totalDoubles,
+      totalSuperDoubles,
+      availableDoubles: totalDoubles,
+      availableSuperDoubles: totalSuperDoubles,
       walletBalance: wallet?.balance ?? 0,
     }
   }

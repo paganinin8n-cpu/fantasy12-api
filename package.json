@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "ci:check": "npm run prisma:schema:release:check && npm run test:competition && npm run test:payments",
+    "ci:check": "npm run prisma:schema:release:check && npm run test:competition && npm run test:payments && npm run test:benefits",
     "docker:build": "docker build -t fantasy12-api:local .",
     "test:ranking": "npm run build && node --test tests/ranking-window-score.test.js",
     "test:payments": "npm run build && node --test tests/mercado-pago-*.test.js tests/subscription-access.test.js",
+    "test:benefits": "npm run build && node --test tests/benefit-consumption.test.js",
     "test:competition": "npm run build && node --test tests/ranking-window-score.test.js tests/scoring-ranking-integration.test.js tests/period-ranking.test.js",
     "start": "node dist/index.js",
     "prisma:generate": "npx prisma generate",
