@@ -76,6 +76,7 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
 
   await CreateBolaoService.execute({
     name: 'Mesa Oficial',
+    description: 'Premiação oficial 100% para o 1º colocado após a taxa.',
     startDate: new Date('2026-08-01T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,

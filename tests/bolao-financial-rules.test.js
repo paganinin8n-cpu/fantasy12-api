@@ -29,6 +29,7 @@ function mockProUser() {
 function createInput(overrides = {}) {
   return {
     name: 'Mesa Financeira',
+    description: 'Premiação: 60/30/10 do prêmio líquido após taxa da plataforma.',
     startDate: new Date('2026-08-01T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
@@ -37,6 +38,44 @@ function createInput(overrides = {}) {
     ...overrides,
   }
 }
+
+test('Mesa exige observacoes/regras da premiacao obrigatorias', async t => {
+  const originalFindUnique = prisma.user.findUnique
+  t.after(() => { prisma.user.findUnique = originalFindUnique })
+  prisma.user.findUnique = async () => mockProUser()
+
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ description: '' })),
+    (error) => {
+      assert.equal(error.code, 'invalid_mesa_prize_rules')
+      assert.match(error.message, /observações\/regras da premiação/i)
+      return true
+    }
+  )
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ description: '   ' })),
+    (error) => {
+      assert.equal(error.code, 'invalid_mesa_prize_rules')
+      return true
+    }
+  )
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ description: 'curta' })),
+    (error) => {
+      assert.equal(error.code, 'invalid_mesa_prize_rules')
+      assert.match(error.message, /pelo menos 10/)
+      return true
+    }
+  )
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ description: 'x'.repeat(501) })),
+    (error) => {
+      assert.equal(error.code, 'invalid_mesa_prize_rules')
+      assert.match(error.message, /no máximo 500/)
+      return true
+    }
+  )
+})
 
 test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => {
   const originalFindUnique = prisma.user.findUnique

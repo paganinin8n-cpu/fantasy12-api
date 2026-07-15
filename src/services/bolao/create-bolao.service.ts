@@ -8,10 +8,11 @@ import {
   BolaoPrizeService,
   PrizeDistributionItem,
 } from './bolao-prize.service';
+import { normalizeMesaPrizeRules } from './mesa-prize-rules';
 
 type CreateBolaoInput = {
   name: string;
-  description?: string;
+  description: string;
   startDate: Date;
   endDate: Date;
   entryFee?: number;
@@ -24,7 +25,7 @@ export class CreateBolaoService {
   static async execute(input: CreateBolaoInput) {
     const {
       name,
-      description,
+      description: rawDescription,
       startDate,
       endDate,
       entryFee = 0,
@@ -32,6 +33,7 @@ export class CreateBolaoService {
       maxParticipants = 50,
       createdByUserId,
     } = input;
+    const description = normalizeMesaPrizeRules(rawDescription);
 
     const user = await prisma.user.findUnique({
       where: { id: createdByUserId },
@@ -156,7 +158,7 @@ export class CreateBolaoService {
           entityId: bolao.id,
           metadata: {
             name,
-            description: description ?? null,
+            description,
             entryFee,
             maxParticipants,
             durationDays,
