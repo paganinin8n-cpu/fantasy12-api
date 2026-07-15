@@ -20,6 +20,9 @@ const {
 const {
   GetBolaoRankingService,
 } = require('../dist/services/bolao/get-bolao-ranking.service')
+const {
+  normalizeRoundResult,
+} = require('../dist/services/round/round-match.types')
 
 test('calcula pontos, bonus e penalidades dos 12 jogos', () => {
   const calculator = new CalculateTicketScoreService()
@@ -39,6 +42,49 @@ test('calcula pontos, bonus e penalidades dos 12 jogos', () => {
     multiplierPenalty: 12,
     total: 3,
   })
+})
+
+test('preserva a pontuacao oficial de -48 para doze Super Duplas erradas', () => {
+  const calculator = new CalculateTicketScoreService()
+
+  assert.equal(
+    calculator.execute(
+      Array(12).fill('1').join(','),
+      Array(12).fill('2').join(','),
+      Array(12).fill(4)
+    ),
+    -48
+  )
+})
+
+test('jogo cancelado vale zero mesmo com Dupla ou Super Dupla', () => {
+  const calculator = new CalculateTicketScoreService()
+  const breakdown = calculator.detail(
+    Array(12).fill('1').join(','),
+    ['C', 'C', ...Array(10).fill('2')].join(','),
+    [2, 4, ...Array(10).fill(1)]
+  )
+
+  assert.deepEqual(breakdown, {
+    hits: 0,
+    misses: 10,
+    doubleHits: 0,
+    doubleMisses: 0,
+    superDoubleHits: 0,
+    superDoubleMisses: 0,
+    basePoints: 0,
+    multiplierBonus: 0,
+    multiplierPenalty: 0,
+    total: 0,
+  })
+})
+
+test('resultado consolidado aceita C para identificar partida cancelada', () => {
+  const result = normalizeRoundResult(
+    ['C', ...Array(11).fill('1')].join(',')
+  )
+
+  assert.equal(result[0], 'C')
 })
 
 test('apura nova rodada a partir do ultimo acumulado cronologico, mesmo apos queda', async t => {
