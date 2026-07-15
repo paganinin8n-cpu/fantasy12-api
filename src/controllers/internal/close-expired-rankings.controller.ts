@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../lib/prisma';
-import { CloseRankingService } from '../../services/ranking/close-ranking.service';
 import { InternalJobRunnerService } from '../../services/internal/internal-job-runner.service';
+import { CloseExpiredRankingsService } from '../../services/ranking/close-expired-rankings.service';
 
 export class CloseExpiredRankingsController {
   async execute(req: Request, res: Response) {
@@ -11,23 +10,8 @@ export class CloseExpiredRankingsController {
       jobName: 'CLOSE_EXPIRED_RANKINGS',
       referenceId,
       run: async () => {
-        const expiredRankings = await prisma.ranking.findMany({
-          where: {
-            status: 'ACTIVE',
-            endDate: { not: null, lt: new Date() },
-          },
-          select: { id: true },
-        });
-
-        const service = new CloseRankingService();
-
-        for (const ranking of expiredRankings) {
-          await service.execute(ranking.id);
-        }
-
-        return {
-          closedRankings: expiredRankings.length,
-        };
+        const result = await new CloseExpiredRankingsService().execute();
+        return { closedRankings: result.closed };
       },
     });
 
