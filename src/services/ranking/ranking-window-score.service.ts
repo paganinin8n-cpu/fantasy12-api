@@ -28,7 +28,7 @@ export class RankingWindowScoreService {
     scoreTotalCurrent: number,
     scoreInitial: number
   ) {
-    return Math.max(0, scoreTotalCurrent - scoreInitial)
+    return scoreTotalCurrent - scoreInitial
   }
 
   static async getScoreTotalBefore(
@@ -46,7 +46,7 @@ export class RankingWindowScoreService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        round: { closeAt: 'desc' },
       },
       select: {
         scoreTotal: true,
@@ -88,7 +88,6 @@ export class RankingWindowScoreService {
         userId: { in: participantIds },
         round: {
           closeAt: {
-            ...(ranking.startDate ? { gte: ranking.startDate } : {}),
             lte: endDate,
           },
         },
@@ -113,29 +112,25 @@ export class RankingWindowScoreService {
     )
 
     const rows = participants.map(participant => {
-      const admissionDate = participant.approvedAt ?? participant.createdAt
-      const effectiveStart =
-        ranking.startDate && ranking.startDate > admissionDate
-          ? ranking.startDate
-          : admissionDate
-      const eligibleHistory = historyRows.filter(row =>
-        row.userId === participant.userId &&
-        row.round.closeAt != null &&
-        row.round.closeAt >= effectiveStart &&
-        row.round.closeAt <= endDate
+      const latestHistory = historyRows.find(row =>
+        row.userId === participant.userId
       )
-      const score = Math.max(
-        0,
-        eligibleHistory.reduce((total, row) => total + row.scoreRound, 0)
-      )
-      const latestHistory = eligibleHistory[0]
       const scoreTotalCurrent = latestHistory?.scoreTotal ?? participant.scoreInitial
+      const score = this.calculateScoreFromBaseline(
+        scoreTotalCurrent,
+        participant.scoreInitial
+      )
+      const scoreRound =
+        latestHistory?.round.closeAt != null &&
+        (!ranking.startDate || latestHistory.round.closeAt >= ranking.startDate)
+          ? latestHistory.scoreRound
+          : 0
 
       return {
         participantId: participant.id,
         userId: participant.userId,
         score,
-        scoreRound: latestHistory?.scoreRound ?? 0,
+        scoreRound,
         position: 0,
         scoreInitial: participant.scoreInitial,
         scoreTotalCurrent,

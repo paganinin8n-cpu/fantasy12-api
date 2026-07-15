@@ -14,6 +14,9 @@ const {
 const {
   ReviewBolaoRequestService,
 } = require('../dist/services/bolao/review-bolao-request.service')
+const {
+  CreateBolaoInviteService,
+} = require('../dist/services/bolao/create-bolao-invite.service')
 
 const REGISTRATION_CLOSED = 'As inscrições para esta competição foram encerradas.'
 
@@ -50,7 +53,10 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
       }),
     },
     round: {
-      findFirst: async () => ({ id: 'round-10' }),
+      findFirst: async () => ({
+        id: 'round-10',
+        closeAt: new Date('2026-08-05T12:00:00Z'),
+      }),
     },
     rankingRound: {
       create: async ({ data }) => {
@@ -131,6 +137,39 @@ test('bloqueia aprovacao pendente depois do fechamento da primeira rodada', asyn
       participantId: 'participant-2',
       reviewerUserId: 'creator-1',
       status: 'APPROVED',
+    }),
+    { message: REGISTRATION_CLOSED }
+  )
+})
+
+test('bloqueia a criacao de convite depois do fechamento da primeira rodada', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
+  const originalFindUnique = prisma.ranking.findUnique
+  const originalInviteCreate = prisma.bolaoInvite.create
+  const originalAuditCreate = prisma.auditLog.create
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.ranking.findUnique = originalFindUnique
+    prisma.bolaoInvite.create = originalInviteCreate
+    prisma.auditLog.create = originalAuditCreate
+  })
+
+  AssertActiveProUserService.execute = async () => ({ id: 'creator-1' })
+  prisma.ranking.findUnique = async () => openBolaoWithClosedFirstRound()
+  prisma.bolaoInvite.create = async ({ data }) => ({
+    id: 'invite-1',
+    code: data.code,
+    maxUses: null,
+    expiresAt: null,
+    isActive: true,
+    createdAt: new Date(),
+  })
+  prisma.auditLog.create = async () => ({})
+
+  await assert.rejects(
+    CreateBolaoInviteService.execute({
+      rankingId: 'mesa-1',
+      createdByUserId: 'creator-1',
     }),
     { message: REGISTRATION_CLOSED }
   )

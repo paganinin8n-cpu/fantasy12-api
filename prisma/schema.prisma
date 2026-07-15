@@ -245,6 +245,7 @@ model RoundMatch {
   groupLabel String?
   matchTime  DateTime?
   result     String?
+  cancelled  Boolean   @default(false)
 
   homeTeamId String?
   awayTeamId String?

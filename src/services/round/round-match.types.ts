@@ -12,7 +12,8 @@ export type RoundMatchResultInput = {
 }
 
 export const ROUND_MATCH_COUNT = 12
-export const VALID_MATCH_RESULTS = ['1', 'X', '2'] as const
+export const CANCELLED_MATCH_RESULT = 'C'
+export const VALID_MATCH_RESULTS = ['1', 'X', '2', CANCELLED_MATCH_RESULT] as const
 
 export function normalizeRoundMatches(matches: RoundMatchInput[]) {
   if (!Array.isArray(matches) || matches.length !== ROUND_MATCH_COUNT) {
@@ -69,7 +70,7 @@ export function normalizeRoundResult(result: string) {
 
   for (const value of values) {
     if (!VALID_MATCH_RESULTS.includes(value as typeof VALID_MATCH_RESULTS[number])) {
-      throw new Error('Cada resultado precisa ser 1, X ou 2')
+      throw new Error('Cada resultado precisa ser 1, X, 2 ou C para jogo cancelado')
     }
   }
 

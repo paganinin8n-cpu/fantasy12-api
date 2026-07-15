@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
+import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -21,6 +22,13 @@ export class JoinBolaoService {
           maxParticipants: true,
           currentParticipants: true,
           createdByUserId: true,
+          rounds: {
+            orderBy: { round: { number: 'asc' } },
+            take: 1,
+            select: {
+              round: { select: { closeAt: true, status: true } },
+            },
+          },
         },
       });
 
@@ -32,9 +40,11 @@ export class JoinBolaoService {
         throw new Error('Ranking não é uma Mesa');
       }
 
-      if (bolao.status !== 'DRAFT') {
+      if (bolao.status === 'CLOSED') {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
+
+      BolaoRegistrationWindowService.assertOpen(bolao);
 
       if (bolao.createdByUserId === userId) {
         throw new Error('O criador já administra esta Mesa');

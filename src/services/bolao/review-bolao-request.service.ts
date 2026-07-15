@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
+import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 
 type ReviewBolaoRequestInput = {
   rankingId: string;
@@ -26,6 +27,13 @@ export class ReviewBolaoRequestService {
           maxParticipants: true,
           currentParticipants: true,
           createdByUserId: true,
+          rounds: {
+            orderBy: { round: { number: 'asc' } },
+            take: 1,
+            select: {
+              round: { select: { closeAt: true, status: true } },
+            },
+          },
         },
       });
 
@@ -41,9 +49,13 @@ export class ReviewBolaoRequestService {
         throw new Error('Apenas o criador pode revisar solicitações desta Mesa');
       }
 
-      if (bolao.status !== 'DRAFT') {
+      if (bolao.status === 'CLOSED') {
         throw new Error('Esta Mesa não está aberta para revisão de participantes');
       }
+
+      const firstRound = status === 'APPROVED'
+        ? BolaoRegistrationWindowService.assertOpen(bolao)
+        : null;
 
       const participant = await tx.rankingParticipant.findUnique({
         where: { id: participantId },
@@ -113,7 +125,7 @@ export class ReviewBolaoRequestService {
         await RankingWindowScoreService.getScoreTotalBefore(
           tx,
           participant.userId,
-          approvedAt
+          firstRound!.closeAt
         );
 
       const approved = await tx.rankingParticipant.update({

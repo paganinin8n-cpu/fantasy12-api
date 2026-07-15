@@ -14,7 +14,6 @@ export type TicketScoreBreakdown = {
 export class CalculateTicketScoreService {
 
   private readonly MATCH_COUNT = 12
-  private readonly MIN_ROUND_SCORE = -24
 
   detail(
     prediction: string,
@@ -60,6 +59,10 @@ export class CalculateTicketScoreService {
         throw new Error('Invalid multiplier')
       }
 
+      if (res === 'C') {
+        continue
+      }
+
       const hit = pred === res
 
       if (hit) {
@@ -93,14 +96,7 @@ export class CalculateTicketScoreService {
 
     }
 
-    let total = basePoints + multiplierBonus - multiplierPenalty
-
-    /**
-     * proteção contra score negativo extremo
-     */
-    if (total < this.MIN_ROUND_SCORE) {
-      total = this.MIN_ROUND_SCORE
-    }
+    const total = basePoints + multiplierBonus - multiplierPenalty
 
     return {
       hits,

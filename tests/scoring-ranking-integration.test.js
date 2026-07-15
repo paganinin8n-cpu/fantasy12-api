@@ -23,6 +23,9 @@ const {
 const {
   normalizeRoundResult,
 } = require('../dist/services/round/round-match.types')
+const {
+  SetRoundResultService,
+} = require('../dist/services/round/set-round-result.service')
 
 test('calcula pontos, bonus e penalidades dos 12 jogos', () => {
   const calculator = new CalculateTicketScoreService()
@@ -85,6 +88,50 @@ test('resultado consolidado aceita C para identificar partida cancelada', () => 
   )
 
   assert.equal(result[0], 'C')
+})
+
+test('salva partida cancelada explicitamente e sem placar individual', async t => {
+  const originalFindUnique = prisma.round.findUnique
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    prisma.round.findUnique = originalFindUnique
+    prisma.$transaction = originalTransaction
+  })
+
+  const matches = Array.from({ length: 12 }, (_, index) => ({
+    id: `match-${index + 1}`,
+    position: index + 1,
+  }))
+  const updatedMatches = []
+
+  prisma.round.findUnique = async () => ({
+    status: 'CLOSED',
+    matches,
+  })
+  prisma.$transaction = async callback => callback({
+    round: { update: async () => ({}) },
+    roundMatch: {
+      update: async ({ where, data }) => {
+        updatedMatches.push({ id: where.id, ...data })
+      },
+    },
+  })
+
+  await SetRoundResultService.execute(
+    'round-1',
+    ['C', ...Array(11).fill('1')].join(',')
+  )
+
+  assert.deepEqual(updatedMatches[0], {
+    id: 'match-1',
+    cancelled: true,
+    result: null,
+  })
+  assert.deepEqual(updatedMatches[1], {
+    id: 'match-2',
+    cancelled: false,
+    result: '1',
+  })
 })
 
 test('apura nova rodada a partir do ultimo acumulado cronologico, mesmo apos queda', async t => {

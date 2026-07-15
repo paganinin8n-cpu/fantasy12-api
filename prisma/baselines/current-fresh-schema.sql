@@ -118,6 +118,7 @@ CREATE TABLE "round_matches" (
     "groupLabel" TEXT,
     "matchTime" TIMESTAMP(3),
     "result" TEXT,
+    "cancelled" BOOLEAN NOT NULL DEFAULT false,
     "homeTeamId" TEXT,
     "awayTeamId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

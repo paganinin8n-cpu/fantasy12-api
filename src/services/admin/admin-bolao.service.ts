@@ -36,19 +36,45 @@ export class AdminBolaoService {
       createdByUserId,
     } = input;
 
-    return prisma.ranking.create({
-      data: {
-        id: randomUUID(), // incremento mínimo já aprovado
-        name,
-        description,
-        type: 'BOLAO',
-        status: 'ACTIVE',
-        startDate,
-        endDate,
-        durationDays,
-        currentParticipants: 0,
-        createdByUserId,
-      },
+    return prisma.$transaction(async tx => {
+      const bolao = await tx.ranking.create({
+        data: {
+          id: randomUUID(), // incremento mínimo já aprovado
+          name,
+          description,
+          type: 'BOLAO',
+          status: 'ACTIVE',
+          startDate,
+          endDate,
+          durationDays,
+          currentParticipants: 0,
+          createdByUserId,
+        },
+      });
+
+      const firstRound = await tx.round.findFirst({
+        where: {
+          closeAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
+        select: { id: true },
+      });
+
+      if (!firstRound) {
+        throw new Error('Não existe rodada válida dentro do período da Mesa');
+      }
+
+      await tx.rankingRound.create({
+        data: {
+          rankingId: bolao.id,
+          roundId: firstRound.id,
+        },
+      });
+
+      return bolao;
     });
   }
 }

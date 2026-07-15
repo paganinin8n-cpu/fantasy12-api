@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/prisma'
 import { RoundStatus } from '@prisma/client'
-import { normalizeRoundResult } from './round-match.types'
+import {
+  CANCELLED_MATCH_RESULT,
+  normalizeRoundResult,
+} from './round-match.types'
 
 export class SetRoundResultService {
   static async execute(roundId: string, result: string) {
@@ -40,7 +43,12 @@ export class SetRoundResultService {
           await tx.roundMatch.update({
             where: { id: match.id },
             data: {
-              result: normalizedResult[match.position - 1]
+              cancelled:
+                normalizedResult[match.position - 1] === CANCELLED_MATCH_RESULT,
+              result:
+                normalizedResult[match.position - 1] === CANCELLED_MATCH_RESULT
+                  ? null
+                  : normalizedResult[match.position - 1]
             }
           })
         }

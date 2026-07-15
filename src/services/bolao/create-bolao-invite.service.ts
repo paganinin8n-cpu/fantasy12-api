@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { randomUUID } from 'crypto';
 import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
+import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 
 type CreateInviteInput = {
   rankingId: string;
@@ -21,11 +22,28 @@ export class CreateBolaoInviteService {
     // validar ranking (Mesa privada)
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
-      select: { id: true, type: true, createdByUserId: true },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        createdByUserId: true,
+        rounds: {
+          orderBy: { round: { number: 'asc' } },
+          take: 1,
+          select: {
+            round: { select: { closeAt: true, status: true } },
+          },
+        },
+      },
     });
 
     if (!ranking) throw new Error('Mesa não encontrada');
     if (ranking.type !== 'BOLAO') throw new Error('Ranking não é uma Mesa');
+    if (ranking.status === 'CLOSED') {
+      throw new Error('Esta Mesa não está aberta para novos convites');
+    }
+
+    BolaoRegistrationWindowService.assertOpen(ranking);
 
     // apenas o criador pode gerar convite (regra inicial)
     if (ranking.createdByUserId !== createdByUserId) {

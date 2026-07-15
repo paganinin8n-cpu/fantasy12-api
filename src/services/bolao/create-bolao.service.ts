@@ -85,8 +85,34 @@ export class CreateBolaoService {
         },
       });
 
+      const firstRound = await tx.round.findFirst({
+        where: {
+          closeAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
+        select: { id: true, closeAt: true },
+      });
+
+      if (!firstRound?.closeAt) {
+        throw new Error('Não existe rodada válida dentro do período da Mesa');
+      }
+
+      await tx.rankingRound.create({
+        data: {
+          rankingId: bolao.id,
+          roundId: firstRound.id,
+        },
+      });
+
       const creatorScoreInitial =
-        (await RankingWindowScoreService.getScoreTotalBefore(tx, createdByUserId, new Date())) ?? 0;
+        (await RankingWindowScoreService.getScoreTotalBefore(
+          tx,
+          createdByUserId,
+          firstRound.closeAt
+        )) ?? 0;
 
       await tx.rankingParticipant.create({
         data: {
@@ -114,6 +140,7 @@ export class CreateBolaoService {
             durationDays,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
+            firstRoundId: firstRound.id,
             creatorScoreInitial,
           },
         },
