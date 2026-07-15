@@ -28,12 +28,13 @@ test('Mesa calcula o acumulado pelo total atual menos o snapshot inicial', async
     position: null,
     approvedAt: new Date('2026-07-01T00:00:00Z'),
     createdAt: new Date('2026-06-20T00:00:00Z'),
+    user: { scoreTotal: 1 },
   }
   const histories = [
     {
       userId: 'user-1',
       scoreRound: -4,
-      scoreTotal: 1,
+      scoreTotal: 999,
       createdAt: new Date('2026-07-05T12:00:00Z'),
       round: { closeAt: new Date('2026-07-05T12:00:00Z') },
     },

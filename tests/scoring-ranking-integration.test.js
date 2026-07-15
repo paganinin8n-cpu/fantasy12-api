@@ -145,6 +145,7 @@ test('apura nova rodada a partir do ultimo acumulado cronologico, mesmo apos que
   })
 
   let createdHistory = null
+  let updatedUserScore = null
   prisma.$transaction = async callback => callback({
     round: {
       findUnique: async () => ({
@@ -161,6 +162,12 @@ test('apura nova rodada a partir do ultimo acumulado cronologico, mesmo apos que
       update: async () => ({}),
     },
     ticket: { update: async () => ({}) },
+    user: {
+      update: async ({ where, data }) => {
+        updatedUserScore = { where, data }
+        return { scoreTotal: 17 }
+      },
+    },
     userScoreHistory: {
       findFirst: async args => {
         assert.deepEqual(args.orderBy, [
@@ -181,6 +188,10 @@ test('apura nova rodada a partir do ultimo acumulado cronologico, mesmo apos que
 
   assert.equal(createdHistory.scoreRound, 12)
   assert.equal(createdHistory.scoreTotal, 17)
+  assert.deepEqual(updatedUserScore, {
+    where: { id: 'user-1' },
+    data: { scoreTotal: { increment: 12 } },
+  })
   assert.equal(createdHistory.totalDoubles, 2)
   assert.equal(createdHistory.totalSuperDoubles, 1)
 })
