@@ -55,6 +55,10 @@ export class RecomputeScoredRoundsService {
       where: { roundId: { in: roundIds } },
     })
 
+    await prisma.user.updateMany({
+      data: { scoreTotal: 0 },
+    })
+
     let ticketsProcessed = 0
     let historiesRebuilt = 0
     let snapshotsRebuilt = 0
@@ -72,6 +76,12 @@ export class RecomputeScoredRoundsService {
           )
 
           const scoreRound = breakdown.total
+
+          const updatedUser = await tx.user.update({
+            where: { id: ticket.userId },
+            data: { scoreTotal: { increment: scoreRound } },
+            select: { scoreTotal: true },
+          })
 
           const lastHistory = await tx.userScoreHistory.findFirst({
             where: { userId: ticket.userId },
@@ -92,7 +102,7 @@ export class RecomputeScoredRoundsService {
               userId: ticket.userId,
               roundId: round.id,
               scoreRound,
-              scoreTotal: (lastHistory?.scoreTotal ?? 0) + scoreRound,
+              scoreTotal: updatedUser.scoreTotal,
               totalDoubles: (lastHistory?.totalDoubles ?? 0) + breakdown.doubleHits,
               totalSuperDoubles: (lastHistory?.totalSuperDoubles ?? 0) + breakdown.superDoubleHits,
             },

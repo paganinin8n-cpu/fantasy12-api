@@ -56,35 +56,29 @@ export class BackfillMonthlyRankingStateService {
             ? ticket.scoreRound
             : calculator.execute(ticket.prediction, round.result, ticket.multipliers)
 
-        const lastHistory = await prisma.userScoreHistory.findFirst({
-          where: { userId: ticket.userId },
-          orderBy: [
-            { createdAt: 'desc' },
-            { scoreTotal: 'desc' },
-          ],
-          select: { scoreTotal: true },
-        })
+        await prisma.$transaction(async tx => {
+          const updatedUser = await tx.user.update({
+            where: { id: ticket.userId },
+            data: { scoreTotal: { increment: scoreRound } },
+            select: { scoreTotal: true },
+          })
 
-        const previousTotal = lastHistory?.scoreTotal ?? 0
-        const scoreTotal = previousTotal + scoreRound
-
-        await prisma.$transaction([
-          prisma.ticket.update({
+          await tx.ticket.update({
             where: { id: ticket.id },
             data: {
               scoreRound,
               status: scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST,
             },
-          }),
-          prisma.userScoreHistory.create({
+          })
+          await tx.userScoreHistory.create({
             data: {
               userId: ticket.userId,
               roundId: round.id,
               scoreRound,
-              scoreTotal,
+              scoreTotal: updatedUser.scoreTotal,
             },
-          }),
-        ])
+          })
+        })
 
         historyCreated += 1
       }

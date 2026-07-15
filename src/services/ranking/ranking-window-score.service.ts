@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 
 type RankingScoreClient = Pick<
   Prisma.TransactionClient,
-  'rankingParticipant' | 'userScoreHistory'
+  'rankingParticipant' | 'userScoreHistory' | 'user'
 >
 
 type RankingWindow = {
@@ -34,26 +34,14 @@ export class RankingWindowScoreService {
   static async getScoreTotalBefore(
     tx: RankingScoreClient,
     userId: string,
-    date: Date
+    _date: Date
   ) {
-    const history = await tx.userScoreHistory.findFirst({
-      where: {
-        userId,
-        round: {
-          closeAt: {
-            lt: date,
-          },
-        },
-      },
-      orderBy: {
-        round: { closeAt: 'desc' },
-      },
-      select: {
-        scoreTotal: true,
-      },
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { scoreTotal: true },
     })
 
-    return history?.scoreTotal ?? 0
+    return user?.scoreTotal ?? 0
   }
 
   static async buildRows(
@@ -70,6 +58,9 @@ export class RankingWindowScoreService {
         position: true,
         approvedAt: true,
         createdAt: true,
+        user: {
+          select: { scoreTotal: true },
+        },
       },
       orderBy: {
         createdAt: 'asc',
@@ -115,7 +106,7 @@ export class RankingWindowScoreService {
       const latestHistory = historyRows.find(row =>
         row.userId === participant.userId
       )
-      const scoreTotalCurrent = latestHistory?.scoreTotal ?? participant.scoreInitial
+      const scoreTotalCurrent = participant.user.scoreTotal
       const score = this.calculateScoreFromBaseline(
         scoreTotalCurrent,
         participant.scoreInitial

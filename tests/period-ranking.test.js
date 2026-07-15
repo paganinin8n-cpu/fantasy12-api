@@ -11,6 +11,12 @@ const {
 const {
   MonthlyRankingController,
 } = require('../dist/controllers/ranking/monthly-ranking.controller')
+const {
+  EnsureMonthlyRankingsService,
+} = require('../dist/services/ranking/ensure-monthly-rankings.service')
+const {
+  RankingWindowScoreService,
+} = require('../dist/services/ranking/ranking-window-score.service')
 
 test('ranking semanal soma scoreRound do periodo sem depender de snapshot WEEKLY', async t => {
   const restore = mockHistory(t)
@@ -36,16 +42,17 @@ test('ranking semestral soma scoreRound do periodo sem periodRef mensal', async 
   assert.equal(ranking[0].scoreRound, 3)
 })
 
-test('ranking mensal exibe pontos do mes e nao acumulado global do snapshot', async t => {
+test('ranking mensal exibe delta canonico da coorte persistida', async t => {
   const originalFindRanking = prisma.ranking.findFirst
-  const originalSnapshots = prisma.rankingSnapshot.findMany
-  const originalHistory = prisma.userScoreHistory.findMany
+  const originalEnsure = EnsureMonthlyRankingsService.execute
+  const originalBuildRows = RankingWindowScoreService.buildRows
   t.after(() => {
     prisma.ranking.findFirst = originalFindRanking
-    prisma.rankingSnapshot.findMany = originalSnapshots
-    prisma.userScoreHistory.findMany = originalHistory
+    EnsureMonthlyRankingsService.execute = originalEnsure
+    RankingWindowScoreService.buildRows = originalBuildRows
   })
 
+  EnsureMonthlyRankingsService.execute = async () => ({ registrationOpen: true })
   prisma.ranking.findFirst = async () => ({
     id: 'global-july',
     name: 'Julho',
@@ -53,22 +60,27 @@ test('ranking mensal exibe pontos do mes e nao acumulado global do snapshot', as
     status: 'ACTIVE',
     startDate: new Date('2026-07-01T00:00:00Z'),
     endDate: new Date('2026-08-01T00:00:00Z'),
+    periodRef: '2026-07',
     createdAt: new Date('2026-07-01T00:00:00Z'),
+    participants: [{
+      userId: 'user-1',
+      user: { name: 'Um', subscription: null },
+    }],
   })
-  prisma.rankingSnapshot.findMany = async () => [{
+  RankingWindowScoreService.buildRows = async () => [{
+    participantId: 'participant-1',
     userId: 'user-1',
-    scoreTotal: 100,
-    scoreRound: 3,
-    createdAt: new Date('2026-07-09T12:00:00Z'),
-    user: { name: 'Um', subscription: null },
+    score: 2,
+    scoreRound: -1,
+    position: 1,
+    scoreInitial: 10,
+    scoreTotalCurrent: 12,
+    previousScore: 0,
+    previousPosition: null,
   }]
-  prisma.userScoreHistory.findMany = async () => [
-    history('user-1', 3, 2, 1, 'Um'),
-    history('user-1', -1, 1, 1, 'Um'),
-  ]
 
   let payload = null
-  const req = { query: { scope: 'general' }, session: {} }
+  const req = { query: { scope: 'general', period: '2026-07' }, session: {} }
   const res = { json: value => { payload = value; return res } }
   await MonthlyRankingController.handle(req, res, error => { throw error })
 

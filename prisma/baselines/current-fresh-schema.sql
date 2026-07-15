@@ -55,6 +55,7 @@ CREATE TABLE "users" (
     "profileImage" TEXT,
     "bio" TEXT,
     "phone" TEXT,
+    "scoreTotal" INTEGER NOT NULL DEFAULT 0,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),
     "adminBlockedAt" TIMESTAMP(3),
@@ -165,6 +166,7 @@ CREATE TABLE "rankings" (
     "status" "RankingStatus" NOT NULL DEFAULT 'DRAFT',
     "startDate" TIMESTAMP(3),
     "endDate" TIMESTAMP(3),
+    "periodRef" TEXT,
     "entryFee" INTEGER NOT NULL DEFAULT 0,
     "maxParticipants" INTEGER,
     "currentParticipants" INTEGER NOT NULL DEFAULT 0,
@@ -525,6 +527,12 @@ CREATE UNIQUE INDEX "user_score_history_userId_roundId_key" ON "user_score_histo
 
 -- CreateIndex
 CREATE UNIQUE INDEX "rankings_name_key" ON "rankings"("name");
+
+-- CreateIndex
+CREATE INDEX "rankings_periodRef_idx" ON "rankings"("periodRef");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "rankings_type_periodRef_key" ON "rankings"("type", "periodRef");
 
 -- CreateIndex
 CREATE INDEX "ranking_participants_rankingId_idx" ON "ranking_participants"("rankingId");

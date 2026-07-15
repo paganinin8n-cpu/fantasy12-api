@@ -49,6 +49,12 @@ export class ScoreRoundService {
         const scoreRound = breakdown.total
         const status = scoreRound > 0 ? TicketStatus.WON : TicketStatus.LOST
 
+        const updatedUser = await tx.user.update({
+          where: { id: ticket.userId },
+          data: { scoreTotal: { increment: scoreRound } },
+          select: { scoreTotal: true },
+        })
+
         await tx.ticket.update({
           where: { id: ticket.id },
           data: { scoreRound, status }
@@ -72,7 +78,7 @@ export class ScoreRoundService {
             userId: ticket.userId,
             roundId,
             scoreRound,
-            scoreTotal: (lastHistory?.scoreTotal ?? 0) + scoreRound,
+            scoreTotal: updatedUser.scoreTotal,
             totalDoubles: (lastHistory?.totalDoubles ?? 0) + breakdown.doubleHits,
             totalSuperDoubles: (lastHistory?.totalSuperDoubles ?? 0) + breakdown.superDoubleHits,
           }

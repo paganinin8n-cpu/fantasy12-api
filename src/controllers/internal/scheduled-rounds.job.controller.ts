@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { InternalJobRunnerService } from '../../services/internal/internal-job-runner.service';
 import { OpenRoundService } from '../../services/round/open-round.service';
 import { CloseRoundService } from '../../services/round/close-round.service';
+import { EnsureMonthlyRankingsService } from '../../services/ranking/ensure-monthly-rankings.service';
 
 export class ScheduledRoundsJobController {
   async openScheduled(req: Request, res: Response): Promise<Response> {
@@ -31,7 +32,7 @@ export class ScheduledRoundsJobController {
           openAt: { lte: now },
         },
         orderBy: { openAt: 'asc' },
-        select: { id: true, number: true, openAt: true },
+        select: { id: true, number: true, openAt: true, closeAt: true },
       });
 
       if (!round) {
@@ -46,6 +47,12 @@ export class ScheduledRoundsJobController {
         jobName: 'OPEN_SCHEDULED_ROUND',
         referenceId: round.id,
         run: async () => {
+          if (round.closeAt) {
+            await EnsureMonthlyRankingsService.execute({
+              periodRef: this.periodRefFrom(round.closeAt),
+              now,
+            });
+          }
           await OpenRoundService.execute(round.id);
           return {
             roundId: round.id,
@@ -93,6 +100,12 @@ export class ScheduledRoundsJobController {
           jobName: 'CLOSE_ROUND_PREDICTIONS',
           referenceId: round.id,
           run: async () => {
+            if (round.closeAt) {
+              await EnsureMonthlyRankingsService.execute({
+                periodRef: this.periodRefFrom(round.closeAt),
+                now: new Date(round.closeAt.getTime() - 1),
+              });
+            }
             await closeRoundService.execute(round.id);
             return {
               roundId: round.id,
@@ -121,5 +134,9 @@ export class ScheduledRoundsJobController {
         error: error.message ?? 'Internal job error',
       });
     }
+  }
+
+  private periodRefFrom(date: Date) {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
   }
 }

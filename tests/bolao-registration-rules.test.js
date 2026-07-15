@@ -64,6 +64,7 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
       },
     },
     rankingParticipant: { create: async () => ({}) },
+    user: { findUnique: async () => ({ scoreTotal: 0 }) },
     userScoreHistory: { findFirst: async () => null },
     auditLog: { create: async () => ({}) },
   })
@@ -128,6 +129,7 @@ test('bloqueia aprovacao pendente depois do fechamento da primeira rodada', asyn
       update: async ({ data }) => ({ id: 'participant-2', ...data }),
     },
     userScoreHistory: { findFirst: async () => null },
+    user: { findUnique: async () => ({ scoreTotal: 0 }) },
     auditLog: { create: async () => ({}) },
   })
 

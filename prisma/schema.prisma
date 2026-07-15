@@ -122,6 +122,7 @@ model User {
   profileImage String?
   bio          String?
   phone        String?
+  scoreTotal   Int     @default(0)
 
   // Anti brute-force por conta (independente de IP)
   failedLoginAttempts Int       @default(0)
@@ -331,6 +332,7 @@ model Ranking {
 
   startDate DateTime?
   endDate   DateTime?
+  periodRef String?
 
   entryFee            Int  @default(0)
   maxParticipants     Int?
@@ -349,6 +351,8 @@ model Ranking {
   createdBy User? @relation("BolaoCreator", fields: [createdByUserId], references: [id])
 
   @@map("rankings")
+  @@unique([type, periodRef])
+  @@index([periodRef])
 }
 
 //////////////////////////////////////////////////////
