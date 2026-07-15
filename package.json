@@ -11,7 +11,7 @@
     "test:ranking": "npm run build && node --test tests/ranking-window-score.test.js",
     "test:payments": "npm run build && node --test tests/mercado-pago-*.test.js tests/subscription-access.test.js",
     "test:benefits": "npm run build && node --test tests/benefit-consumption.test.js",
-    "test:competition": "npm run build && node --test tests/ranking-window-score.test.js tests/scoring-ranking-integration.test.js tests/period-ranking.test.js tests/bolao-registration-rules.test.js tests/monthly-ranking-cohort.test.js",
+    "test:competition": "npm run build && node --test tests/ranking-window-score.test.js tests/scoring-ranking-integration.test.js tests/period-ranking.test.js tests/bolao-registration-rules.test.js tests/bolao-financial-rules.test.js tests/bolao-prize-allocation.test.js tests/monthly-ranking-cohort.test.js",
     "start": "node dist/index.js",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate:status": "npx prisma migrate status",

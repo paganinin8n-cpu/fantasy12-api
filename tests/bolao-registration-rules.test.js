@@ -74,6 +74,7 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
     startDate: new Date('2026-08-01T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
+    prizeDistribution: [{ position: 1, percentage: 100 }],
     createdByUserId: 'creator-1',
   })
 
