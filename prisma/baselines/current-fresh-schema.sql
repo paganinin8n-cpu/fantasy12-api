@@ -171,6 +171,11 @@ CREATE TABLE "rankings" (
     "maxParticipants" INTEGER,
     "currentParticipants" INTEGER NOT NULL DEFAULT 0,
     "durationDays" INTEGER,
+    "prizeDistribution" JSONB,
+    "grossCollected" INTEGER NOT NULL DEFAULT 0,
+    "platformFee" INTEGER NOT NULL DEFAULT 0,
+    "prizePool" INTEGER NOT NULL DEFAULT 0,
+    "settledAt" TIMESTAMP(3),
     "createdByUserId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -190,6 +195,8 @@ CREATE TABLE "ranking_participants" (
     "approvedByUserId" TEXT,
     "approvedAt" TIMESTAMP(3),
     "rejectedAt" TIMESTAMP(3),
+    "entryFeePaid" INTEGER NOT NULL DEFAULT 0,
+    "entryPaidAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -274,6 +281,7 @@ CREATE TABLE "wallet_ledger" (
     "type" "WalletTransactionType" NOT NULL,
     "amount" INTEGER NOT NULL,
     "description" TEXT,
+    "idempotencyKey" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "wallet_ledger_pkey" PRIMARY KEY ("id")
@@ -590,6 +598,9 @@ CREATE INDEX "subscriptions_endAt_idx" ON "subscriptions"("endAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wallets_userId_key" ON "wallets"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wallet_ledger_idempotencyKey_key" ON "wallet_ledger"("idempotencyKey");
 
 -- CreateIndex
 CREATE INDEX "wallet_ledger_walletId_idx" ON "wallet_ledger"("walletId");

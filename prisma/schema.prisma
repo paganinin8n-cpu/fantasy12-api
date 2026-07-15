@@ -338,6 +338,11 @@ model Ranking {
   maxParticipants     Int?
   currentParticipants Int  @default(0)
   durationDays        Int?
+  prizeDistribution   Json?
+  grossCollected      Int       @default(0)
+  platformFee         Int       @default(0)
+  prizePool           Int       @default(0)
+  settledAt           DateTime?
 
   createdByUserId String?
 
@@ -371,6 +376,8 @@ model RankingParticipant {
   approvedByUserId String?
   approvedAt       DateTime?
   rejectedAt       DateTime?
+  entryFeePaid     Int       @default(0)
+  entryPaidAt      DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -524,6 +531,7 @@ model WalletLedger {
   type        WalletTransactionType
   amount      Int
   description String?
+  idempotencyKey String? @unique
 
   createdAt DateTime @default(now())
 

@@ -17,6 +17,7 @@ export class CreateBolaoController {
         startDate: new Date(req.body.startDate),
         endDate: new Date(req.body.endDate),
         entryFee: req.body.entryFee ? Number(req.body.entryFee) : 0,
+        prizeDistribution: req.body.prizeDistribution,
         maxParticipants: req.body.maxParticipants
           ? Number(req.body.maxParticipants)
           : undefined,

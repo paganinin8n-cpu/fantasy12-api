@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
+import { BolaoEntryPaymentService } from './bolao-entry-payment.service';
+import { BolaoPrizeService } from './bolao-prize.service';
 
 type ReviewBolaoRequestInput = {
   rankingId: string;
@@ -64,6 +66,7 @@ export class ReviewBolaoRequestService {
           rankingId: true,
           userId: true,
           status: true,
+          entryPaidAt: true,
         },
       });
 
@@ -109,16 +112,15 @@ export class ReviewBolaoRequestService {
         throw new Error('Esta Mesa já está cheia');
       }
 
-      if (bolao.entryFee > 0) {
-        const wallet = await tx.wallet.findUnique({
-          where: { userId: participant.userId },
-          select: { balance: true },
-        });
-
-        if (!wallet || wallet.balance < bolao.entryFee) {
-          throw new Error('Participante não possui fichas suficientes para entrar nesta Mesa');
-        }
+      if (participant.entryPaidAt) {
+        throw new Error('A entrada desta participação já foi debitada');
       }
+
+      await BolaoEntryPaymentService.debit(tx, {
+        rankingId,
+        userId: participant.userId,
+        amount: bolao.entryFee,
+      });
 
       const approvedAt = new Date();
       const scoreInitial =
@@ -136,15 +138,31 @@ export class ReviewBolaoRequestService {
           approvedAt,
           approvedByUserId: reviewerUserId,
           rejectedAt: null,
+          entryFeePaid: bolao.entryFee,
+          entryPaidAt: approvedAt,
+        },
+      });
+
+      const financialRanking = await tx.ranking.update({
+        where: { id: rankingId },
+        data: {
+          currentParticipants: { increment: 1 },
+          grossCollected: { increment: bolao.entryFee },
+        },
+        select: { grossCollected: true },
+      });
+      const financialTotals = BolaoPrizeService.calculatePool(
+        financialRanking.grossCollected
+      );
+      await tx.ranking.update({
+        where: { id: rankingId },
+        data: {
+          platformFee: financialTotals.platformFee,
+          prizePool: financialTotals.prizePool,
         },
       });
 
       const currentParticipants = bolao.currentParticipants + 1;
-
-      await tx.ranking.update({
-        where: { id: rankingId },
-        data: { currentParticipants },
-      });
 
       await tx.auditLog.create({
         data: {

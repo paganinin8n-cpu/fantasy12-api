@@ -126,7 +126,7 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
   t.after(() => { prisma.$transaction = originalTransaction })
 
   let participantUpdate
-  let rankingUpdate
+  const rankingUpdates = []
   let debitCalls = 0
   let ledgerData
   prisma.$transaction = async callback => callback({
@@ -136,7 +136,12 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
         rounds: [{ round: { closeAt: new Date('2026-08-02'), status: 'OPEN' } }],
       }),
-      update: async ({ data }) => { rankingUpdate = data; return data },
+      update: async ({ data }) => {
+        rankingUpdates.push(data)
+        return data.grossCollected
+          ? { grossCollected: 22 }
+          : data
+      },
     },
     rankingParticipant: {
       findUnique: async () => ({
@@ -164,7 +169,9 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
   assert.equal(ledgerData.idempotencyKey, 'bolao:entry:mesa-1:user-2')
   assert.equal(participantUpdate.entryFeePaid, 11)
   assert.ok(participantUpdate.entryPaidAt instanceof Date)
-  assert.deepEqual(rankingUpdate.grossCollected, { increment: 11 })
+  assert.deepEqual(rankingUpdates[0].grossCollected, { increment: 11 })
+  assert.equal(rankingUpdates[1].platformFee, 2)
+  assert.equal(rankingUpdates[1].prizePool, 20)
 })
 
 test('aprovação sem saldo não altera participante nem caixa', async t => {

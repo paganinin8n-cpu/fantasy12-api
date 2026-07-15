@@ -64,6 +64,11 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
       },
     },
     rankingParticipant: { create: async () => ({}) },
+    wallet: {
+      findUnique: async () => ({ id: 'wallet-1', balance: 20 }),
+      updateMany: async () => ({ count: 1 }),
+    },
+    walletLedger: { create: async () => ({}) },
     user: { findUnique: async () => ({ scoreTotal: 0 }) },
     userScoreHistory: { findFirst: async () => null },
     auditLog: { create: async () => ({}) },

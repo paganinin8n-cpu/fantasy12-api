@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from './ranking-window-score.service';
+import { SettleBolaoService } from '../bolao/settle-bolao.service';
 
 export class CloseRankingService {
   async execute(rankingId: string, options: { force?: boolean } = {}) {
@@ -15,6 +16,9 @@ export class CloseRankingService {
           status: true,
           endDate: true,
           startDate: true,
+          grossCollected: true,
+          prizeDistribution: true,
+          settledAt: true,
         },
       });
 
@@ -71,6 +75,10 @@ export class CloseRankingService {
             },
           });
         }
+      }
+
+      if (isBolao) {
+        await SettleBolaoService.execute(tx, ranking, rows);
       }
 
       /**

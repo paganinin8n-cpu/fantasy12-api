@@ -3,6 +3,11 @@ import { randomUUID } from 'crypto';
 import { hasActiveProSubscription } from '../../domain/subscription';
 import { AppError } from '../../errors/AppError';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
+import { BolaoEntryPaymentService } from './bolao-entry-payment.service';
+import {
+  BolaoPrizeService,
+  PrizeDistributionItem,
+} from './bolao-prize.service';
 
 type CreateBolaoInput = {
   name: string;
@@ -10,6 +15,7 @@ type CreateBolaoInput = {
   startDate: Date;
   endDate: Date;
   entryFee?: number;
+  prizeDistribution: PrizeDistributionItem[];
   maxParticipants?: number; // default 50
   createdByUserId: string;
 };
@@ -22,6 +28,7 @@ export class CreateBolaoService {
       startDate,
       endDate,
       entryFee = 0,
+      prizeDistribution,
       maxParticipants = 50,
       createdByUserId,
     } = input;
@@ -55,9 +62,12 @@ export class CreateBolaoService {
       throw new Error('A data de fim deve ser posterior à data de início');
     }
 
-    if (entryFee < 0) {
-      throw new Error('A entrada em fichas não pode ser negativa');
+    if (!Number.isInteger(entryFee) || entryFee <= 0) {
+      throw new Error('A entrada em fichas deve ser maior que zero');
     }
+
+    const validatedPrizeDistribution =
+      BolaoPrizeService.validateDistribution(prizeDistribution);
 
     if (maxParticipants !== 50) {
       throw new Error('maxParticipants must be 50');
@@ -79,6 +89,8 @@ export class CreateBolaoService {
           maxParticipants,
           currentParticipants: 0,
           durationDays,
+          prizeDistribution: validatedPrizeDistribution,
+          ...BolaoPrizeService.calculatePool(entryFee),
           startDate,
           endDate,
           createdByUserId,
@@ -114,6 +126,14 @@ export class CreateBolaoService {
           firstRound.closeAt
         )) ?? 0;
 
+      await BolaoEntryPaymentService.debit(tx, {
+        rankingId: bolao.id,
+        userId: createdByUserId,
+        amount: entryFee,
+      });
+
+      const entryPaidAt = new Date();
+
       await tx.rankingParticipant.create({
         data: {
           rankingId: bolao.id,
@@ -123,6 +143,8 @@ export class CreateBolaoService {
           status: 'APPROVED',
           approvedAt: new Date(),
           approvedByUserId: createdByUserId,
+          entryFeePaid: entryFee,
+          entryPaidAt,
         },
       });
 
@@ -142,6 +164,8 @@ export class CreateBolaoService {
             endDate: endDate.toISOString(),
             firstRoundId: firstRound.id,
             creatorScoreInitial,
+            prizeDistribution: validatedPrizeDistribution,
+            entryPaidAt: entryPaidAt.toISOString(),
           },
         },
       });
@@ -163,6 +187,11 @@ export class CreateBolaoService {
       currentParticipants: result.currentParticipants,
       startDate: result.startDate,
       endDate: result.endDate,
+      prizeDistribution: result.prizeDistribution,
+      grossCollected: result.grossCollected,
+      platformFee: result.platformFee,
+      prizePool: result.prizePool,
+      settledAt: result.settledAt,
     };
   }
 }
