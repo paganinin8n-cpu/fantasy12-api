@@ -191,11 +191,12 @@ Mesmo com o mecanismo de boot controlado, o ideal é tratar migrations em produ�
 
 Registro do fluxo validado em 2026-06-21 para publicar API e frontend em producao.
 
-## CI/CD automatizado da API
+## CI/CD automatizado da API e do frontend
 
 Status:
 
 - automatizado em .github/workflows/deploy.yml
+- frontend automatizado em fantasy12-frontend/.github/workflows/deploy.yml
 
 O workflow CI/CD API é a trilha oficial para a API:
 
@@ -241,6 +242,19 @@ Observações:
 - mudanças de schema devem passar por npm run prisma:schema:release:check e seguir a seção de migrations deste documento
 - o workflow substitui o antigo deploy parcial que copiava apenas dist/ para dentro do container
 - a sincronização preserva .env e .env.local remotos quando existirem no diretório do serviço
+
+O workflow CI/CD frontend segue o mesmo padrão operacional:
+
+- em push para master ou execução manual:
+  - instala dependências com npm ci
+  - roda npm run build como check
+  - empacota o código-fonte sem .env, node_modules, dist ou artefatos locais
+  - sincroniza o pacote no diretório do serviço frontend do EasyPanel no VPS
+  - chama deployService via RPC do EasyPanel
+  - valida que a URL pública está servindo o bundle atualizado
+
+O frontend não deve mais publicar copiando dist/ diretamente para um container Nginx via
+NGINX_CONTAINER_ID. A fonte de verdade em produção é o serviço frontend do EasyPanel.
 
 ### Premissas
 
@@ -539,19 +553,22 @@ tail -40 /var/log/fantasy12-scheduler.log
 curl -sS https://api.fantasy12.com/health
 ```
 
-Scheduler de rodadas instalado:
+Scheduler de aplicacao (BullMQ worker; cron HTTP legado desativado apos migracao):
 
 ```text
-script: /opt/fantasy12-infra/scripts/run-internal-job.sh
-env:    /etc/fantasy12/jobs.env
-log:    /var/log/fantasy12-scheduler.log
+worker: mesma revisao da API (`scripts/start-worker.sh`)
+redis:  persistente + noeviction
+log API jobs: InternalJobExecution / auditLog
+recuperacao: /opt/fantasy12-infra/scripts/run-internal-job.sh
 ```
 
-Validacao manual dos jobs:
+Validacao manual dos jobs (recovery):
 
 ```bash
 /opt/fantasy12-infra/scripts/run-internal-job.sh /internal/open-scheduled-rounds
 /opt/fantasy12-infra/scripts/run-internal-job.sh /internal/close-scheduled-rounds
+/opt/fantasy12-infra/scripts/run-internal-job.sh /internal/close-expired-rankings
+/opt/fantasy12-infra/scripts/run-internal-job.sh /internal/ensure-monthly-rankings
 ```
 
 ### 8. Migrations Prisma
@@ -566,3 +583,101 @@ Antes de aplicar migration em producao:
 4. Validar `/health` e fluxos afetados.
 
 Para mudancas que apenas deixam de usar um valor antigo no codigo, como a remocao logica de `UserRole.PRO`, o deploy de codigo pode ficar saudavel mesmo antes de remover fisicamente o valor antigo do enum no banco.
+
+## 9. BullMQ worker (substitui cron de aplicacao)
+
+### Arquitetura
+
+- Redis persiste filas/schedules BullMQ.
+- Processo **worker** separado (`node dist/worker.js` / `npm run start:worker`) consome a fila `fantasy12-jobs`.
+- O processo HTTP da API **nao** executa workers.
+- Processors chamam os mesmos services de dominio usados pelos endpoints `/internal/...`.
+- PostgreSQL continua como fonte da verdade; `InternalJobExecution` + status de dominio/`settledAt` protegem contra entrega duplicada.
+
+Schedules:
+
+| Scheduler id | Frequencia | Service |
+|---|---|---|
+| `scheduler:open-scheduled-rounds` | a cada 1 min | `OpenScheduledRoundsJobService` |
+| `scheduler:close-scheduled-rounds` | a cada 1 min | `CloseScheduledRoundsJobService` |
+| `scheduler:close-expired-rankings` | a cada 1 min | `CloseExpiredRankingsJobService` |
+| `scheduler:ensure-monthly-rankings` | `0 0 1 * *` `America/Sao_Paulo` | `EnsureMonthlyRankingsJobService` |
+| `scheduler:reconcile-monthly-rankings` | `5 * * * *` + startup | `EnsureMonthlyRankingsJobService` (source=reconcile) |
+
+### Variaveis de ambiente (worker)
+
+```env
+REDIS_URL=redis://:PASSWORD@HOST:6379/0
+BULLMQ_PREFIX=fantasy12-prd
+BULLMQ_WORKER_CONCURRENCY=1
+BULLMQ_REGISTER_SCHEDULES=true
+WORKER_HEALTH_PORT=3002
+DATABASE_URL=postgresql://...
+```
+
+A API HTTP nao precisa de `REDIS_URL`. Nao logar `REDIS_URL` completo (credenciais).
+
+### Redis em producao
+
+- Persistencia AOF habilitada.
+- `maxmemory-policy=noeviction` (obrigatorio para BullMQ).
+- Autenticacao (`requirepass`) e volume persistente.
+- Prefixo `BULLMQ_PREFIX` distinto por ambiente.
+
+### Como subir o worker (EasyPanel)
+
+1. Criar servico Redis no projeto `f12-prd`.
+2. Criar servico `worker` usando a **mesma imagem/revisao** da API.
+3. Command/override: `sh ./scripts/start-worker.sh` (ou `node dist/worker.js`).
+4. Healthcheck: `curl -fsS http://127.0.0.1:3002/health`.
+5. Wire `REDIS_URL`, `BULLMQ_*`, `DATABASE_URL` via secrets do painel (sem commit).
+
+### Inspecionar jobs
+
+No container do worker (ou host com `REDIS_URL`):
+
+```bash
+node -e "
+const { Queue } = require('bullmq');
+const q = new Queue('fantasy12-jobs', {
+  connection: { url: process.env.REDIS_URL },
+  prefix: process.env.BULLMQ_PREFIX || 'fantasy12',
+});
+(async () => {
+  console.log(await q.getJobCounts('waiting','active','completed','failed','delayed'));
+  console.log(await q.getJobSchedulers());
+  await q.close();
+  process.exit(0);
+})();
+"
+```
+
+### Retry seguro de job falho
+
+1. Preferir o endpoint interno de recuperacao (idempotente no dominio):
+   - `/internal/open-scheduled-rounds`
+   - `/internal/close-scheduled-rounds`
+   - `/internal/close-expired-rankings`
+   - `/internal/ensure-monthly-rankings`
+2. Ou reprocessar o failed job no BullMQ (`job.retry()`), confiante na idempotencia de banco.
+
+### Validar timezone do monthly
+
+O schedule `scheduler:ensure-monthly-rankings` usa `tz: America/Sao_Paulo` e cron `0 0 1 * *`.
+
+```bash
+node -e "console.log(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).format(new Date()))"
+```
+
+O reconcile horario + reconcile no startup do worker cobre falha de Redis a meia-noite.
+
+### Migracao cron -> BullMQ
+
+1. Deploy Redis.
+2. Deploy worker com `BULLMQ_REGISTER_SCHEDULES=true`.
+3. Confirmar worker `/health` e counts completed aumentando.
+4. Comentar apenas as linhas de aplicacao em `fantasy12-infra/scripts/cron.txt` (manter backup/retention).
+5. Manter endpoints internos para recovery.
+6. Rollback: reativar as duas linhas `* * * * * ... open/close-scheduled-rounds` se Redis/worker falharem.
+
+Durante overlap cron+BullMQ, a protecao final e a idempotencia no PostgreSQL — nao apenas dedupe do BullMQ.

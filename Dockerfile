@@ -52,7 +52,10 @@ COPY --from=build /app/scripts ./scripts
 RUN npx prisma generate
 
 EXPOSE 3001
+EXPOSE 3002
 
+# Default HEALTHCHECK targets the API. Worker containers should override with
+# WORKER_HEALTH_PORT (default 3002) /health.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT:-3001}/health" >/dev/null || exit 1
 

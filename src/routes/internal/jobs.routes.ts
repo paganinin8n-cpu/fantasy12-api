@@ -6,6 +6,7 @@ import { CloseExpiredRankingsController } from '../../controllers/internal/close
 import { OpenRoundJobController } from '../../controllers/internal/open-round.job.controller';
 import { RecomputeScoredRoundsController } from '../../controllers/internal/recompute-scored-rounds.controller';
 import { ScheduledRoundsJobController } from '../../controllers/internal/scheduled-rounds.job.controller';
+import { EnsureMonthlyRankingsJobController } from '../../controllers/internal/ensure-monthly-rankings.job.controller';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ const closeExpiredRankingsController = new CloseExpiredRankingsController();
 const openRoundJobController = new OpenRoundJobController();
 const recomputeScoredRoundsController = new RecomputeScoredRoundsController();
 const scheduledRoundsJobController = new ScheduledRoundsJobController();
+const ensureMonthlyRankingsJobController = new EnsureMonthlyRankingsJobController();
 
 /**
  * Apuração de rodada
@@ -79,6 +81,17 @@ router.post(
   internalJobRateLimiter,
   internalJobAuth,
   (req, res) => recomputeScoredRoundsController.execute(req, res)
+);
+
+/**
+ * Garante rankings mensais GLOBAL/PRO (recuperacao manual)
+ * POST /internal/jobs/ensure-monthly-rankings
+ */
+router.post(
+  '/ensure-monthly-rankings',
+  internalJobRateLimiter,
+  internalJobAuth,
+  (req, res) => ensureMonthlyRankingsJobController.execute(req, res)
 );
 
 export default router;
