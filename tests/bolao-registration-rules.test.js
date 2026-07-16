@@ -38,9 +38,13 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
   })
 
   let linkedRound = null
+  let createdStatus = null
   prisma.$transaction = async callback => callback({
     ranking: {
-      create: async ({ data }) => ({ ...data }),
+      create: async ({ data }) => {
+        createdStatus = data.status
+        return { ...data }
+      },
       update: async ({ data }) => ({
         id: 'mesa-1',
         name: 'Mesa Oficial',
@@ -89,6 +93,7 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
     roundId: 'round-10',
   })
   assert.ok(linkedRound.rankingId)
+  assert.equal(createdStatus, 'ACTIVE')
 })
 
 test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async t => {

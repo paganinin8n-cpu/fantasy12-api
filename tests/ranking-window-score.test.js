@@ -61,3 +61,27 @@ test('Mesa calcula o acumulado pelo total atual menos o snapshot inicial', async
   assert.equal(rows[0].scoreRound, -4)
   assert.equal(rows[0].scoreTotalCurrent, 1)
 })
+
+test('fechamento atrasado usa o ultimo acumulado ate o fim da competicao', async () => {
+  const participant = {
+    id: 'participant-1', userId: 'user-1', score: 0, scoreInitial: 10,
+    position: null, approvedAt: new Date('2026-07-01T00:00:00Z'),
+    createdAt: new Date('2026-07-01T00:00:00Z'), user: { scoreTotal: 99 },
+  }
+  const db = {
+    rankingParticipant: { findMany: async () => [participant] },
+    userScoreHistory: { findMany: async () => [{
+      userId: 'user-1', scoreRound: 3, scoreTotal: 18,
+      createdAt: new Date('2026-07-31T22:00:00Z'),
+      round: { closeAt: new Date('2026-07-31T21:00:00Z') },
+    }] },
+  }
+
+  const rows = await RankingWindowScoreService.buildRows(db, {
+    id: 'monthly-2026-07', startDate: new Date('2026-07-01T03:00:00Z'),
+    endDate: new Date('2026-08-01T02:59:59.999Z'),
+  }, new Date('2026-08-03T12:00:00Z'))
+
+  assert.equal(rows[0].scoreTotalCurrent, 18)
+  assert.equal(rows[0].score, 8)
+})
