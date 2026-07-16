@@ -65,6 +65,10 @@ export class CreateBolaoService {
       throw new Error('A data de fim deve ser posterior à data de início');
     }
 
+    if (!(entryEndDate instanceof Date) || Number.isNaN(entryEndDate.getTime())) {
+      throw new Error('Informe uma data válida para o término das entradas');
+    }
+
     if (entryEndDate <= startDate) {
       throw new Error('A data de término das entradas deve ser posterior à data de início');
     }
