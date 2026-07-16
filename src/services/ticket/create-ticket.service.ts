@@ -2,6 +2,10 @@ import { prisma } from '../../lib/prisma'
 import { ConsumeBenefitsService } from '../benefits/consume-benefits.service'
 import { BetType } from '@prisma/client'
 import { AppError } from '../../errors/AppError'
+import {
+  isValidTicketPrediction,
+  normalizeTicketPrediction,
+} from './normalize-ticket-prediction'
 
 type CreateTicketInput = {
   userId: string
@@ -66,12 +70,20 @@ export class CreateTicketService {
       /**
        * 2️⃣ Validar prediction
        */
-      const predictions = prediction.split(',')
+      const normalizedPrediction = normalizeTicketPrediction(prediction)
+      const predictions = normalizedPrediction.split(',')
 
       if (predictions.length !== 12) {
         throw AppError.badRequest(
           'O envio precisa conter os 12 jogos da rodada.',
           'invalid_prediction_size'
+        )
+      }
+
+      if (!isValidTicketPrediction(normalizedPrediction)) {
+        throw AppError.badRequest(
+          'Cada palpite deve ser 1, X ou 2.',
+          'invalid_prediction'
         )
       }
 
@@ -171,7 +183,7 @@ export class CreateTicketService {
         data: {
           userId,
           roundId,
-          prediction,
+          prediction: normalizedPrediction,
           multipliers
         }
       })
@@ -184,7 +196,7 @@ export class CreateTicketService {
           entityId: ticket.id,
           metadata: {
             roundId,
-            prediction,
+            prediction: normalizedPrediction,
             multipliers,
             doubles,
             superDoubles,

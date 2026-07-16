@@ -132,6 +132,7 @@ test('benefício pago entra no inventário permanente e sobrevive ao fechamento 
         return { id: 'inventory-1', quantity: state.inventory }
       },
     },
+    auditLog: { create: async () => ({}) },
   })
   await GrantPaidBenefitService.execute({
     userId: 'user-1', roundId: 'round-1', type: 'DOUBLE', quantity: 3,

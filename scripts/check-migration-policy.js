@@ -6,6 +6,9 @@ const packagePath = path.join(repoRoot, 'package.json')
 const baselinePath = path.join(repoRoot, 'prisma', 'baselines', 'current-fresh-schema.sql')
 const bootstrapPath = path.join(repoRoot, 'scripts', 'bootstrap-database.js')
 const migrationDocsPath = path.join(repoRoot, 'docs', 'database-bootstrap.md')
+const singleOpenConstraintPath = path.join(
+  repoRoot, 'prisma', 'constraints', 'single-open-round.sql'
+)
 
 function assert(condition, message) {
   if (!condition) {
@@ -26,6 +29,10 @@ function main() {
 
   assert(fs.existsSync(baselinePath), 'fresh baseline SQL is missing')
   assert(
+    fs.existsSync(singleOpenConstraintPath),
+    'database-only single OPEN round constraint is missing'
+  )
+  assert(
     pkg.scripts['prisma:bootstrap:fresh']?.includes('scripts/bootstrap-database.js'),
     'official fresh bootstrap script is missing'
   )
@@ -42,6 +49,11 @@ function main() {
   assert(
     bootstrap.includes('--skip-migration-resolve'),
     'fresh bootstrap must expose an explicit escape hatch for migration resolve'
+  )
+  assert(
+    bootstrap.includes('single-open-round.sql') &&
+      bootstrap.includes("'prisma', 'db', 'execute'"),
+    'fresh bootstrap must apply database-only operational constraints'
   )
   assert(
     normalizedDocs.includes('banco vazio') &&

@@ -1,3 +1,5 @@
+import { normalizeTicketPrediction } from '../ticket/normalize-ticket-prediction'
+
 export type TicketScoreBreakdown = {
   hits: number
   misses: number
@@ -21,8 +23,8 @@ export class CalculateTicketScoreService {
     multipliers: number[]
   ): TicketScoreBreakdown {
 
-    const predictionArr = prediction.split(',')
-    const resultArr = result.split(',')
+    const predictionArr = normalizeTicketPrediction(prediction).split(',')
+    const resultArr = result.split(',').map(token => token.trim().toUpperCase())
 
     /**
      * validação estrutural

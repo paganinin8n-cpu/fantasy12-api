@@ -25,9 +25,10 @@ Esse comando:
 2. inspeciona as tabelas do schema `public`
 3. bloqueia a execução se o banco já tiver tabelas
 4. roda `prisma db push --skip-generate`
-5. marca as migrations historicas como aplicadas em `_prisma_migrations`
-6. roda `seed-admin-permissions`
-7. roda `seed:app`
+5. aplica constraints operacionais não representáveis no schema Prisma, como o índice parcial de rodada única `OPEN`
+6. marca as migrations historicas como aplicadas em `_prisma_migrations`
+7. roda `seed-admin-permissions`
+8. roda `seed:app`
 
 Esse registro das migrations e intencional. Como o `db push` ja deixa o schema no estado atual, marcar a historia antiga como aplicada impede que um banco fresh tente executar a cadeia legada quebrada no primeiro `migrate deploy` futuro.
 

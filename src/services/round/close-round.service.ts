@@ -1,5 +1,6 @@
 import { RoundRepository } from '../../repositories/round.repository';
 import { RoundStatus } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 
 export class CloseRoundService {
   private repository = new RoundRepository();
@@ -15,6 +16,13 @@ export class CloseRoundService {
       throw new Error('Somente rodadas OPEN podem ser fechadas');
     }
 
-    return this.repository.updateStatus(roundId, RoundStatus.CLOSED);
+    const closedRound = await this.repository.updateStatus(roundId, RoundStatus.CLOSED);
+
+    await prisma.roundBenefit.updateMany({
+      where: { roundId },
+      data: { freeDoubles: 0, freeSuperDoubles: 0 },
+    });
+
+    return closedRound;
   }
 }

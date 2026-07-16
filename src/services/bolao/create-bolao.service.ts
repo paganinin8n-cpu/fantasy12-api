@@ -9,6 +9,7 @@ import {
   PrizeDistributionItem,
 } from './bolao-prize.service';
 import { normalizeMesaPrizeRules } from './mesa-prize-rules';
+import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 
 type CreateBolaoInput = {
   name: string;
@@ -107,12 +108,16 @@ export class CreateBolaoService {
           },
         },
         orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
-        select: { id: true, closeAt: true },
+        select: { id: true, status: true, closeAt: true },
       });
 
       if (!firstRound?.closeAt) {
         throw new Error('Não existe rodada válida dentro do período da Mesa');
       }
+
+      BolaoRegistrationWindowService.assertOpen({
+        rounds: [{ round: firstRound }],
+      });
 
       await tx.rankingRound.create({
         data: {

@@ -7,6 +7,9 @@ const { prisma } = require('../dist/lib/prisma')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 const MIGRATIONS_DIR = path.join(PROJECT_ROOT, 'prisma', 'migrations')
+const SINGLE_OPEN_ROUND_CONSTRAINT = path.join(
+  PROJECT_ROOT, 'prisma', 'constraints', 'single-open-round.sql'
+)
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -74,6 +77,13 @@ async function main() {
 
   console.log('Running prisma db push...')
   run('npx', ['prisma', 'db', 'push', '--skip-generate'])
+
+  console.log('Applying database-only operational constraints...')
+  run('npx', [
+    'prisma', 'db', 'execute',
+    '--file', SINGLE_OPEN_ROUND_CONSTRAINT,
+    '--schema', 'prisma/schema.prisma',
+  ])
 
   if (!skipMigrationResolve) {
     markMigrationsApplied()

@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { RoundStatus } from '@prisma/client';
 import { ScoreRoundService } from '../score/score-round.service';
+import { CloseRoundService } from './close-round.service';
 
 export class RoundAdminService {
   private scoringService = new ScoreRoundService();
@@ -117,13 +118,7 @@ export class RoundAdminService {
      * Se estiver OPEN → primeiro fechar
      */
     if (round.status === RoundStatus.OPEN) {
-      await prisma.round.update({
-        where: { id: roundId },
-        data: {
-          status: RoundStatus.CLOSED,
-          closeAt: new Date(),
-        },
-      });
+      await new CloseRoundService().execute(roundId);
     }
 
     /**

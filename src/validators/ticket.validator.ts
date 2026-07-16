@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import {
+  isValidTicketPrediction,
+  normalizeTicketPrediction,
+} from '../services/ticket/normalize-ticket-prediction'
 
 /**
  * Schema de criação de ticket.
@@ -13,15 +17,13 @@ export const CreateTicketSchema = z.object({
   prediction: z
     .string()
     .min(1, 'prediction é obrigatório')
+    .transform(normalizeTicketPrediction)
     .refine(
       value => value.split(',').length === 12,
       { message: 'prediction deve ter exatamente 12 jogos separados por vírgula' }
     )
     .refine(
-      value =>
-        value
-          .split(',')
-          .every(p => ['1', 'X', '2', 'x'].includes(p.trim())),
+      isValidTicketPrediction,
       { message: 'cada palpite deve ser 1, X ou 2' }
     ),
   multipliers: z

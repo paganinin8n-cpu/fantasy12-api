@@ -32,43 +32,47 @@ export class GrantPaidBenefitService {
     type,
     quantity = 1,
   }: GrantPaidBenefitInput) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new Error('quantity must be a positive integer')
+    }
+
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const benefit = await tx.roundBenefit.upsert({
+      const inventory = await tx.userBenefitInventory.upsert({
         where: {
-          userId_roundId: { userId, roundId },
+          userId_type: { userId, type },
         },
-        update: {},
+        update: {
+          quantity: { increment: quantity },
+        },
         create: {
           userId,
-          roundId,
-          freeDoubles: 0,
-          freeSuperDoubles: 0,
+          type,
+          quantity,
         },
       })
 
-      if (type === 'DOUBLE') {
-        await tx.roundBenefit.update({
-          where: { id: benefit.id },
-          data: {
-            freeDoubles: { increment: quantity },
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'PAID_BENEFIT_GRANTED',
+          entity: 'USER_BENEFIT_INVENTORY',
+          entityId: inventory.id,
+          metadata: {
+            type,
+            quantity,
+            sourceRoundId: roundId,
+            inventoryQuantity: inventory.quantity,
           },
-        })
-      }
-
-      if (type === 'SUPER_DOUBLE') {
-        await tx.roundBenefit.update({
-          where: { id: benefit.id },
-          data: {
-            freeSuperDoubles: { increment: quantity },
-          },
-        })
-      }
+        },
+      })
 
       return {
         granted: type,
         quantity,
         roundId,
+        sourceRoundId: roundId,
         userId,
+        inventoryQuantity: inventory.quantity,
       }
     })
   }

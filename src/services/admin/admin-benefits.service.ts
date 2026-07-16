@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma';
 type BenefitType = 'DOUBLE' | 'SUPER_DOUBLE';
 
 export class AdminBenefitsService {
+  /** Crédito promocional exclusivo da rodada informada; expira ao fechá-la. */
   static async creditFree(
     adminUserId: string,
     userId: string,

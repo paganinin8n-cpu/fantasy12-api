@@ -8,7 +8,7 @@ import { getRoundBenefitGrant } from './benefits.config';
  * REGRAS CANÔNICAS:
  * - NORMAL: 2 DOUBLE por rodada
  * - PRO: 4 DOUBLE + 2 SUPER_DOUBLE por rodada
- * - Sempre reseta a cada rodada
+ * - Cria a concessão uma única vez; reprocessar não restaura saldo consumido
  */
 export class GrantRoundBenefitsService {
   static async execute(roundId: string): Promise<void> {
@@ -40,8 +40,6 @@ export class GrantRoundBenefitsService {
           },
         },
         update: {
-          freeDoubles: grant.freeDoubles,
-          freeSuperDoubles: grant.freeSuperDoubles,
         },
         create: {
           userId: user.id,
