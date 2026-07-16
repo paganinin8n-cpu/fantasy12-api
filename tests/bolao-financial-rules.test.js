@@ -92,6 +92,13 @@ test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t =>
 
   await assert.rejects(
     CreateBolaoService.execute(createInput({
+      entryEndDate: new Date('invalid'),
+    })),
+    { message: 'Informe uma data válida para o término das entradas' }
+  )
+
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({
       entryEndDate: new Date('2026-08-01T00:00:00Z'),
     })),
     { message: 'A data de término das entradas deve ser posterior à data de início' }
