@@ -330,9 +330,10 @@ model Ranking {
   type        RankingType
   status      RankingStatus @default(DRAFT)
 
-  startDate DateTime?
-  endDate   DateTime?
-  periodRef String?
+  startDate    DateTime?
+  entryEndDate DateTime?
+  endDate      DateTime?
+  periodRef    String?
 
   entryFee            Int  @default(0)
   maxParticipants     Int?

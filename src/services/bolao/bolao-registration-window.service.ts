@@ -2,6 +2,8 @@ import { RoundStatus } from '@prisma/client'
 
 export const COMPETITION_REGISTRATION_CLOSED =
   'As inscrições para esta competição foram encerradas.'
+export const COMPETITION_REGISTRATION_NOT_STARTED =
+  'As inscrições para esta competição ainda não começaram.'
 
 type LinkedRound = {
   round: {
@@ -11,6 +13,8 @@ type LinkedRound = {
 }
 
 type BolaoRegistrationWindow = {
+  startDate?: Date | null
+  entryEndDate?: Date | null
   rounds: LinkedRound[]
 }
 
@@ -27,7 +31,7 @@ export class BolaoRegistrationWindowService {
     return { ...firstRound, closeAt: firstRound.closeAt }
   }
 
-  static assertOpen(bolao: BolaoRegistrationWindow, now = new Date()) {
+  static assertNotClosed(bolao: BolaoRegistrationWindow, now = new Date()) {
     const firstRound = this.getFirstRound(bolao)
     const closedStatuses: RoundStatus[] = [
       RoundStatus.CLOSED,
@@ -37,11 +41,20 @@ export class BolaoRegistrationWindowService {
 
     if (
       closedStatuses.includes(firstRound.status) ||
-      firstRound.closeAt <= now
+      firstRound.closeAt <= now ||
+      (bolao.entryEndDate != null && bolao.entryEndDate <= now)
     ) {
       throw new Error(COMPETITION_REGISTRATION_CLOSED)
     }
 
     return firstRound
+  }
+
+  static assertOpen(bolao: BolaoRegistrationWindow, now = new Date()) {
+    if (bolao.startDate != null && bolao.startDate > now) {
+      throw new Error(COMPETITION_REGISTRATION_NOT_STARTED)
+    }
+
+    return this.assertNotClosed(bolao, now)
   }
 }

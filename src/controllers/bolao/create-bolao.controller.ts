@@ -15,12 +15,10 @@ export class CreateBolaoController {
         name: req.body.name,
         description: req.body.description,
         startDate: new Date(req.body.startDate),
+        entryEndDate: new Date(req.body.entryEndDate),
         endDate: new Date(req.body.endDate),
         entryFee: req.body.entryFee ? Number(req.body.entryFee) : 0,
         prizeDistribution: req.body.prizeDistribution,
-        maxParticipants: req.body.maxParticipants
-          ? Number(req.body.maxParticipants)
-          : undefined,
         createdByUserId: userId,
       })
 

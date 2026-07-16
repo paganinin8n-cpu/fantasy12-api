@@ -26,9 +26,10 @@ export class ReviewBolaoRequestService {
           type: true,
           status: true,
           entryFee: true,
-          maxParticipants: true,
           currentParticipants: true,
           createdByUserId: true,
+          startDate: true,
+          entryEndDate: true,
           rounds: {
             orderBy: { round: { number: 'asc' } },
             take: 1,
@@ -103,13 +104,6 @@ export class ReviewBolaoRequestService {
         });
 
         return rejected;
-      }
-
-      if (
-        bolao.maxParticipants !== null &&
-        bolao.currentParticipants >= bolao.maxParticipants
-      ) {
-        throw new Error('Esta Mesa já está cheia');
       }
 
       if (participant.entryPaidAt) {

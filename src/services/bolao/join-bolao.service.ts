@@ -19,9 +19,10 @@ export class JoinBolaoService {
           type: true,
           status: true,
           entryFee: true,
-          maxParticipants: true,
           currentParticipants: true,
           createdByUserId: true,
+          startDate: true,
+          entryEndDate: true,
           rounds: {
             orderBy: { round: { number: 'asc' } },
             take: 1,
@@ -48,13 +49,6 @@ export class JoinBolaoService {
 
       if (bolao.createdByUserId === userId) {
         throw new Error('O criador já administra esta Mesa');
-      }
-
-      if (
-        bolao.maxParticipants !== null &&
-        bolao.currentParticipants >= bolao.maxParticipants
-      ) {
-        throw new Error('Esta Mesa já está cheia');
       }
 
       if (bolao.entryFee > 0) {
@@ -118,7 +112,7 @@ export class JoinBolaoService {
           metadata: {
             minimumChips: bolao.entryFee,
             currentParticipants: bolao.currentParticipants,
-            maxParticipants: bolao.maxParticipants,
+            maxParticipants: null,
           },
         },
       });

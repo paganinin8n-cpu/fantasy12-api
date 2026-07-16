@@ -165,6 +165,7 @@ CREATE TABLE "rankings" (
     "type" "RankingType" NOT NULL,
     "status" "RankingStatus" NOT NULL DEFAULT 'DRAFT',
     "startDate" TIMESTAMP(3),
+    "entryEndDate" TIMESTAMP(3),
     "endDate" TIMESTAMP(3),
     "periodRef" TEXT,
     "entryFee" INTEGER NOT NULL DEFAULT 0,

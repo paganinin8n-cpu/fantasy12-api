@@ -27,6 +27,7 @@ export class CreateBolaoInviteService {
         type: true,
         status: true,
         createdByUserId: true,
+        entryEndDate: true,
         rounds: {
           orderBy: { round: { number: 'asc' } },
           take: 1,
@@ -43,7 +44,7 @@ export class CreateBolaoInviteService {
       throw new Error('Esta Mesa não está aberta para novos convites');
     }
 
-    BolaoRegistrationWindowService.assertOpen(ranking);
+    BolaoRegistrationWindowService.assertNotClosed(ranking);
 
     // apenas o criador pode gerar convite (regra inicial)
     if (ranking.createdByUserId !== createdByUserId) {

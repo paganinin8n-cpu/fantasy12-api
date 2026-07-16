@@ -43,6 +43,7 @@ export class ListAvailableBoloesService {
         prizePool: bolao.prizePool,
         settledAt: bolao.settledAt,
         startDate: bolao.startDate,
+        entryEndDate: bolao.entryEndDate,
         endDate: bolao.endDate,
         maxParticipants: bolao.maxParticipants,
         participants: bolao.currentParticipants,

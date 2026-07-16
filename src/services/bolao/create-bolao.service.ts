@@ -15,10 +15,10 @@ type CreateBolaoInput = {
   name: string;
   description: string;
   startDate: Date;
+  entryEndDate: Date;
   endDate: Date;
   entryFee?: number;
   prizeDistribution: PrizeDistributionItem[];
-  maxParticipants?: number; // default 50
   createdByUserId: string;
 };
 
@@ -28,10 +28,10 @@ export class CreateBolaoService {
       name,
       description: rawDescription,
       startDate,
+      entryEndDate,
       endDate,
       entryFee = 0,
       prizeDistribution,
-      maxParticipants = 50,
       createdByUserId,
     } = input;
     const description = normalizeMesaPrizeRules(rawDescription);
@@ -65,16 +65,20 @@ export class CreateBolaoService {
       throw new Error('A data de fim deve ser posterior à data de início');
     }
 
+    if (entryEndDate <= startDate) {
+      throw new Error('A data de término das entradas deve ser posterior à data de início');
+    }
+
+    if (entryEndDate > endDate) {
+      throw new Error('A data de término das entradas deve ser anterior ou igual à data de fim da Mesa');
+    }
+
     if (!Number.isInteger(entryFee) || entryFee <= 0) {
       throw new Error('A entrada em fichas deve ser maior que zero');
     }
 
     const validatedPrizeDistribution =
       BolaoPrizeService.validateDistribution(prizeDistribution);
-
-    if (maxParticipants !== 50) {
-      throw new Error('maxParticipants must be 50');
-    }
 
     const durationDays = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -89,12 +93,13 @@ export class CreateBolaoService {
           type: 'BOLAO',
           status: 'ACTIVE',
           entryFee,
-          maxParticipants,
+          maxParticipants: null,
           currentParticipants: 0,
           durationDays,
           prizeDistribution: validatedPrizeDistribution,
           ...BolaoPrizeService.calculatePool(entryFee),
           startDate,
+          entryEndDate,
           endDate,
           createdByUserId,
         },
@@ -115,7 +120,9 @@ export class CreateBolaoService {
         throw new Error('Não existe rodada válida dentro do período da Mesa');
       }
 
-      BolaoRegistrationWindowService.assertOpen({
+      BolaoRegistrationWindowService.assertNotClosed({
+        startDate,
+        entryEndDate,
         rounds: [{ round: firstRound }],
       });
 
@@ -165,9 +172,10 @@ export class CreateBolaoService {
             name,
             description,
             entryFee,
-            maxParticipants,
+            maxParticipants: null,
             durationDays,
             startDate: startDate.toISOString(),
+            entryEndDate: entryEndDate.toISOString(),
             endDate: endDate.toISOString(),
             firstRoundId: firstRound.id,
             creatorScoreInitial,
@@ -193,6 +201,7 @@ export class CreateBolaoService {
       maxParticipants: result.maxParticipants,
       currentParticipants: result.currentParticipants,
       startDate: result.startDate,
+      entryEndDate: result.entryEndDate,
       endDate: result.endDate,
       prizeDistribution: result.prizeDistribution,
       grossCollected: result.grossCollected,
