@@ -31,6 +31,7 @@ function createInput(overrides = {}) {
     name: 'Mesa Financeira',
     description: 'Premiação: 60/30/10 do prêmio líquido após taxa da plataforma.',
     startDate: new Date('2026-08-01T00:00:00Z'),
+    entryEndDate: new Date('2026-08-15T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
     prizeDistribution: VALID_PRIZES,
@@ -74,6 +75,33 @@ test('Mesa exige observacoes/regras da premiacao obrigatorias', async t => {
       assert.match(error.message, /no máximo 500/)
       return true
     }
+  )
+})
+
+test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t => {
+  const originalFindUnique = prisma.user.findUnique
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    prisma.user.findUnique = originalFindUnique
+    prisma.$transaction = originalTransaction
+  })
+  prisma.user.findUnique = async () => mockProUser()
+  prisma.$transaction = async () => {
+    throw new Error('A transação não deve iniciar com datas inválidas')
+  }
+
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({
+      entryEndDate: new Date('2026-08-01T00:00:00Z'),
+    })),
+    { message: 'A data de término das entradas deve ser posterior à data de início' }
+  )
+
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({
+      entryEndDate: new Date('2026-09-01T00:00:00Z'),
+    })),
+    { message: 'A data de término das entradas deve ser anterior ou igual à data de fim da Mesa' }
   )
 })
 
