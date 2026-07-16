@@ -73,10 +73,7 @@ async function main() {
           roundId: round.id,
         },
       },
-      update: {
-        freeDoubles,
-        freeSuperDoubles,
-      },
+      update: {},
       create: {
         userId: user.id,
         roundId: round.id,
