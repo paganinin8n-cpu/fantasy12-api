@@ -207,6 +207,40 @@ test('bloqueia solicitacao depois do termino das entradas mesmo com rodada abert
   )
 })
 
+test('nao limita a quantidade de participantes da Mesa', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.$transaction = originalTransaction
+  })
+
+  AssertActiveProUserService.execute = async () => ({ id: 'user-501' })
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      findUnique: async () => ({
+        ...openBolaoWithOpenFirstRound(),
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        entryEndDate: new Date('2099-08-02T00:00:00Z'),
+        maxParticipants: 50,
+        currentParticipants: 500,
+      }),
+    },
+    rankingParticipant: {
+      findUnique: async () => null,
+      create: async () => ({ id: 'participant-501' }),
+    },
+    auditLog: { create: async () => ({}) },
+  })
+
+  const result = await JoinBolaoService.execute({
+    rankingId: 'mesa-1',
+    userId: 'user-501',
+  })
+
+  assert.equal(result.status, 'PENDING')
+})
+
 test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async t => {
   const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
