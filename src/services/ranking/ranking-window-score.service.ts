@@ -34,8 +34,15 @@ export class RankingWindowScoreService {
   static async getScoreTotalBefore(
     tx: RankingScoreClient,
     userId: string,
-    _date: Date
+    date: Date
   ) {
+    const history = await tx.userScoreHistory.findFirst({
+      where: { userId, round: { closeAt: { lt: date } } },
+      orderBy: [{ round: { closeAt: 'desc' } }, { createdAt: 'desc' }],
+      select: { scoreTotal: true },
+    })
+    if (history) return history.scoreTotal
+
     const user = await tx.user.findUnique({
       where: { id: userId },
       select: { scoreTotal: true },
@@ -46,7 +53,8 @@ export class RankingWindowScoreService {
 
   static async buildRows(
     tx: RankingScoreClient,
-    ranking: RankingWindow
+    ranking: RankingWindow,
+    now = new Date()
   ): Promise<RankingWindowRow[]> {
     const participants = await tx.rankingParticipant.findMany({
       where: { rankingId: ranking.id, status: 'APPROVED' },
@@ -106,7 +114,10 @@ export class RankingWindowScoreService {
       const latestHistory = historyRows.find(row =>
         row.userId === participant.userId
       )
-      const scoreTotalCurrent = participant.user.scoreTotal
+      const rankingEnded = ranking.endDate != null && now > ranking.endDate
+      const scoreTotalCurrent = rankingEnded
+        ? latestHistory?.scoreTotal ?? participant.scoreInitial
+        : participant.user.scoreTotal
       const score = this.calculateScoreFromBaseline(
         scoreTotalCurrent,
         participant.scoreInitial

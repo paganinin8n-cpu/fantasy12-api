@@ -5,7 +5,7 @@ export class ListAvailableBoloesService {
     const boloes = await prisma.ranking.findMany({
       where: {
         type: 'BOLAO',
-        status: 'DRAFT',
+        status: 'ACTIVE',
       },
       orderBy: [
         { startDate: 'asc' },

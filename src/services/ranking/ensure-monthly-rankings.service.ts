@@ -1,5 +1,6 @@
 import { RankingType, RoundStatus, SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
+import { SaoPauloPeriodService } from '../time/sao-paulo-period.service'
 
 type EnsureMonthlyRankingsInput = {
   periodRef: string
@@ -17,7 +18,7 @@ export class EnsureMonthlyRankingsService {
     periodRef,
     now = new Date(),
   }: EnsureMonthlyRankingsInput) {
-    const { start, end } = this.parsePeriod(periodRef)
+    const { start, end } = SaoPauloPeriodService.parse(periodRef)
     const endDate = new Date(end.getTime() - 1)
 
     return prisma.$transaction(async tx => {
@@ -234,22 +235,6 @@ export class EnsureMonthlyRankingsService {
         proAdded: proResult.count,
       }
     })
-  }
-
-  private static parsePeriod(periodRef: string) {
-    const match = /^(\d{4})-(\d{2})$/.exec(periodRef)
-    if (!match) throw new Error('Invalid period format. Expected YYYY-MM')
-
-    const year = Number(match[1])
-    const month = Number(match[2])
-    if (month < 1 || month > 12) {
-      throw new Error('Invalid month. Expected a value from 01 to 12')
-    }
-
-    return {
-      start: new Date(Date.UTC(year, month - 1, 1)),
-      end: new Date(Date.UTC(year, month, 1)),
-    }
   }
 
   private static isProAt(

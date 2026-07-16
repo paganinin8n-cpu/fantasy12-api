@@ -23,8 +23,3 @@ export function periodRefFromDate(
 
   return `${year}-${month}`
 }
-
-/** UTC-based periodRef (legacy helpers that key off round.closeAt UTC). */
-export function periodRefFromUtcDate(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
-}

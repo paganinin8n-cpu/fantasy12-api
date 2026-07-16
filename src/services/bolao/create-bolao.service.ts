@@ -86,7 +86,7 @@ export class CreateBolaoService {
           name,
           description,
           type: 'BOLAO',
-          status: 'DRAFT',
+          status: 'ACTIVE',
           entryFee,
           maxParticipants,
           currentParticipants: 0,

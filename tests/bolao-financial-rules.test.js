@@ -171,7 +171,7 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
-        id: 'mesa-1', type: 'BOLAO', status: 'DRAFT', entryFee: 11,
+        id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
         rounds: [{ round: { closeAt: new Date('2026-08-02'), status: 'OPEN' } }],
       }),
@@ -222,7 +222,7 @@ test('aprovação sem saldo não altera participante nem caixa', async t => {
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
-        id: 'mesa-1', type: 'BOLAO', status: 'DRAFT', entryFee: 11,
+        id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
         rounds: [{ round: { closeAt: new Date('2026-08-02'), status: 'OPEN' } }],
       }),

@@ -1,10 +1,12 @@
 import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from './ranking-window-score.service';
 import { SettleBolaoService } from '../bolao/settle-bolao.service';
+import { MesaIntegrityError, MesaIntegrityService } from '../bolao/mesa-integrity.service';
 
 export class CloseRankingService {
   async execute(rankingId: string, options: { force?: boolean } = {}) {
-    await prisma.$transaction(async (tx) => {
+    try {
+      await prisma.$transaction(async (tx) => {
       /**
        * 1️⃣ Buscar ranking
        */
@@ -19,6 +21,13 @@ export class CloseRankingService {
           grossCollected: true,
           prizeDistribution: true,
           settledAt: true,
+          description: true,
+          entryFee: true,
+          platformFee: true,
+          prizePool: true,
+          participants: {
+            select: { status: true, entryFeePaid: true, entryPaidAt: true },
+          },
         },
       });
 
@@ -38,6 +47,10 @@ export class CloseRankingService {
 
       if (!options.force && (!ranking.endDate || ranking.endDate > new Date())) {
         throw new Error('Ranking ainda não expirou');
+      }
+
+      if (isBolao && !ranking.settledAt) {
+        MesaIntegrityService.assertSettlementReady(ranking)
       }
 
       const rows = await RankingWindowScoreService.buildRows(tx, ranking);
@@ -102,6 +115,19 @@ export class CloseRankingService {
           },
         },
       });
-    });
+      });
+    } catch (error) {
+      if (error instanceof MesaIntegrityError) {
+        await prisma.auditLog.create({
+          data: {
+            action: 'BOLAO_SETTLEMENT_BLOCKED_INTEGRITY',
+            entity: 'RANKING',
+            entityId: rankingId,
+            metadata: JSON.parse(JSON.stringify({ issues: error.issues })),
+          },
+        }).catch(() => undefined)
+      }
+      throw error
+    }
   }
 }

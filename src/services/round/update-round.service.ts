@@ -2,16 +2,15 @@ import { prisma } from '../../lib/prisma'
 import { RoundStatus } from '@prisma/client'
 import type { RoundMatchInput } from './round-match.types'
 import { normalizeRoundMatches } from './round-match.types'
+import { OfficialRoundScheduleService } from './official-round-schedule.service'
 
 type UpdateRoundInput = {
   roundId: string
-  openAt?: Date
-  closeAt?: Date
   matches?: RoundMatchInput[]
 }
 
 export class UpdateRoundService {
-  static async execute({ roundId, openAt, closeAt, matches }: UpdateRoundInput) {
+  static async execute({ roundId, matches }: UpdateRoundInput) {
     return prisma.$transaction(async tx => {
       const round = await tx.round.findUnique({
         where: { id: roundId },
@@ -20,6 +19,7 @@ export class UpdateRoundService {
           status: true,
           openAt: true,
           closeAt: true,
+          matches: { orderBy: { position: 'asc' } },
         },
       })
 
@@ -31,26 +31,15 @@ export class UpdateRoundService {
         throw new Error('Somente rodadas em rascunho podem ser editadas')
       }
 
-      const nextOpenAt = openAt ?? round.openAt
-      const nextCloseAt = closeAt ?? round.closeAt
+      const normalizedMatches = normalizeRoundMatches(matches ?? round.matches)
+      const schedule = OfficialRoundScheduleService.derive(normalizedMatches)
 
-      if (nextOpenAt && nextCloseAt && nextOpenAt >= nextCloseAt) {
-        throw new Error('openAt deve ser anterior a closeAt')
-      }
-
-      const data: { openAt?: Date; closeAt?: Date } = {}
-      if (openAt) data.openAt = openAt
-      if (closeAt) data.closeAt = closeAt
-
-      if (Object.keys(data).length > 0) {
-        await tx.round.update({
-          where: { id: roundId },
-          data,
-        })
-      }
+      await tx.round.update({
+        where: { id: roundId },
+        data: { openAt: schedule.openAt, closeAt: schedule.closeAt },
+      })
 
       if (matches) {
-        const normalizedMatches = normalizeRoundMatches(matches)
 
         await tx.roundMatch.deleteMany({
           where: { roundId },

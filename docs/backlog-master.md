@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-06-11
+- 2026-07-15
 
 Objetivo:
 
@@ -23,6 +23,64 @@ Documentos de origem:
 - [`docs/updates-2026-05-22-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-22-review.md)
 
 ## Como ler este backlog
+
+## Fechamento das regras oficiais — fase sem premiação patrocinada
+
+Status da fase em 2026-07-15:
+
+- [x] Palpite exige exatamente 12 jogos e aceita somente `1`, `X` ou `2`
+- [x] Pontuação simples `+1/0`, Dupla `+2/-2`, Super Dupla `+4/-4` e jogo cancelado com zero
+- [x] FREE recebe 2 Duplas; PRO recebe 4 Duplas e 2 Super Duplas por rodada
+- [x] Consumo usa primeiro o saldo grátis da rodada e depois o inventário comprado
+- [x] Saldos totais, grátis e comprados são expostos para a interface
+- [x] Calendário oficial da rodada derivado dos 12 horários no fuso `America/Sao_Paulo`
+- [x] Rodada de quarta abre terça às 00:00; rodada de sábado abre sexta às 00:00
+- [x] Fechamento dos palpites ocorre uma hora antes do primeiro jogo
+- [x] Abertura manual imediata continua como override operacional separado da agenda persistida
+- [x] Rankings mensais Geral e PRO usam os limites civis do mês em São Paulo
+- [x] Coorte mensal fecha junto com a primeira rodada válida do mês
+- [x] Fechamento atrasado usa o último acumulado histórico até o fim da competição
+- [x] Pontuação negativa é preservada
+- [x] Mesa exige PRO ativo, regras/observações, entrada positiva e distribuição de 100%
+- [x] Mesa válida nasce `ACTIVE`; `DRAFT` permanece apenas como compatibilidade de fechamento legado
+- [x] Entrada do criador e aprovação de participante são atômicas e idempotentes
+- [x] Mesa aceita inscrições somente antes do fechamento da primeira rodada
+- [x] Caixa, taxa, prêmio líquido e pagamentos aos vencedores são auditáveis
+- [x] Política de taxa: `floor(10%)`; como fichas são indivisíveis, todo resto fica no prêmio dos jogadores
+- [x] Liquidação de Mesa possui preflight e bloqueia configuração financeira legada inconsistente
+- [x] Diagnóstico somente leitura disponível em `npm run mesa:integrity:diagnose`
+- [x] Fluxo administrativo legado que ignorava as regras financeiras foi desativado
+- [x] Jobs BullMQ cobrem abertura/fechamento de rodadas, fechamento de competições e coortes mensais
+
+Exceção técnica documentada:
+
+- `RankingParticipant.score` é congelado no encerramento para preservar resultado histórico imutável; durante a competição, a fonte canônica continua sendo `User.scoreTotal - scoreInitial`
+
+### Premiação adiada — fora da fase atual
+
+Os itens abaixo ficam deliberadamente parados. Eles não bloqueiam o fechamento das demais regras:
+
+- [ ] Configuração de campanhas de premiação mensal PRO
+- [ ] Publicação antecipada do prêmio antes do início da competição
+- [ ] Origem contábil do prêmio da plataforma ou patrocinador
+- [ ] Prêmio patrocinado de Mesa
+- [ ] Regra para prêmio do patrocinador substituir ou complementar fichas
+- [ ] Catálogo oficial de produtos
+- [ ] Estoque e preço em fichas dos produtos
+- [ ] Solicitação, aprovação, separação, entrega e cancelamento de resgate
+- [ ] Reembolso de fichas em resgate cancelado
+- [ ] Histórico de resgates do usuário e operação administrativa
+- [ ] Textos legais e de interface: ficha não é dinheiro, não é sacável e não é transferível
+- [ ] Explicação da referência de catálogo `1 ficha = R$ 0,50`
+
+Partes financeiras de Mesa já entregues, mesmo com a premiação patrocinada adiada:
+
+- [x] Formação do prêmio com entradas dos participantes
+- [x] Retenção da taxa da plataforma
+- [x] Distribuição percentual entre posições, inclusive empates e maiores restos
+- [x] Crédito automático e idempotente das fichas aos vencedores
+- [x] Regras/observações da premiação obrigatórias
+- [x] Exibição de arrecadação, taxa e prêmio líquido
 
 ### Prioridades
 

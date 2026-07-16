@@ -1,6 +1,3 @@
-import { prisma } from '../../lib/prisma';
-import { randomUUID } from 'crypto';
-
 type CreateBolaoInput = {
   name: string;
   description?: string;
@@ -16,65 +13,16 @@ export class AdminBolaoService {
    * Usado por controllers antigos
    */
   static async create(adminId: string, input: CreateBolaoInput) {
-    // regra antiga: admin cria Mesa em nome de outro usuário
-    return this.execute({
-      ...input,
-      createdByUserId: input.createdByUserId ?? adminId,
-    });
+    void adminId
+    void input
+    throw new Error('Fluxo administrativo legado de criação de Mesa está desativado; use o fluxo oficial')
   }
 
   /**
    * 🔹 MÉTODO ATUAL (LÓGICA REAL)
    */
   static async execute(input: CreateBolaoInput) {
-    const {
-      name,
-      description,
-      startDate,
-      endDate,
-      durationDays,
-      createdByUserId,
-    } = input;
-
-    return prisma.$transaction(async tx => {
-      const bolao = await tx.ranking.create({
-        data: {
-          id: randomUUID(), // incremento mínimo já aprovado
-          name,
-          description,
-          type: 'BOLAO',
-          status: 'ACTIVE',
-          startDate,
-          endDate,
-          durationDays,
-          currentParticipants: 0,
-          createdByUserId,
-        },
-      });
-
-      const firstRound = await tx.round.findFirst({
-        where: {
-          closeAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
-        select: { id: true },
-      });
-
-      if (!firstRound) {
-        throw new Error('Não existe rodada válida dentro do período da Mesa');
-      }
-
-      await tx.rankingRound.create({
-        data: {
-          rankingId: bolao.id,
-          roundId: firstRound.id,
-        },
-      });
-
-      return bolao;
-    });
+    void input
+    throw new Error('Fluxo administrativo legado de criação de Mesa está desativado; use o fluxo oficial')
   }
 }

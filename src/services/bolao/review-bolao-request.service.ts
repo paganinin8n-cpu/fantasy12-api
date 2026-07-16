@@ -51,7 +51,7 @@ export class ReviewBolaoRequestService {
         throw new Error('Apenas o criador pode revisar solicitações desta Mesa');
       }
 
-      if (bolao.status === 'CLOSED') {
+      if (bolao.status !== 'ACTIVE') {
         throw new Error('Esta Mesa não está aberta para revisão de participantes');
       }
 

@@ -193,7 +193,7 @@ function openBolaoWithClosedFirstRound() {
   return {
     id: 'mesa-1',
     type: 'BOLAO',
-    status: 'DRAFT',
+    status: 'ACTIVE',
     entryFee: 0,
     maxParticipants: 50,
     currentParticipants: 1,

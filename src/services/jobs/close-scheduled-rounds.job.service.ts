@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma'
 import { InternalJobRunnerService } from '../internal/internal-job-runner.service'
 import { CloseRoundService } from '../round/close-round.service'
 import { EnsureMonthlyRankingsService } from '../ranking/ensure-monthly-rankings.service'
-import { periodRefFromUtcDate } from '../../lib/period-ref'
+import { periodRefFromDate } from '../../lib/period-ref'
 
 export type CloseScheduledRoundsResult = {
   closed: number
@@ -41,7 +41,7 @@ export class CloseScheduledRoundsJobService {
         run: async () => {
           if (round.closeAt) {
             await EnsureMonthlyRankingsService.execute({
-              periodRef: periodRefFromUtcDate(round.closeAt),
+              periodRef: periodRefFromDate(round.closeAt),
               now: new Date(round.closeAt.getTime() - 1),
             })
           }

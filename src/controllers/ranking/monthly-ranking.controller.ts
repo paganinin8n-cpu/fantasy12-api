@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma';
 import { hasActiveProSubscription } from '../../domain/subscription';
 import { EnsureMonthlyRankingsService } from '../../services/ranking/ensure-monthly-rankings.service';
 import { RankingWindowScoreService } from '../../services/ranking/ranking-window-score.service';
+import { SaoPauloPeriodService } from '../../services/time/sao-paulo-period.service';
 
 export class MonthlyRankingController {
   static async handle(req: Request, res: Response, next: NextFunction) {
@@ -10,9 +11,7 @@ export class MonthlyRankingController {
       const userId = (req.session as any)?.user?.id ?? null;
       const scope = req.query.scope === 'pro' ? 'pro' : 'general';
       const now = new Date();
-      const defaultPeriod = `${now.getUTCFullYear()}-${String(
-        now.getUTCMonth() + 1
-      ).padStart(2, '0')}`;
+      const defaultPeriod = SaoPauloPeriodService.periodRef(now);
       const periodRef = typeof req.query.period === 'string'
         ? req.query.period
         : defaultPeriod;

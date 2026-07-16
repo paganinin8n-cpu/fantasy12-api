@@ -1,19 +1,15 @@
 import { RoundRepository } from '../../repositories/round.repository';
 import type { RoundMatchInput } from './round-match.types';
+import { OfficialRoundScheduleService } from './official-round-schedule.service';
 
 export class CreateRoundService {
   private repository = new RoundRepository();
 
   async execute(params: {
-    openAt: Date;
-    closeAt: Date;
     matches: RoundMatchInput[];
   }) {
-    const { openAt, closeAt, matches } = params;
-
-    if (openAt >= closeAt) {
-      throw new Error('openAt deve ser anterior a closeAt');
-    }
+    const { matches } = params;
+    const { openAt, closeAt } = OfficialRoundScheduleService.derive(matches);
 
     const lastNumber = await this.repository.getLastRoundNumber();
     const nextNumber = lastNumber + 1;

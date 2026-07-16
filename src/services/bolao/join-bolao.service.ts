@@ -40,7 +40,7 @@ export class JoinBolaoService {
         throw new Error('Ranking não é uma Mesa');
       }
 
-      if (bolao.status === 'CLOSED') {
+      if (bolao.status !== 'ACTIVE') {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
 

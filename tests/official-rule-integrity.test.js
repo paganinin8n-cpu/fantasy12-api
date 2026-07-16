@@ -33,7 +33,10 @@ test('calendário oficial exige os 12 horários e quarta ou sábado', () => {
   missing[4].matchTime = null
   assert.throws(() => OfficialRoundScheduleService.derive(missing), /horário dos 12 jogos/i)
   assert.throws(
-    () => OfficialRoundScheduleService.derive(matches('2026-07-16T19:00:00-03:00')),
+    () => OfficialRoundScheduleService.derive(matches(
+      '2026-07-16T19:00:00-03:00',
+      '2026-07-16T20:00:00-03:00'
+    )),
     /quarta-feira ou sábado/i
   )
 })
@@ -59,4 +62,3 @@ test('diagnóstico de Mesa identifica configuração financeira e pagamentos leg
     'APPROVED_ENTRY_NOT_PAID', 'GROSS_COLLECTED_MISMATCH',
   ])
 })
-

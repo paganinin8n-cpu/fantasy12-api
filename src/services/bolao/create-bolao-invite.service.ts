@@ -39,7 +39,7 @@ export class CreateBolaoInviteService {
 
     if (!ranking) throw new Error('Mesa não encontrada');
     if (ranking.type !== 'BOLAO') throw new Error('Ranking não é uma Mesa');
-    if (ranking.status === 'CLOSED') {
+    if (ranking.status !== 'ACTIVE') {
       throw new Error('Esta Mesa não está aberta para novos convites');
     }
 

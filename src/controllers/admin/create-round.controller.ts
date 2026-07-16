@@ -4,19 +4,17 @@ import { CreateRoundService } from '../../services/round/create-round.service'
 export class CreateRoundController {
   static async handle(req: Request, res: Response): Promise<Response> {
     try {
-      const { openAt, closeAt, matches } = req.body
+      const { matches } = req.body
 
-      if (!openAt || !closeAt) {
+      if (!Array.isArray(matches)) {
         return res.status(400).json({
-          error: 'openAt and closeAt are required'
+          error: 'matches are required; schedule is derived from matchTime'
         })
       }
 
       const service = new CreateRoundService()
 
       const round = await service.execute({
-        openAt: new Date(openAt),
-        closeAt: new Date(closeAt),
         matches
       })
 
