@@ -11,7 +11,7 @@
     "docker:build": "docker build -t fantasy12-api:local .",
     "test:ranking": "npm run build && node --test tests/ranking-window-score.test.js",
     "test:payments": "npm run build && node --test tests/mercado-pago-*.test.js tests/subscription-access.test.js",
-    "test:benefits": "npm run build && node --test tests/benefit-consumption.test.js",
+    "test:benefits": "npm run build && node --test tests/benefit-consumption.test.js tests/regrant-open-round-benefits.test.js",
     "test:worker": "npm run build && node --test tests/bullmq-*.test.js",
     "test:competition": "npm run build && node --test tests/ranking-window-score.test.js tests/scoring-ranking-integration.test.js tests/period-ranking.test.js tests/bolao-registration-rules.test.js tests/bolao-financial-rules.test.js tests/bolao-prize-allocation.test.js tests/close-expired-bolao.test.js tests/monthly-ranking-cohort.test.js tests/mesa-prize-rules.test.js tests/official-rule-integrity.test.js tests/ticket-normalization.test.js",
     "start": "node dist/index.js",
