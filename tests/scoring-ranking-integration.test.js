@@ -47,6 +47,16 @@ test('calcula pontos, bonus e penalidades dos 12 jogos', () => {
   })
 })
 
+test('palpite legado x com espaços pontua igual a X canônico', () => {
+  const calculator = new CalculateTicketScoreService()
+  const result = ['X', ...Array(11).fill('1')].join(',')
+  const multipliers = Array(12).fill(1)
+  assert.equal(
+    calculator.execute([' x ', ...Array(11).fill('1')].join(','), result, multipliers),
+    calculator.execute(result, result, multipliers)
+  )
+})
+
 test('preserva a pontuacao oficial de -48 para doze Super Duplas erradas', () => {
   const calculator = new CalculateTicketScoreService()
 

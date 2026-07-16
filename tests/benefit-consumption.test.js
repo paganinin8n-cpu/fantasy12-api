@@ -4,6 +4,11 @@ const test = require('node:test')
 const {
   ConsumeBenefitsService,
 } = require('../dist/services/benefits/consume-benefits.service')
+const { prisma } = require('../dist/lib/prisma')
+const { GrantPaidBenefitService } = require('../dist/services/benefits/grant-paid-benefit.service')
+const { GrantRoundBenefitsService } = require('../dist/services/benefits/grant-round-benefits.service')
+const { CloseRoundService } = require('../dist/services/round/close-round.service')
+const { RoundRepository } = require('../dist/repositories/round.repository')
 
 function createTransaction({ freeDoubles = 0, freeSuperDoubles = 0, inventory = 0 } = {}) {
   const state = {
@@ -103,4 +108,70 @@ test('rejeita o envio quando grátis mais pagas não cobrem a quantidade', async
       return true
     }
   )
+})
+
+test('benefício pago entra no inventário permanente e sobrevive ao fechamento da rodada', async t => {
+  const originalTransaction = prisma.$transaction
+  const originalUpdateMany = prisma.roundBenefit.updateMany
+  const originalFindById = RoundRepository.prototype.findById
+  const originalUpdateStatus = RoundRepository.prototype.updateStatus
+  t.after(() => {
+    prisma.$transaction = originalTransaction
+    prisma.roundBenefit.updateMany = originalUpdateMany
+    RoundRepository.prototype.findById = originalFindById
+    RoundRepository.prototype.updateStatus = originalUpdateStatus
+  })
+
+  const state = { inventory: 0, free: 2 }
+  prisma.$transaction = async callback => callback({
+    userBenefitInventory: {
+      upsert: async ({ update, create }) => {
+        state.inventory = state.inventory
+          ? state.inventory + update.quantity.increment
+          : create.quantity
+        return { id: 'inventory-1', quantity: state.inventory }
+      },
+    },
+  })
+  await GrantPaidBenefitService.execute({
+    userId: 'user-1', roundId: 'round-1', type: 'DOUBLE', quantity: 3,
+  })
+
+  RoundRepository.prototype.findById = async () => ({ id: 'round-1', status: 'OPEN' })
+  RoundRepository.prototype.updateStatus = async () => ({ id: 'round-1', status: 'CLOSED' })
+  prisma.roundBenefit.updateMany = async () => { state.free = 0; return { count: 1 } }
+  await new CloseRoundService().execute('round-1')
+
+  assert.equal(state.free, 0)
+  assert.equal(state.inventory, 3)
+})
+
+test('regrant da mesma rodada não restaura benefício grátis já consumido e não carrega para outra', async t => {
+  const originalFindMany = prisma.user.findMany
+  const originalUpsert = prisma.roundBenefit.upsert
+  t.after(() => {
+    prisma.user.findMany = originalFindMany
+    prisma.roundBenefit.upsert = originalUpsert
+  })
+
+  const balances = new Map()
+  prisma.user.findMany = async () => [{ id: 'user-1', subscription: null }]
+  prisma.roundBenefit.upsert = async ({ where, update, create }) => {
+    const key = `${where.userId_roundId.userId}:${where.userId_roundId.roundId}`
+    const existing = balances.get(key)
+    if (!existing) {
+      balances.set(key, { freeDoubles: create.freeDoubles, freeSuperDoubles: create.freeSuperDoubles })
+    } else if (Object.keys(update).length > 0) {
+      Object.assign(existing, update)
+    }
+    return balances.get(key)
+  }
+
+  await GrantRoundBenefitsService.execute('round-1')
+  balances.get('user-1:round-1').freeDoubles = 1
+  await GrantRoundBenefitsService.execute('round-1')
+  await GrantRoundBenefitsService.execute('round-2')
+
+  assert.equal(balances.get('user-1:round-1').freeDoubles, 1)
+  assert.equal(balances.get('user-1:round-2').freeDoubles, 2)
 })

@@ -59,6 +59,7 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
     round: {
       findFirst: async () => ({
         id: 'round-10',
+        status: 'OPEN',
         closeAt: new Date('2026-08-05T12:00:00Z'),
       }),
     },
@@ -94,6 +95,46 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
   })
   assert.ok(linkedRound.rankingId)
   assert.equal(createdStatus, 'ACTIVE')
+})
+
+test('bloqueia criacao de Mesa quando a primeira rodada ja fechou', async t => {
+  const originalFindUnique = prisma.user.findUnique
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    prisma.user.findUnique = originalFindUnique
+    prisma.$transaction = originalTransaction
+  })
+
+  prisma.user.findUnique = async () => ({
+    id: 'creator-1',
+    subscription: {
+      status: 'ACTIVE', plan: 'MONTHLY', endAt: new Date('2027-01-01T00:00:00Z'),
+    },
+  })
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      create: async ({ data }) => ({ ...data }),
+      update: async () => { throw new Error('nao deve atualizar Mesa fechada') },
+    },
+    round: {
+      findFirst: async () => ({
+        id: 'round-closed', status: 'CLOSED', closeAt: new Date('2026-07-01T12:00:00Z'),
+      }),
+    },
+  })
+
+  await assert.rejects(
+    CreateBolaoService.execute({
+      name: 'Mesa Tardia',
+      description: 'Premiação oficial 100% para o primeiro colocado.',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-07-31T23:59:59Z'),
+      entryFee: 10,
+      prizeDistribution: [{ position: 1, percentage: 100 }],
+      createdByUserId: 'creator-1',
+    }),
+    { message: REGISTRATION_CLOSED }
+  )
 })
 
 test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async t => {

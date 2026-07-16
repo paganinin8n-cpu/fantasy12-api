@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const { OfficialRoundScheduleService } = require('../dist/services/round/official-round-schedule.service')
 const { SaoPauloPeriodService } = require('../dist/services/time/sao-paulo-period.service')
@@ -61,4 +63,14 @@ test('diagnóstico de Mesa identifica configuração financeira e pagamentos leg
     'MISSING_PRIZE_RULES', 'INVALID_PRIZE_DISTRIBUTION',
     'APPROVED_ENTRY_NOT_PAID', 'GROSS_COLLECTED_MISMATCH',
   ])
+})
+
+test('banco possui defesa final para impedir duas rodadas OPEN', () => {
+  const migration = path.join(
+    __dirname, '..', 'prisma', 'migrations',
+    '20260716010000_enforce_single_open_round', 'migration.sql'
+  )
+  assert.equal(fs.existsSync(migration), true)
+  const sql = fs.readFileSync(migration, 'utf8')
+  assert.match(sql, /CREATE UNIQUE INDEX[\s\S]+WHERE "status" = 'OPEN'/i)
 })
