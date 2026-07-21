@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
+const { seedTeams } = require('./seed-teams')
 
 const prisma = new PrismaClient()
 
@@ -92,8 +93,18 @@ async function main() {
   }
 
   console.log('✅ Payment packages seed concluído')
+
+  console.log('🔹 Seeding Teams')
+  const teamSummary = await seedTeams(prisma)
+  console.log(
+    `✅ Teams seed concluído: ${teamSummary.total} processados, ` +
+    `${teamSummary.created} criados, ${teamSummary.updated} atualizados`
+  )
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
   .finally(() => prisma.$disconnect())

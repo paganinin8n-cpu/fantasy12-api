@@ -30,17 +30,23 @@ test('rodada de sábado abre sexta 00:00 em São Paulo', () => {
   assert.equal(schedule.closeAt.toISOString(), '2026-07-18T18:00:00.000Z')
 })
 
-test('calendário oficial exige os 12 horários e quarta ou sábado', () => {
+test('calendário oficial exige os 12 horários e aceita qualquer dia da semana', () => {
   const missing = matches('2026-07-15T19:00:00-03:00')
   missing[4].matchTime = null
   assert.throws(() => OfficialRoundScheduleService.derive(missing), /horário dos 12 jogos/i)
-  assert.throws(
-    () => OfficialRoundScheduleService.derive(matches(
-      '2026-07-16T19:00:00-03:00',
-      '2026-07-16T20:00:00-03:00'
-    )),
-    /quarta-feira ou sábado/i
-  )
+  const thursday = OfficialRoundScheduleService.derive(matches(
+    '2026-07-16T19:00:00-03:00',
+    '2026-07-16T20:00:00-03:00'
+  ))
+  assert.equal(thursday.openAt.toISOString(), '2026-07-15T03:00:00.000Z')
+  assert.equal(thursday.closeAt.toISOString(), '2026-07-16T21:00:00.000Z')
+
+  const sunday = OfficialRoundScheduleService.derive(matches(
+    '2026-07-19T16:00:00-03:00',
+    '2026-07-19T20:00:00-03:00'
+  ))
+  assert.equal(sunday.openAt.toISOString(), '2026-07-18T03:00:00.000Z')
+  assert.equal(sunday.closeAt.toISOString(), '2026-07-19T18:00:00.000Z')
 })
 
 test('aceita override administrativo válido para abertura e fechamento', () => {

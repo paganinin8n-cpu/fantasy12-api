@@ -28,7 +28,7 @@ Esse comando:
 5. aplica constraints operacionais não representáveis no schema Prisma, como o índice parcial de rodada única `OPEN`
 6. marca as migrations historicas como aplicadas em `_prisma_migrations`
 7. roda `seed-admin-permissions`
-8. roda `seed:app`
+8. roda `seed:app`, incluindo o catálogo canônico de times e seleções
 
 Esse registro das migrations e intencional. Como o `db push` ja deixa o schema no estado atual, marcar a historia antiga como aplicada impede que um banco fresh tente executar a cadeia legada quebrada no primeiro `migrate deploy` futuro.
 
@@ -39,6 +39,28 @@ npm run prisma:bootstrap:fresh -- --skip-migration-resolve
 ```
 
 Nao use essa opcao em ambiente novo normal.
+
+## Catálogo de times
+
+O seed principal inclui o catálogo versionado de clubes e seleções em
+`prisma/seed-teams.js`. A execução é idempotente: registros existentes são
+reconciliados por chave canônica, nome ou alias, e logos cadastrados manualmente
+são preservados quando o catálogo não fornece `logoUrl`.
+
+Para validar o catálogo sem acessar o banco:
+
+```sh
+npm run seed:teams:dry-run
+```
+
+Para aplicar somente esse catálogo em um banco já preparado:
+
+```sh
+npm run seed:teams
+```
+
+O seed não desativa times que estejam fora do catálogo atual. Essa decisão é
+intencional para preservar referências históricas de rodadas existentes.
 
 ## Fluxo para banco já existente
 

@@ -34,7 +34,7 @@ Status da fase em 2026-07-15:
 - [x] Consumo usa primeiro o saldo grátis da rodada e depois o inventário comprado
 - [x] Saldos totais, grátis e comprados são expostos para a interface
 - [x] Calendário oficial da rodada derivado dos 12 horários no fuso `America/Sao_Paulo`
-- [x] Rodada de quarta abre terça às 00:00; rodada de sábado abre sexta às 00:00
+- [x] Rodada pode começar em qualquer dia e abre às 00:00 do dia anterior ao primeiro jogo
 - [x] Fechamento dos palpites ocorre uma hora antes do primeiro jogo
 - [x] Abertura manual imediata continua como override operacional separado da agenda persistida
 - [x] Rankings mensais Geral e PRO usam os limites civis do mês em São Paulo

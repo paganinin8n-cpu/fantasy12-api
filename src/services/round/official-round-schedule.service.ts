@@ -29,10 +29,6 @@ export class OfficialRoundScheduleService {
       ...matches.map(match => match.matchTime!.getTime())
     ))
     const local = SaoPauloPeriodService.parts(earliestMatchTime)
-    const weekday = new Date(Date.UTC(local.year, local.month - 1, local.day)).getUTCDay()
-    if (weekday !== 3 && weekday !== 6) {
-      throw new Error('O primeiro jogo da rodada oficial deve ocorrer na quarta-feira ou sábado')
-    }
 
     const previousDay = new Date(Date.UTC(local.year, local.month - 1, local.day - 1))
     return {
