@@ -8,6 +8,12 @@ const {
 const {
   ReviewBolaoRequestService,
 } = require('../dist/services/bolao/review-bolao-request.service')
+const {
+  JoinBolaoService,
+} = require('../dist/services/bolao/join-bolao.service')
+const {
+  AssertActiveProUserService,
+} = require('../dist/services/subscription/assert-active-pro-user.service')
 
 const VALID_PRIZES = [
   { position: 1, percentage: 60 },
@@ -193,6 +199,72 @@ test('criador paga a entrada atomicamente e inaugura o caixa da Mesa', async t =
   assert.equal(participantData.entryFeePaid, 10)
   assert.ok(participantData.entryPaidAt instanceof Date)
   assert.equal(rankingData.grossCollected, 10)
+})
+
+test('entrada na Mesa é imediata e depende somente do saldo de fichas', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.$transaction = originalTransaction
+  })
+
+  AssertActiveProUserService.execute = async () => {
+    throw new Error('entrada não deve exigir assinatura PRO')
+  }
+
+  let participantData
+  let ledgerData
+  const rankingUpdates = []
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      findUnique: async () => ({
+        id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
+        currentParticipants: 1, createdByUserId: 'creator-1',
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        entryEndDate: new Date('2099-08-02T00:00:00Z'),
+        rounds: [{ round: { closeAt: new Date('2099-08-03T12:00:00Z'), status: 'OPEN' } }],
+      }),
+      update: async ({ data }) => {
+        rankingUpdates.push(data)
+        return data.grossCollected ? { grossCollected: 22 } : data
+      },
+    },
+    rankingParticipant: {
+      findUnique: async () => null,
+      create: async ({ data }) => {
+        participantData = data
+        return { id: 'participant-2', ...data }
+      },
+    },
+    wallet: {
+      findUnique: async () => ({ id: 'wallet-2', balance: 20 }),
+      updateMany: async () => ({ count: 1 }),
+    },
+    walletLedger: {
+      create: async ({ data }) => {
+        ledgerData = data
+        return data
+      },
+    },
+    user: { findUnique: async () => ({ scoreTotal: 5 }) },
+    userScoreHistory: { findFirst: async () => null },
+    auditLog: { create: async () => ({}) },
+  })
+
+  const result = await JoinBolaoService.execute({
+    rankingId: 'mesa-1',
+    userId: 'user-2',
+  })
+
+  assert.equal(result.status, 'APPROVED')
+  assert.equal(participantData.status, 'APPROVED')
+  assert.equal(participantData.entryFeePaid, 11)
+  assert.ok(participantData.entryPaidAt instanceof Date)
+  assert.equal(ledgerData.idempotencyKey, 'bolao:entry:mesa-1:user-2')
+  assert.deepEqual(rankingUpdates[0].grossCollected, { increment: 11 })
+  assert.equal(rankingUpdates[1].platformFee, 2)
+  assert.equal(rankingUpdates[1].prizePool, 20)
 })
 
 test('aprovação debita uma única vez e atualiza o caixa financeiro', async t => {
