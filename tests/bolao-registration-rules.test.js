@@ -225,11 +225,21 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
         maxParticipants: 50,
         currentParticipants: 500,
       }),
+      update: async ({ data }) => data.grossCollected
+        ? { grossCollected: 10 }
+        : data,
     },
     rankingParticipant: {
       findUnique: async () => null,
-      create: async () => ({ id: 'participant-501' }),
+      create: async ({ data }) => ({ id: 'participant-501', ...data }),
     },
+    wallet: {
+      findUnique: async () => ({ id: 'wallet-501', balance: 10 }),
+      updateMany: async () => ({ count: 1 }),
+    },
+    walletLedger: { create: async () => ({}) },
+    user: { findUnique: async () => ({ scoreTotal: 0 }) },
+    userScoreHistory: { findFirst: async () => null },
     auditLog: { create: async () => ({}) },
   })
 
@@ -238,7 +248,7 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
     userId: 'user-501',
   })
 
-  assert.equal(result.status, 'PENDING')
+  assert.equal(result.status, 'APPROVED')
 })
 
 test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async t => {

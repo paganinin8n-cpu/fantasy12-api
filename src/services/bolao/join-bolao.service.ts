@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma';
-import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
+import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
+import { BolaoEntryPaymentService } from './bolao-entry-payment.service';
+import { BolaoPrizeService } from './bolao-prize.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -9,8 +11,6 @@ type JoinBolaoInput = {
 
 export class JoinBolaoService {
   static async execute({ rankingId, userId }: JoinBolaoInput) {
-    await AssertActiveProUserService.execute(userId);
-
     return prisma.$transaction(async tx => {
       const bolao = await tx.ranking.findUnique({
         where: { id: rankingId },
@@ -45,21 +45,10 @@ export class JoinBolaoService {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
 
-      BolaoRegistrationWindowService.assertOpen(bolao);
+      const firstRound = BolaoRegistrationWindowService.assertOpen(bolao);
 
       if (bolao.createdByUserId === userId) {
         throw new Error('O criador já administra esta Mesa');
-      }
-
-      if (bolao.entryFee > 0) {
-        const wallet = await tx.wallet.findUnique({
-          where: { userId },
-          select: { balance: true },
-        });
-
-        if (!wallet || wallet.balance < bolao.entryFee) {
-          throw new Error('Você não possui fichas suficientes para solicitar entrada nesta Mesa');
-        }
       }
 
       const existingParticipant = await tx.rankingParticipant.findUnique({
@@ -75,22 +64,34 @@ export class JoinBolaoService {
         throw new Error('Você já participa desta Mesa');
       }
 
-      if (existingParticipant?.status === 'PENDING') {
-        return {
-          status: 'PENDING',
-          rankingId,
-          participantId: existingParticipant.id,
-        };
+      if (existingParticipant?.entryPaidAt) {
+        throw new Error('A entrada desta participação já foi debitada');
       }
 
+      const scoreInitial = await RankingWindowScoreService.getScoreTotalBefore(
+        tx,
+        userId,
+        firstRound.closeAt
+      );
+
+      await BolaoEntryPaymentService.debit(tx, {
+        rankingId,
+        userId,
+        amount: bolao.entryFee,
+      });
+
+      const approvedAt = new Date();
       const participant = existingParticipant
         ? await tx.rankingParticipant.update({
             where: { id: existingParticipant.id },
             data: {
-              status: 'PENDING',
+              status: 'APPROVED',
+              scoreInitial,
               rejectedAt: null,
-              approvedAt: null,
-              approvedByUserId: null,
+              approvedAt,
+              approvedByUserId: userId,
+              entryFeePaid: bolao.entryFee,
+              entryPaidAt: approvedAt,
             },
           })
         : await tx.rankingParticipant.create({
@@ -98,27 +99,54 @@ export class JoinBolaoService {
               rankingId,
               userId,
               score: 0,
-              scoreInitial: 0,
-              status: 'PENDING',
+              scoreInitial,
+              status: 'APPROVED',
+              approvedAt,
+              approvedByUserId: userId,
+              entryFeePaid: bolao.entryFee,
+              entryPaidAt: approvedAt,
             },
           });
+
+      const financialRanking = await tx.ranking.update({
+        where: { id: rankingId },
+        data: {
+          currentParticipants: { increment: 1 },
+          grossCollected: { increment: bolao.entryFee },
+        },
+        select: { grossCollected: true },
+      });
+      const financialTotals = BolaoPrizeService.calculatePool(
+        financialRanking.grossCollected
+      );
+      await tx.ranking.update({
+        where: { id: rankingId },
+        data: {
+          platformFee: financialTotals.platformFee,
+          prizePool: financialTotals.prizePool,
+        },
+      });
 
       await tx.auditLog.create({
         data: {
           userId,
-          action: 'BOLAO_JOIN_REQUESTED',
-          entity: 'RANKING',
-          entityId: rankingId,
+          action: 'BOLAO_JOIN_APPROVED',
+          entity: 'RANKING_PARTICIPANT',
+          entityId: participant.id,
           metadata: {
-            minimumChips: bolao.entryFee,
-            currentParticipants: bolao.currentParticipants,
-            maxParticipants: null,
+            rankingId,
+            participantUserId: userId,
+            approvedAt: approvedAt.toISOString(),
+            scoreInitial,
+            currentParticipants: bolao.currentParticipants + 1,
+            entryFee: bolao.entryFee,
+            approvalRequired: false,
           },
         },
       });
 
       return {
-        status: 'PENDING',
+        status: 'APPROVED',
         rankingId,
         participantId: participant.id,
       };

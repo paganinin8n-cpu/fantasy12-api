@@ -43,7 +43,7 @@ Status da fase em 2026-07-15:
 - [x] Pontuação negativa é preservada
 - [x] Mesa exige PRO ativo, regras/observações, entrada positiva e distribuição de 100%
 - [x] Mesa válida nasce `ACTIVE`; `DRAFT` permanece apenas como compatibilidade de fechamento legado
-- [x] Entrada do criador e aprovação de participante são atômicas e idempotentes
+- [x] Entrada do criador e dos participantes é imediata, atômica e condicionada ao saldo de fichas
 - [x] Mesa aceita inscrições somente antes do fechamento da primeira rodada
 - [x] Caixa, taxa, prêmio líquido e pagamentos aos vencedores são auditáveis
 - [x] Política de taxa: `floor(10%)`; como fichas são indivisíveis, todo resto fica no prêmio dos jogadores
@@ -1170,7 +1170,7 @@ Critérios de aceite:
 - campanha ativa nao compete com o CTA de palpite
 - layout mobile continua sem sobreposicao ou rolagem horizontal
 
-### 37. Redefinir logica de Mesas PRO com aprovacao e ranking por periodo
+### 37. Redefinir logica de Mesas com entrada imediata e ranking por periodo
 
 Tipo:
 
@@ -1182,15 +1182,14 @@ Status sugerido:
 
 Objetivo:
 
-- transformar Mesas em disputas fechadas entre usuarios PRO, com entrada controlada pelo criador, periodo definido e ranking calculado somente sobre a pontuacao feita durante a janela em que cada participante esteve na Mesa.
+- transformar Mesas em disputas com criação PRO, entrada imediata mediante pagamento em fichas, período definido e ranking calculado somente sobre a pontuação feita durante a janela em que cada participante esteve na Mesa.
 
 Regras de produto:
 
 - somente usuario PRO pode criar Mesa
 - usuario normal nao pode criar Mesa
 - criador PRO define o minimo de fichas exigido para participacao
-- somente usuarios PRO podem pedir entrada em Mesa aberta
-- usuario normal pode visualizar Mesas abertas, mas nao pode pedir entrada; o CTA deve ficar ausente ou desativado, com mensagem de upgrade/curiosidade
+- qualquer usuário autenticado pode entrar em Mesa aberta se possuir as fichas exigidas
 - Mesas tem periodo de inicio e fim
 - cards de Mesas abertas devem mostrar claramente:
   - nome da Mesa
@@ -1198,21 +1197,20 @@ Regras de produto:
   - minimo de fichas
   - quantidade de participantes/limite, se houver
   - periodo de inicio e fim
-  - status de entrada do usuario: pode pedir, aguardando aprovacao, aprovado, recusado, encerrada ou indisponivel para nao PRO
-- entrada em Mesa nao e automatica: usuario PRO solicita participacao e o criador precisa aceitar
-- criador da Mesa precisa ver pedidos pendentes e aceitar/recusar
-- participante aprovado entra oficialmente na Mesa somente no momento da aprovacao, nao no momento do pedido
+  - status de entrada do usuario: pode entrar, participando, encerrada ou saldo insuficiente
+- entrada em Mesa é automática quando o participante possui as fichas exigidas, sem aprovação do criador
+- o débito, o snapshot inicial e a inclusão no ranking acontecem na mesma transação
 
 Regras de ranking historico:
 
 - o ranking global/acumulado do usuario continua historico e cumulativo enquanto ele estiver no sistema
 - o ranking da Mesa nao substitui nem reseta o ranking global
-- ao aprovar a entrada de um usuario em uma Mesa, gravar snapshot da pontuacao global imediatamente anterior/atual ao momento de entrada oficial
+- ao confirmar a entrada de um usuario em uma Mesa, gravar snapshot da pontuacao global imediatamente anterior/atual ao momento de entrada oficial
 - ao finalizar a Mesa, gravar snapshot da pontuacao global do participante no momento de fechamento da Mesa
 - pontuacao do participante na Mesa deve ser calculada como:
   - `pontuacaoFinalNaMesa = rankingGlobalNoFechamento - rankingGlobalNaEntrada`
 - guardar log/snapshot para auditoria da Mesa, nao depender apenas de recalculo ad hoc em tela
-- se o usuario entrar depois do inicio da Mesa, a pontuacao inicial dele deve ser a pontuacao global no momento da aprovacao/entrada, nao a pontuacao do inicio da Mesa
+- se o usuario entrar depois do inicio da Mesa, a pontuacao inicial dele deve ser a pontuacao global no momento da entrada, nao a pontuacao do inicio da Mesa
 - se a Mesa fechar em uma data futura, a pontuacao final precisa refletir o ranking global consolidado ate o fechamento, respeitando a mesma fonte de verdade do ranking global
 - se houver reprocessamento de rodada/ranking que altere pontuacao historica dentro do periodo da Mesa, definir politica antes de implementar:
   - opcao preferida: recalcular snapshots derivados com job auditavel e registrar evento de reprocessamento
@@ -1229,14 +1227,6 @@ Modelo de dados a avaliar:
   - `startAt`
   - `endAt`
   - `status`: `OPEN`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`
-- `TableJoinRequest`
-  - `id`
-  - `tableId`
-  - `userId`
-  - `status`: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
-  - `requestedAt`
-  - `decidedAt`
-  - `decidedBy`
 - `TableParticipant`
   - `id`
   - `tableId`
@@ -1251,17 +1241,16 @@ Modelo de dados a avaliar:
   - `id`
   - `tableId`
   - `userId`
-  - `action`: `JOIN_APPROVED`, `SCORE_SNAPSHOT_ENTRY`, `SCORE_SNAPSHOT_FINAL`, `TABLE_CLOSED`, `SCORE_REPROCESSED`
+  - `action`: `JOIN_CONFIRMED`, `SCORE_SNAPSHOT_ENTRY`, `SCORE_SNAPSHOT_FINAL`, `TABLE_CLOSED`, `SCORE_REPROCESSED`
   - `metadata`
   - `createdAt`
 
 Backend - tarefas:
 
 - validar elegibilidade PRO para criar Mesa
-- validar elegibilidade PRO para solicitar entrada
-- bloquear solicitacao duplicada para mesma Mesa
-- permitir que somente criador aceite/recuse pedidos
-- ao aceitar pedido, criar participante e gravar snapshot de pontuacao global de entrada
+- validar saldo e debitar as fichas atomicamente ao entrar
+- bloquear entrada duplicada para mesma Mesa
+- criar participante aprovado e gravar snapshot de pontuacao global na mesma transacao
 - criar fluxo de fechamento de Mesa que:
   - localiza participantes aprovados
   - captura pontuacao global final de cada um
@@ -1272,30 +1261,24 @@ Backend - tarefas:
 - expor endpoints para:
   - listar Mesas abertas
   - criar Mesa
-  - solicitar entrada
-  - listar pedidos pendentes da Mesa
-  - aceitar/recusar pedido
+  - entrar imediatamente mediante pagamento em fichas
   - ver detalhe/ranking da Mesa
   - fechar Mesa
 
 Frontend - tarefas:
 
 - card de Mesa aberta deve mostrar periodo de inicio/fim
-- usuario PRO ve botao `Pedir para entrar` quando a Mesa aceitar pedido
-- usuario PRO com pedido pendente ve estado `Aguardando aprovacao`
-- usuario aprovado ve estado `Participando`
-- usuario normal ve Mesa aberta sem poder pedir entrada
+- qualquer usuario autenticado ve o botao `Entrar agora` quando a janela estiver aberta
+- usuario com entrada confirmada ve estado `Participando`
 - detalhe da Mesa deve separar:
   - resumo/regras
   - participantes
-  - pedidos pendentes para o criador
   - ranking da Mesa
   - historico/auditoria basica
-- criador deve conseguir aceitar/recusar pedidos de forma clara no mobile
 
 Perguntas antes de implementar:
 
-- fichas minimas sao apenas requisito de saldo ou tambem devem ser debitadas/travadas ao entrar?
+- fichas de entrada são debitadas imediatamente ao entrar
 - usuario criador entra automaticamente como participante da Mesa?
 - Mesa pode ter limite maximo de participantes?
 - Mesa pode comecar antes de `startAt` se o criador quiser?
@@ -1305,11 +1288,10 @@ Perguntas antes de implementar:
 
 Criterios de aceite:
 
-- usuario normal consegue ver Mesas abertas, mas nao consegue solicitar entrada
+- usuario normal consegue entrar em Mesa aberta quando possui as fichas exigidas
 - usuario PRO consegue criar Mesa com minimo de fichas e periodo
-- usuario PRO consegue pedir entrada em Mesa aberta
-- criador consegue aceitar ou recusar pedidos
-- participante aprovado tem snapshot de pontuacao global gravado no momento da entrada
+- qualquer usuario autenticado com saldo suficiente entra sem aprovação do criador
+- participante tem snapshot de pontuacao global gravado no momento da entrada
 - ao fechar Mesa, cada participante tem snapshot final e `tableScore` persistidos
 - ranking da Mesa ordena por pontuacao feita dentro da Mesa, nao por pontuacao global total
 - ranking global continua acumulado e historico, sem reset por Mesa
@@ -1318,7 +1300,7 @@ Criterios de aceite:
 
 ## Ordem recomendada agora
 
-1. detalhar e implementar Mesas PRO com aprovacao e ranking por periodo
+1. consolidar Mesas com entrada imediata por fichas e ranking por periodo
 2. reorganizar `Admin > Rodadas` por tarefa, sem mudar regras
 3. reorganizar `Admin > Usuarios` com detalhe progressivo, mantendo a grade operacional
 4. revisar Dashboard do jogador como tela de decisao rapida

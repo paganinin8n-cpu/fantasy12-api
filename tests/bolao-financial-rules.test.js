@@ -267,6 +267,43 @@ test('entrada na Mesa é imediata e depende somente do saldo de fichas', async t
   assert.equal(rankingUpdates[1].prizePool, 20)
 })
 
+test('entrada sem fichas não cria participante nem altera o caixa da Mesa', async t => {
+  const originalTransaction = prisma.$transaction
+  t.after(() => { prisma.$transaction = originalTransaction })
+
+  let participantChanged = false
+  let rankingChanged = false
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      findUnique: async () => ({
+        id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
+        currentParticipants: 1, createdByUserId: 'creator-1',
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        entryEndDate: new Date('2099-08-02T00:00:00Z'),
+        rounds: [{ round: { closeAt: new Date('2099-08-03T12:00:00Z'), status: 'OPEN' } }],
+      }),
+      update: async () => { rankingChanged = true },
+    },
+    rankingParticipant: {
+      findUnique: async () => null,
+      create: async () => { participantChanged = true },
+    },
+    wallet: {
+      findUnique: async () => ({ id: 'wallet-2', balance: 5 }),
+      updateMany: async () => ({ count: 0 }),
+    },
+    user: { findUnique: async () => ({ scoreTotal: 5 }) },
+    userScoreHistory: { findFirst: async () => null },
+  })
+
+  await assert.rejects(
+    JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'user-2' }),
+    { message: 'Participante não possui fichas suficientes para entrar nesta Mesa' }
+  )
+  assert.equal(participantChanged, false)
+  assert.equal(rankingChanged, false)
+})
+
 test('aprovação debita uma única vez e atualiza o caixa financeiro', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => { prisma.$transaction = originalTransaction })
