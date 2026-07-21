@@ -7,10 +7,12 @@ import { OfficialRoundScheduleService } from './official-round-schedule.service'
 type UpdateRoundInput = {
   roundId: string
   matches?: RoundMatchInput[]
+  openAt?: Date | string | null
+  closeAt?: Date | string | null
 }
 
 export class UpdateRoundService {
-  static async execute({ roundId, matches }: UpdateRoundInput) {
+  static async execute({ roundId, matches, openAt, closeAt }: UpdateRoundInput) {
     return prisma.$transaction(async tx => {
       const round = await tx.round.findUnique({
         where: { id: roundId },
@@ -32,7 +34,10 @@ export class UpdateRoundService {
       }
 
       const normalizedMatches = normalizeRoundMatches(matches ?? round.matches)
-      const schedule = OfficialRoundScheduleService.derive(normalizedMatches)
+      const schedule = OfficialRoundScheduleService.resolve(normalizedMatches, {
+        openAt,
+        closeAt,
+      })
 
       await tx.round.update({
         where: { id: roundId },

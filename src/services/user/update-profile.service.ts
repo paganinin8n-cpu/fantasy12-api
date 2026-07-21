@@ -9,7 +9,7 @@ interface Input {
     nickname?: string
     phone?: string
     bio?: string
-    profileImage?: string
+    profileImage?: string | null
   }
 }
 

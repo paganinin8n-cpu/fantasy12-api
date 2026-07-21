@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ProfileImageSchema } from './profile-image.validator'
 
 export const UpdateProfileSchema = z
   .object({
@@ -6,7 +7,7 @@ export const UpdateProfileSchema = z
     nickname: z.string().min(2).max(40).optional(),
     phone: z.string().min(8).max(20).optional(),
     bio: z.string().max(280).optional(),
-    profileImage: z.string().url().optional(),
+    profileImage: ProfileImageSchema.nullable().optional(),
   })
   .refine(obj => Object.keys(obj).length > 0, {
     message: 'Nenhum campo para atualizar',

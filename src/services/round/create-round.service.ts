@@ -7,9 +7,14 @@ export class CreateRoundService {
 
   async execute(params: {
     matches: RoundMatchInput[];
+    openAt?: Date | string | null;
+    closeAt?: Date | string | null;
   }) {
     const { matches } = params;
-    const { openAt, closeAt } = OfficialRoundScheduleService.derive(matches);
+    const { openAt, closeAt } = OfficialRoundScheduleService.resolve(matches, {
+      openAt: params.openAt,
+      closeAt: params.closeAt,
+    });
 
     const lastNumber = await this.repository.getLastRoundNumber();
     const nextNumber = lastNumber + 1;

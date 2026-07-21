@@ -43,6 +43,41 @@ test('calendário oficial exige os 12 horários e quarta ou sábado', () => {
   )
 })
 
+test('aceita override administrativo válido para abertura e fechamento', () => {
+  const schedule = OfficialRoundScheduleService.resolve(
+    matches('2026-07-22T19:00:00-03:00', '2026-07-22T20:00:00-03:00'),
+    {
+      openAt: '2026-07-20T03:00:00.000Z',
+      closeAt: '2026-07-22T20:30:00.000Z',
+    }
+  )
+
+  assert.equal(schedule.openAt.toISOString(), '2026-07-20T03:00:00.000Z')
+  assert.equal(schedule.closeAt.toISOString(), '2026-07-22T20:30:00.000Z')
+})
+
+test('rejeita override com janela invertida ou fechamento depois do primeiro jogo', () => {
+  const roundMatches = matches(
+    '2026-07-22T19:00:00-03:00',
+    '2026-07-22T20:00:00-03:00'
+  )
+
+  assert.throws(
+    () => OfficialRoundScheduleService.resolve(roundMatches, {
+      openAt: '2026-07-22T21:00:00.000Z',
+      closeAt: '2026-07-22T20:00:00.000Z',
+    }),
+    /antes do fechamento/i
+  )
+
+  assert.throws(
+    () => OfficialRoundScheduleService.resolve(roundMatches, {
+      closeAt: '2026-07-22T22:01:00.000Z',
+    }),
+    /depois do primeiro jogo/i
+  )
+})
+
 test('mês oficial respeita meia-noite de São Paulo', () => {
   const july = SaoPauloPeriodService.parse('2026-07')
   assert.equal(july.start.toISOString(), '2026-07-01T03:00:00.000Z')
