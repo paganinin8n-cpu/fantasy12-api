@@ -9,9 +9,9 @@ const router = Router()
 router.get('/api/teams', TeamController.search)
 
 // Admin — CRUD completo
-router.get('/api/admin/teams', authMiddleware, authorize('ROUND_WRITE'), TeamController.list)
-router.post('/api/admin/teams', authMiddleware, authorize('ROUND_WRITE'), TeamController.create)
-router.put('/api/admin/teams/:id', authMiddleware, authorize('ROUND_WRITE'), TeamController.update)
-router.delete('/api/admin/teams/:id', authMiddleware, authorize('ROUND_WRITE'), TeamController.deactivate)
+router.get('/api/admin/teams', authMiddleware, authorize('COMPETITION_READ'), TeamController.list)
+router.post('/api/admin/teams', authMiddleware, authorize('COMPETITION_WRITE'), TeamController.create)
+router.put('/api/admin/teams/:id', authMiddleware, authorize('COMPETITION_WRITE'), TeamController.update)
+router.delete('/api/admin/teams/:id', authMiddleware, authorize('COMPETITION_WRITE'), TeamController.deactivate)
 
 export default router
