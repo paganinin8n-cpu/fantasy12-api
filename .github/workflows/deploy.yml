@@ -121,6 +121,13 @@ jobs:
               cp -a "$STAGE"/. "$CODE_DIR"/
             fi
 
+            EXPECTED_RELEASE="${{ github.sha }}"
+            ACTUAL_RELEASE="$(cat "$CODE_DIR/.release-version" 2>/dev/null || true)"
+            if [ "$ACTUAL_RELEASE" != "$EXPECTED_RELEASE" ]; then
+              echo "Synced release marker does not match the expected commit" >&2
+              exit 1
+            fi
+
             rm -rf "$STAGE" "$RELEASE"
             echo "Release source synced to $CODE_DIR"
 

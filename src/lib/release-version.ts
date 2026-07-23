@@ -2,18 +2,17 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 function readReleaseVersion(): string {
-  const configuredVersion = process.env.APP_VERSION?.trim()
-  if (configuredVersion) return configuredVersion
-
   try {
     const packagedVersion = fs
       .readFileSync(path.join(process.cwd(), '.release-version'), 'utf8')
       .trim()
 
-    return packagedVersion || 'unknown'
+    if (packagedVersion) return packagedVersion
   } catch {
-    return 'unknown'
+    // Local runs can fall back to an explicitly configured version.
   }
+
+  return process.env.APP_VERSION?.trim() || 'unknown'
 }
 
 export const releaseVersion = readReleaseVersion()
