@@ -42,6 +42,9 @@ export class MeController {
         currentPassword: req.body.currentPassword,
         newPassword: req.body.newPassword,
       })
+      await new Promise<void>((resolve, reject) => {
+        req.session.destroy(error => (error ? reject(error) : resolve()))
+      })
       clearSessionCookie(res)
       return res.status(200).json({ ok: true })
     } catch (err) {
