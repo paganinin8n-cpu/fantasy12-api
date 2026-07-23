@@ -7,7 +7,7 @@ export class AdminWalletCreditService {
     amount: number,
     reason: string
   ) {
-    if (amount <= 0) {
+    if (!Number.isInteger(amount) || amount <= 0) {
       throw new Error('Amount must be greater than zero');
     }
 
@@ -56,7 +56,7 @@ export class AdminWalletCreditService {
     amount: number,
     reason: string
   ) {
-    if (amount <= 0) {
+    if (!Number.isInteger(amount) || amount <= 0) {
       throw new Error('Amount must be greater than zero');
     }
 
@@ -69,10 +69,14 @@ export class AdminWalletCreditService {
         throw new Error('Saldo de fichas insuficiente');
       }
 
-      const updatedWallet = await tx.wallet.update({
-        where: { id: wallet.id },
+      const debit = await tx.wallet.updateMany({
+        where: { id: wallet.id, balance: { gte: amount } },
         data: { balance: { decrement: amount } },
       });
+
+      if (debit.count !== 1) {
+        throw new Error('Saldo de fichas insuficiente');
+      }
 
       await tx.walletLedger.create({
         data: {
@@ -96,7 +100,7 @@ export class AdminWalletCreditService {
       return {
         userId,
         debited: amount,
-        balanceAfter: updatedWallet.balance,
+        balanceAfter: wallet.balance - amount,
       };
     });
   }

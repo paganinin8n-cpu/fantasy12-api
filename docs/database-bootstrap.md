@@ -25,7 +25,7 @@ Esse comando:
 2. inspeciona as tabelas do schema `public`
 3. bloqueia a execução se o banco já tiver tabelas
 4. roda `prisma db push --skip-generate`
-5. aplica constraints operacionais não representáveis no schema Prisma, como o índice parcial de rodada única `OPEN`
+5. aplica constraints operacionais não representáveis no schema Prisma, incluindo o índice parcial de rodada única `OPEN` e invariantes de saldos/estoques não negativos
 6. marca as migrations historicas como aplicadas em `_prisma_migrations`
 7. roda `seed-admin-permissions`
 8. roda `seed:app`, incluindo o catálogo canônico de times e seleções

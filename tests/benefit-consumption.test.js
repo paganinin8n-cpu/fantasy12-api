@@ -28,21 +28,24 @@ function createTransaction({ freeDoubles = 0, freeSuperDoubles = 0, inventory = 
     tx: {
       roundBenefit: {
         findUnique: async () => state.benefit,
-        update: async ({ data }) => {
+        updateMany: async ({ where, data }) => {
           if (data.freeDoubles) {
+            if (state.benefit.freeDoubles < where.freeDoubles.gte) return { count: 0 }
             state.benefit.freeDoubles -= data.freeDoubles.decrement
           }
           if (data.freeSuperDoubles) {
+            if (state.benefit.freeSuperDoubles < where.freeSuperDoubles.gte) return { count: 0 }
             state.benefit.freeSuperDoubles -= data.freeSuperDoubles.decrement
           }
-          return state.benefit
+          return { count: 1 }
         },
       },
       userBenefitInventory: {
         findUnique: async () => state.inventory,
-        update: async ({ data }) => {
+        updateMany: async ({ where, data }) => {
+          if (state.inventory.quantity < where.quantity.gte) return { count: 0 }
           state.inventory.quantity -= data.quantity.decrement
-          return state.inventory
+          return { count: 1 }
         },
       },
     },

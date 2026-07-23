@@ -24,6 +24,7 @@ export class ConsumeBenefitsService {
       let remaining = quantity
       let freeUsed = 0
       let inventoryUsed = 0
+      let inventoryAvailable = 0
 
       const benefit = await client.roundBenefit.findUnique({
         where: { userId_roundId: { userId, roundId } }
@@ -33,15 +34,17 @@ export class ConsumeBenefitsService {
 
         const used = Math.min(benefit.freeDoubles, remaining)
 
-        await client.roundBenefit.update({
-          where: { id: benefit.id },
+        const debit = await client.roundBenefit.updateMany({
+          where: { id: benefit.id, freeDoubles: { gte: used } },
           data: {
             freeDoubles: { decrement: used }
           }
         })
 
-        remaining -= used
-        freeUsed += used
+        if (debit.count === 1) {
+          remaining -= used
+          freeUsed += used
+        }
 
       }
 
@@ -49,15 +52,17 @@ export class ConsumeBenefitsService {
 
         const used = Math.min(benefit.freeSuperDoubles, remaining)
 
-        await client.roundBenefit.update({
-          where: { id: benefit.id },
+        const debit = await client.roundBenefit.updateMany({
+          where: { id: benefit.id, freeSuperDoubles: { gte: used } },
           data: {
             freeSuperDoubles: { decrement: used }
           }
         })
 
-        remaining -= used
-        freeUsed += used
+        if (debit.count === 1) {
+          remaining -= used
+          freeUsed += used
+        }
 
       }
 
@@ -75,20 +80,20 @@ export class ConsumeBenefitsService {
             }
           }
         })
+        inventoryAvailable = inventory?.quantity ?? 0
 
-        if (inventory && inventory.quantity > 0) {
-
-          const used = Math.min(inventory.quantity, remaining)
-
-          await client.userBenefitInventory.update({
-            where: { id: inventory.id },
+        if (inventory && inventory.quantity >= remaining) {
+          const debit = await client.userBenefitInventory.updateMany({
+            where: { id: inventory.id, quantity: { gte: remaining } },
             data: {
-              quantity: { decrement: used }
+              quantity: { decrement: remaining }
             }
           })
 
-          remaining -= used
-          inventoryUsed += used
+          if (debit.count === 1) {
+            inventoryUsed += remaining
+            remaining = 0
+          }
 
         }
 
@@ -101,7 +106,7 @@ export class ConsumeBenefitsService {
           {
             type,
             requested: quantity,
-            missing: remaining,
+            missing: Math.max(remaining - inventoryAvailable, 0),
           }
         )
       }

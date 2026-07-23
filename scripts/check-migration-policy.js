@@ -9,6 +9,9 @@ const migrationDocsPath = path.join(repoRoot, 'docs', 'database-bootstrap.md')
 const singleOpenConstraintPath = path.join(
   repoRoot, 'prisma', 'constraints', 'single-open-round.sql'
 )
+const nonNegativeBalancesConstraintPath = path.join(
+  repoRoot, 'prisma', 'constraints', 'non-negative-balances.sql'
+)
 
 function assert(condition, message) {
   if (!condition) {
@@ -33,6 +36,10 @@ function main() {
     'database-only single OPEN round constraint is missing'
   )
   assert(
+    fs.existsSync(nonNegativeBalancesConstraintPath),
+    'database-only non-negative balance constraints are missing'
+  )
+  assert(
     pkg.scripts['prisma:bootstrap:fresh']?.includes('scripts/bootstrap-database.js'),
     'official fresh bootstrap script is missing'
   )
@@ -52,6 +59,7 @@ function main() {
   )
   assert(
     bootstrap.includes('single-open-round.sql') &&
+      bootstrap.includes('non-negative-balances.sql') &&
       bootstrap.includes("'prisma', 'db', 'execute'"),
     'fresh bootstrap must apply database-only operational constraints'
   )

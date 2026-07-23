@@ -71,6 +71,13 @@ export class WalletService {
     description?: string,
     tx?: Prisma.TransactionClient
   ) {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw AppError.badRequest(
+        'Valor de débito inválido',
+        'invalid_wallet_amount'
+      )
+    }
+
     if (tx) {
       return WalletService.debitWithTx(tx, userId, amount, description)
     }
@@ -101,6 +108,19 @@ export class WalletService {
       )
     }
 
+    const debit = await tx.wallet.updateMany({
+      where: { id: wallet.id, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    })
+
+    if (debit.count !== 1) {
+      throw AppError.badRequest(
+        'Saldo de fichas insuficiente',
+        'insufficient_wallet_balance',
+        { required: amount, available: wallet.balance }
+      )
+    }
+
     await tx.walletLedger.create({
       data: {
         walletId: wallet.id,
@@ -108,11 +128,6 @@ export class WalletService {
         amount,
         description,
       },
-    })
-
-    await tx.wallet.update({
-      where: { id: wallet.id },
-      data: { balance: { decrement: amount } },
     })
 
     return wallet

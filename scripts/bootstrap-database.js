@@ -10,6 +10,9 @@ const MIGRATIONS_DIR = path.join(PROJECT_ROOT, 'prisma', 'migrations')
 const SINGLE_OPEN_ROUND_CONSTRAINT = path.join(
   PROJECT_ROOT, 'prisma', 'constraints', 'single-open-round.sql'
 )
+const NON_NEGATIVE_BALANCES_CONSTRAINT = path.join(
+  PROJECT_ROOT, 'prisma', 'constraints', 'non-negative-balances.sql'
+)
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -82,6 +85,11 @@ async function main() {
   run('npx', [
     'prisma', 'db', 'execute',
     '--file', SINGLE_OPEN_ROUND_CONSTRAINT,
+    '--schema', 'prisma/schema.prisma',
+  ])
+  run('npx', [
+    'prisma', 'db', 'execute',
+    '--file', NON_NEGATIVE_BALANCES_CONSTRAINT,
     '--schema', 'prisma/schema.prisma',
   ])
 
