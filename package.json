@@ -15,7 +15,7 @@
     "test:benefits": "npm run build && node --test tests/benefit-consumption.test.js tests/regrant-open-round-benefits.test.js",
     "test:worker": "npm run build && node --test tests/bullmq-*.test.js",
     "test:teams": "node --test tests/team-seed.test.js tests/team-route-permissions.test.js",
-    "test:security": "npm run build && node --test tests/csrf-protection.test.js tests/wallet-atomicity.test.js",
+    "test:security": "npm run build && node --test tests/csrf-protection.test.js tests/session-security.test.js tests/wallet-atomicity.test.js",
     "test:competition": "npm run build && node --test tests/ranking-window-score.test.js tests/scoring-ranking-integration.test.js tests/period-ranking.test.js tests/bolao-registration-rules.test.js tests/bolao-financial-rules.test.js tests/bolao-prize-allocation.test.js tests/close-expired-bolao.test.js tests/monthly-ranking-cohort.test.js tests/mesa-prize-rules.test.js tests/official-rule-integrity.test.js tests/ticket-normalization.test.js",
     "start": "node dist/index.js",
     "start:worker": "node dist/worker.js",
