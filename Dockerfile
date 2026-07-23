@@ -20,9 +20,8 @@ RUN npm ci
 # Copiar código
 COPY . .
 
-# Identifica a revisão servida pelo endpoint /health. Builds locais não
-# empacotados pelo workflow usam um valor explícito e seguro.
-RUN test -s .release-version || printf 'unknown\n' > .release-version
+# Identifica exatamente os insumos de produção servidos pelo endpoint /health.
+RUN node scripts/release-fingerprint.js > .release-version
 
 # Prisma Client (necessário para build)
 RUN npx prisma generate
@@ -37,8 +36,6 @@ RUN npm run build
 FROM node:20-bullseye
 
 WORKDIR /app
-
-LABEL org.opencontainers.image.revision="__FANTASY12_RELEASE_VERSION__"
 
 # Dependências mínimas do sistema
 RUN apt-get update && apt-get install -y \

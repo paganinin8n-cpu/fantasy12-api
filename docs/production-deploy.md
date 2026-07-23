@@ -212,7 +212,7 @@ O workflow CI/CD API é a trilha oficial para a API:
   - valida as variáveis obrigatórias e os invariantes financeiros na base ativa
   - aplica as migrations com `prisma migrate deploy` e confirma o status
   - chama deployService via RPC do EasyPanel
-  - aguarda https://api.fantasy12.com/health retornar api/db: ok e o SHA exato da release
+  - aguarda https://api.fantasy12.com/health retornar api/db: ok e o fingerprint exato dos insumos de produção
 
 Segredos/variáveis necessários no GitHub:
 
@@ -583,7 +583,7 @@ Antes de aplicar migration em producao:
 2. Confirmar que o preflight de configuração e invariantes não encontrou dados inválidos.
 3. Rodar `npx prisma migrate status` contra o banco de producao.
 4. Aplicar migration em janela controlada (o workflow oficial faz esta etapa).
-5. Validar que `/health` mostra `api: ok`, `db: ok` e o SHA esperado, além dos fluxos afetados.
+5. Validar que `/health` mostra `api: ok`, `db: ok` e o fingerprint esperado, além dos fluxos afetados.
 
 Para mudancas que apenas deixam de usar um valor antigo no codigo, como a remocao logica de `UserRole.PRO`, o deploy de codigo pode ficar saudavel mesmo antes de remover fisicamente o valor antigo do enum no banco.
 
