@@ -1,6 +1,25 @@
 import { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
 
+const MAX_SIGNATURE_HEADER_LENGTH = 512
+const MAX_REQUEST_ID_LENGTH = 256
+const MAX_DATA_ID_LENGTH = 128
+const DEFAULT_SIGNATURE_MAX_AGE_SECONDS = 5 * 60
+
+function getSignatureMaxAgeSeconds() {
+  const configured = Number(process.env.MP_WEBHOOK_MAX_AGE_SECONDS)
+  return Number.isInteger(configured) && configured > 0
+    ? configured
+    : DEFAULT_SIGNATURE_MAX_AGE_SECONDS
+}
+
+function parseTimestampSeconds(value: string): number | null {
+  if (!/^\d{10,13}$/.test(value)) return null
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) return null
+  return value.length === 13 ? Math.floor(parsed / 1000) : parsed
+}
+
 /**
  * Verifica a assinatura HMAC-SHA256 enviada pelo Mercado Pago
  * em webhooks. Sem essa verificação qualquer pessoa pode forjar
@@ -62,6 +81,16 @@ export function verifyMercadoPagoSignature(
 
   const legacyTopic = req.query.topic
   const legacyPaymentId = req.query.id
+
+  if (
+    (typeof legacyPaymentId === 'string' &&
+      legacyPaymentId.length > MAX_DATA_ID_LENGTH) ||
+    (typeof req.query['data.id'] === 'string' &&
+      req.query['data.id'].length > MAX_DATA_ID_LENGTH)
+  ) {
+    return res.status(400).json({ error: 'invalid_signature_input' })
+  }
+
   if (
     legacyTopic === 'payment' &&
     typeof legacyPaymentId === 'string' &&
@@ -77,6 +106,14 @@ export function verifyMercadoPagoSignature(
 
   if (typeof signatureHeader !== 'string' || typeof requestId !== 'string') {
     return res.status(401).json({ error: 'missing_signature_headers' })
+  }
+
+  if (
+    signatureHeader.length > MAX_SIGNATURE_HEADER_LENGTH ||
+    requestId.length === 0 ||
+    requestId.length > MAX_REQUEST_ID_LENGTH
+  ) {
+    return res.status(400).json({ error: 'invalid_signature_input' })
   }
 
   // Parse do header: "ts=...,v1=..."
@@ -96,6 +133,16 @@ export function verifyMercadoPagoSignature(
     return res.status(401).json({ error: 'malformed_signature_header' })
   }
 
+  const timestampSeconds = parseTimestampSeconds(ts)
+  if (!timestampSeconds || !/^[a-f0-9]{64}$/i.test(v1)) {
+    return res.status(401).json({ error: 'malformed_signature_header' })
+  }
+
+  const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds)
+  if (ageSeconds > getSignatureMaxAgeSeconds()) {
+    return res.status(401).json({ error: 'expired_signature' })
+  }
+
   // O id que entra no manifest vem do query string `data.id`
   // (não do body — body pode ser modificado por proxies).
   const dataId =
@@ -104,6 +151,10 @@ export function verifyMercadoPagoSignature(
 
   if (!dataId) {
     return res.status(400).json({ error: 'missing_data_id' })
+  }
+
+  if (String(dataId).length > MAX_DATA_ID_LENGTH) {
+    return res.status(400).json({ error: 'invalid_signature_input' })
   }
 
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`
@@ -127,9 +178,6 @@ export function verifyMercadoPagoSignature(
       requestId,
       dataId,
       timestamp: ts,
-      manifest,
-      expectedSignatures,
-      receivedSignature: v1,
     })
     return res.status(401).json({ error: 'invalid_signature' })
   }

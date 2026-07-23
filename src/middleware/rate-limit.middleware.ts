@@ -128,6 +128,27 @@ export const webhookRateLimiter = rateLimit({
 })
 
 /**
+ * IPN legacy nao possui HMAC. Mantemos uma cota menor para reduzir abuso da
+ * consulta autenticada posterior ao Mercado Pago ate a desativacao do legado.
+ */
+export const legacyWebhookRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_LEGACY_WEBHOOK_MAX ?? 30) * SCALE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: req =>
+    !(
+      req.query.topic === 'payment' &&
+      typeof req.query.id === 'string' &&
+      /^\d+$/.test(req.query.id)
+    ),
+  message: {
+    error: 'too_many_legacy_webhook_requests',
+    message: 'Volume de notificacoes legadas acima do limite operacional.',
+  },
+})
+
+/**
  * ⚙️ Jobs internos: protege endpoints de cron contra abuso por segredo vazado.
  */
 export const internalJobRateLimiter = rateLimit({

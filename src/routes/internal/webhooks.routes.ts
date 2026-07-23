@@ -1,7 +1,10 @@
 import { Router } from 'express'
 import { MercadoPagoWebhookController } from '../../controllers/internal/mercado-pago-webhook.controller'
 import { verifyMercadoPagoSignature } from '../../middleware/mercado-pago-signature.middleware'
-import { webhookRateLimiter } from '../../middleware/rate-limit.middleware'
+import {
+  legacyWebhookRateLimiter,
+  webhookRateLimiter,
+} from '../../middleware/rate-limit.middleware'
 
 const router = Router()
 
@@ -13,6 +16,7 @@ const router = Router()
 router.post(
   '/webhooks/mercado-pago',
   webhookRateLimiter,
+  legacyWebhookRateLimiter,
   verifyMercadoPagoSignature,
   MercadoPagoWebhookController.handle
 )
