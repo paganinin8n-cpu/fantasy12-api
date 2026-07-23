@@ -74,6 +74,7 @@ jobs:
       - name: Package release source
         run: |
           set -euo pipefail
+          printf '%s\n' "$GITHUB_SHA" > .release-version
           mkdir -p .release
           tar --exclude-from=.deployignore -czf ".release/fantasy12-api-${GITHUB_SHA}.tgz" .
 
@@ -123,7 +124,7 @@ jobs:
             rm -rf "$STAGE" "$RELEASE"
             echo "Release source synced to $CODE_DIR"
 
-      - name: Apply database migrations
+      - name: Preflight production and apply database migrations
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -140,6 +141,8 @@ jobs:
               exit 1
             fi
 
+            docker cp "$CODE_DIR/scripts/preflight-production-deploy.js" "$API_CONTAINER:/app/scripts/preflight-production-deploy.js"
+            docker exec "$API_CONTAINER" node /app/scripts/preflight-production-deploy.js
             docker cp "$CODE_DIR/prisma/schema.prisma" "$API_CONTAINER:/app/prisma/schema.prisma"
             docker cp "$CODE_DIR/prisma/migrations/." "$API_CONTAINER:/app/prisma/migrations/"
             docker exec "$API_CONTAINER" npx prisma migrate deploy
@@ -205,10 +208,13 @@ jobs:
       - name: Wait for healthy API
         run: |
           set -euo pipefail
-          echo "Waiting for $API_HEALTH_URL"
+          echo "Waiting for $API_HEALTH_URL to serve release $GITHUB_SHA"
           for i in $(seq 1 36); do
-            if curl -fsS --max-time 10 "$API_HEALTH_URL" | grep -q '"api":"ok"'; then
-              echo "API is healthy."
+            HEALTH_RESPONSE="$(curl -fsS --max-time 10 "$API_HEALTH_URL" || true)"
+            if printf '%s' "$HEALTH_RESPONSE" | grep -q '"api":"ok"' \
+              && printf '%s' "$HEALTH_RESPONSE" | grep -q '"db":"ok"' \
+              && printf '%s' "$HEALTH_RESPONSE" | grep -q "\"version\":\"$GITHUB_SHA\""; then
+              echo "API release $GITHUB_SHA is healthy."
               exit 0
             fi
             sleep 10

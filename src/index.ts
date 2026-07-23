@@ -46,6 +46,7 @@ import { globalRateLimiter } from './middleware/rate-limit.middleware'
 import { requestLogger } from './middleware/request-logger.middleware'
 import { createCsrfProtection } from './middleware/csrf-protection.middleware'
 import { logger } from './lib/logger'
+import { releaseVersion } from './lib/release-version'
 
 dotenv.config()
 
@@ -201,12 +202,14 @@ app.get('/health', async (_req, res) => {
     res.json({
       api: 'ok',
       db: 'ok',
+      version: releaseVersion,
       timestamp: new Date().toISOString(),
     })
   } catch {
     res.status(503).json({
       api: 'ok',
       db: 'error',
+      version: releaseVersion,
       timestamp: new Date().toISOString(),
     })
   }

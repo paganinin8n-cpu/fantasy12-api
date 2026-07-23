@@ -20,6 +20,10 @@ RUN npm ci
 # Copiar código
 COPY . .
 
+# Identifica a revisão servida pelo endpoint /health. Builds locais não
+# empacotados pelo workflow usam um valor explícito e seguro.
+RUN test -s .release-version || printf 'unknown\n' > .release-version
+
 # Prisma Client (necessário para build)
 RUN npx prisma generate
 
@@ -47,6 +51,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/.release-version ./.release-version
 
 # Prisma Client runtime
 RUN npx prisma generate

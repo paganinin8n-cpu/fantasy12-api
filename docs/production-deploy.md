@@ -209,8 +209,10 @@ O workflow CI/CD API é a trilha oficial para a API:
   - repete os checks
   - empacota o código-fonte sem .env, node_modules, dist, backups ou artefatos locais
   - sincroniza o pacote no diretório do serviço api do EasyPanel no VPS
+  - valida as variáveis obrigatórias e os invariantes financeiros na base ativa
+  - aplica as migrations com `prisma migrate deploy` e confirma o status
   - chama deployService via RPC do EasyPanel
-  - aguarda https://api.fantasy12.com/health retornar api: ok
+  - aguarda https://api.fantasy12.com/health retornar api/db: ok e o SHA exato da release
 
 Segredos/variáveis necessários no GitHub:
 
@@ -238,8 +240,8 @@ https://api.fantasy12.com/health
 
 Observações:
 
-- o deploy continua não aplicando migrations automaticamente; produção permanece com RUN_DB_MIGRATIONS=false
-- mudanças de schema devem passar por npm run prisma:schema:release:check e seguir a seção de migrations deste documento
+- o startup continua com RUN_DB_MIGRATIONS=false; migrations são uma etapa explícita do workflow antes do deploy da aplicação
+- mudanças de schema devem passar por npm run prisma:schema:release:check; migrations incompatíveis exigem uma estratégia expand/contract
 - o workflow substitui o antigo deploy parcial que copiava apenas dist/ para dentro do container
 - a sincronização preserva .env e .env.local remotos quando existirem no diretório do serviço
 
@@ -573,14 +575,15 @@ Validacao manual dos jobs (recovery):
 
 ### 8. Migrations Prisma
 
-Producao esta configurada com `RUN_DB_MIGRATIONS=false`; portanto, o deploy publica codigo e migrations, mas nao aplica `prisma migrate deploy` automaticamente.
+Producao esta configurada com `RUN_DB_MIGRATIONS=false`, então o startup da aplicação não altera o banco. O workflow oficial executa `prisma migrate deploy` explicitamente, antes de solicitar a nova revisão ao EasyPanel.
 
 Antes de aplicar migration em producao:
 
 1. Confirmar backup recente do banco.
-2. Rodar `npx prisma migrate status` contra o banco de producao.
-3. Aplicar migration em janela controlada.
-4. Validar `/health` e fluxos afetados.
+2. Confirmar que o preflight de configuração e invariantes não encontrou dados inválidos.
+3. Rodar `npx prisma migrate status` contra o banco de producao.
+4. Aplicar migration em janela controlada (o workflow oficial faz esta etapa).
+5. Validar que `/health` mostra `api: ok`, `db: ok` e o SHA esperado, além dos fluxos afetados.
 
 Para mudancas que apenas deixam de usar um valor antigo no codigo, como a remocao logica de `UserRole.PRO`, o deploy de codigo pode ficar saudavel mesmo antes de remover fisicamente o valor antigo do enum no banco.
 

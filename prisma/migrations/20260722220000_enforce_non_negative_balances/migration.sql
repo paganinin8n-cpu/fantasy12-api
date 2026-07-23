@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE "wallets"
   ADD CONSTRAINT "wallets_balance_non_negative"
   CHECK ("balance" >= 0) NOT VALID;
@@ -25,3 +27,5 @@ ALTER TABLE "user_benefit_inventory"
   CHECK ("quantity" >= 0) NOT VALID;
 ALTER TABLE "user_benefit_inventory"
   VALIDATE CONSTRAINT "user_benefit_inventory_quantity_non_negative";
+
+COMMIT;
