@@ -74,6 +74,8 @@ jobs:
       - name: Package release source
         run: |
           set -euo pipefail
+          sed -i "s/__FANTASY12_RELEASE_VERSION__/${GITHUB_SHA}/g" \
+            src/lib/release-version.ts Dockerfile
           printf '%s\n' "$GITHUB_SHA" > .release-version
           mkdir -p .release
           tar --exclude-from=.deployignore -czf ".release/fantasy12-api-${GITHUB_SHA}.tgz" .
@@ -190,6 +192,11 @@ jobs:
 
             if (!response.ok) {
               throw new Error(`RPC ${path} failed with ${response.status}: ${text}`)
+            }
+
+            if (body?.error) {
+              const message = body.error?.message || 'unknown application error'
+              throw new Error(`RPC ${path} was rejected: ${message}`)
             }
 
             return body

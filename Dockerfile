@@ -38,6 +38,8 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
+LABEL org.opencontainers.image.revision="__FANTASY12_RELEASE_VERSION__"
+
 # Dependências mínimas do sistema
 RUN apt-get update && apt-get install -y \
   openssl \
