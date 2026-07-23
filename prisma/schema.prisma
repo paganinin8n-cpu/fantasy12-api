@@ -127,6 +127,7 @@ model User {
   // Anti brute-force por conta (independente de IP)
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+  sessionVersion      Int       @default(0)
   adminBlockedAt      DateTime?
   adminBlockedReason  String?
   adminBlockedById    String?

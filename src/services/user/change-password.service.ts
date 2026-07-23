@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
+import { revokeUserSessions } from '../../lib/redis-session-store'
 
 const BCRYPT_ROUNDS = 10
 
@@ -43,9 +44,13 @@ export class ChangePasswordService {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashed },
+      data: {
+        password: hashed,
+        sessionVersion: { increment: 1 },
+      },
     })
 
+    await revokeUserSessions(userId)
     return { ok: true }
   }
 }

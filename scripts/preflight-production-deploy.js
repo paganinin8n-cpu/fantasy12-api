@@ -4,6 +4,7 @@ const requiredEnvironment = [
   'SESSION_SECRET',
   'MP_ACCESS_TOKEN',
   'MP_WEBHOOK_SECRET',
+  'REDIS_URL',
 ]
 
 const missingEnvironment = requiredEnvironment.filter(name => !process.env[name])

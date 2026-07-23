@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
+import { revokeUserSessions } from '../../lib/redis-session-store'
 
 const BCRYPT_ROUNDS = 10
 
@@ -32,7 +33,7 @@ export class ResetPasswordService {
       .update(token)
       .digest('hex')
 
-    return prisma.$transaction(async tx => {
+    const result = await prisma.$transaction(async tx => {
       const record = await tx.passwordResetToken.findUnique({
         where: { tokenHash },
       })
@@ -48,7 +49,10 @@ export class ResetPasswordService {
 
       await tx.user.update({
         where: { id: record.userId },
-        data: { password: hashed },
+        data: {
+          password: hashed,
+          sessionVersion: { increment: 1 },
+        },
       })
 
       await tx.passwordResetToken.update({
@@ -56,7 +60,10 @@ export class ResetPasswordService {
         data: { usedAt: new Date() },
       })
 
-      return { ok: true }
+      return { ok: true, userId: record.userId }
     })
+
+    await revokeUserSessions(result.userId)
+    return { ok: true }
   }
 }

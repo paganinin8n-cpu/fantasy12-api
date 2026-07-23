@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 import { LoginService } from '../services/auth/login.service';
+import {
+  clearSessionCookie,
+  establishAuthenticatedSession,
+  loadSessionSecurityConfig,
+} from '../lib/session-security'
 
 export class AuthController {
   static async login(
@@ -12,12 +17,11 @@ export class AuthController {
 
       const result = await LoginService.execute({ email, password });
 
-      // 🔐 Salvar na sessão
-      req.session.user = {
-        id: result.user.id,
-        role: result.user.role,
-        email: result.user.email,
-      };
+      await establishAuthenticatedSession(
+        req,
+        result.user,
+        loadSessionSecurityConfig().absoluteTtlMs
+      )
 
       return res.status(200).json({
         success: true,
@@ -36,7 +40,7 @@ export class AuthController {
           return;
         }
 
-        res.clearCookie('f12.session');
+        clearSessionCookie(res)
         resolve(res.status(200).json({ success: true }));
       });
     });

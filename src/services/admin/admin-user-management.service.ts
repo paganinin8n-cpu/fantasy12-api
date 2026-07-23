@@ -1,6 +1,7 @@
 import { PaymentProvider, SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
+import { revokeUserSessions } from '../../lib/redis-session-store'
 
 type AdminContext = {
   adminUserId: string
@@ -118,13 +119,14 @@ export class AdminUserManagementService {
       throw AppError.badRequest('Informe um motivo para o bloqueio.', 'reason_required')
     }
 
-    return prisma.$transaction(async tx => {
+    const user = await prisma.$transaction(async tx => {
       const user = await tx.user.update({
         where: { id: targetUserId },
         data: {
           adminBlockedAt: new Date(),
           adminBlockedReason: trimmedReason,
           adminBlockedById: context.adminUserId,
+          sessionVersion: { increment: 1 },
         },
         select: {
           id: true,
@@ -148,6 +150,9 @@ export class AdminUserManagementService {
 
       return user
     })
+
+    await revokeUserSessions(targetUserId)
+    return user
   }
 
   static async unblockUser(

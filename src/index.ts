@@ -47,6 +47,12 @@ import { requestLogger } from './middleware/request-logger.middleware'
 import { createCsrfProtection } from './middleware/csrf-protection.middleware'
 import { logger } from './lib/logger'
 import { releaseVersion } from './lib/release-version'
+import { getRedisSessionStore } from './lib/redis-session-store'
+import {
+  createSessionLifetimeMiddleware,
+  loadSessionSecurityConfig,
+  sessionCookieOptions,
+} from './lib/session-security'
 
 dotenv.config()
 
@@ -55,7 +61,11 @@ if (!SESSION_SECRET) {
   throw new Error('SESSION_SECRET nao configurado no ambiente')
 }
 
-const isProduction = process.env.NODE_ENV === 'production'
+const REDIS_URL = process.env.REDIS_URL
+if (!REDIS_URL) {
+  throw new Error('REDIS_URL nao configurado para sessoes compartilhadas')
+}
+
 const allowedOrigins = (
   process.env.CORS_ALLOWED_ORIGINS ??
   process.env.FRONTEND_ORIGIN ??
@@ -65,15 +75,12 @@ const allowedOrigins = (
   .map(origin => origin.trim())
   .filter(Boolean)
 
-const cookieSecure =
-  process.env.COOKIE_SECURE != null
-    ? process.env.COOKIE_SECURE === 'true'
-    : isProduction
-
-const cookieSameSite = (
-  process.env.COOKIE_SAME_SITE ??
-  (cookieSecure ? 'none' : 'lax')
-) as 'lax' | 'strict' | 'none'
+const sessionSecurityConfig = loadSessionSecurityConfig()
+const sessionCookie = sessionCookieOptions()
+const sessionStore = getRedisSessionStore(
+  REDIS_URL,
+  sessionSecurityConfig.idleTtlMs / 1000
+)
 
 const app = express()
 
@@ -137,15 +144,16 @@ app.use(
     name: 'f12.session',
     secret: SESSION_SECRET,
     resave: false,
+    rolling: true,
     saveUninitialized: false,
+    store: sessionStore,
+    unset: 'destroy',
     proxy: true,
-    cookie: {
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: cookieSameSite,
-    },
+    cookie: sessionCookie,
   })
 )
+
+app.use(createSessionLifetimeMiddleware())
 
 /* ======================================================
    🛡️ CSRF / REQUEST ORIGIN

@@ -4,6 +4,7 @@ import { UserProfileService } from '../services/user-profile.service'
 import { UpdateProfileService } from '../services/user/update-profile.service'
 import { ChangePasswordService } from '../services/user/change-password.service'
 import { AppError } from '../errors/AppError'
+import { clearSessionCookie } from '../lib/session-security'
 
 export class MeController {
   static async handle(req: AuthRequest, res: Response, next: NextFunction) {
@@ -41,6 +42,7 @@ export class MeController {
         currentPassword: req.body.currentPassword,
         newPassword: req.body.newPassword,
       })
+      clearSessionCookie(res)
       return res.status(200).json({ ok: true })
     } catch (err) {
       return next(err)

@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
-import { generateToken } from '../../utils/jwt'
 import { AppError } from '../../errors/AppError'
 
 const MAX_FAILED_ATTEMPTS = 5
@@ -74,19 +73,13 @@ export class LoginService {
       })
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    })
-
     return {
-      token,
       user: {
         id: user.id,
         name: user.name,
         role: user.role,
         email: user.email,
+        sessionVersion: user.sessionVersion,
       },
     }
   }

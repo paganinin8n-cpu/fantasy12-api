@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { clearSessionCookie } from '../lib/session-security'
 
 /**
  * Tipagem do request autenticado
@@ -36,6 +37,7 @@ export async function authMiddleware(
         role: true,
         email: true,
         adminBlockedAt: true,
+        sessionVersion: true,
       },
     });
 
@@ -47,16 +49,27 @@ export async function authMiddleware(
 
     if (user.adminBlockedAt) {
       req.session.destroy(() => undefined);
+      clearSessionCookie(res)
       return res.status(403).json({
         error: 'account_admin_blocked',
         message: 'Conta bloqueada administrativamente. Entre em contato com o suporte.',
       });
     }
 
+    if (sessionUser.sessionVersion !== user.sessionVersion) {
+      req.session.destroy(() => undefined)
+      clearSessionCookie(res)
+      return res.status(401).json({
+        error: 'session_revoked',
+        message: 'Sessão revogada. Entre novamente.',
+      })
+    }
+
     req.session.user = {
       id: user.id,
       role: user.role,
       email: user.email,
+      sessionVersion: user.sessionVersion,
     };
     req.user = req.session.user as { id: string; role: UserRole; email?: string };
     return next();
