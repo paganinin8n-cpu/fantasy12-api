@@ -67,9 +67,11 @@ NODE_ENV=production
 PORT=3001
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DB?schema=public
 SESSION_SECRET=change-me
-JWT_SECRET=change-me-too
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=none
+SESSION_IDLE_TTL_MIN=30
+SESSION_ABSOLUTE_TTL_HOURS=24
+REDIS_URL=redis://:PASSWORD@HOST:6379/0
 FRONTEND_ORIGIN=https://www.fantasy12.com
 CORS_ALLOWED_ORIGINS=https://www.fantasy12.com
 INTERNAL_JOB_SECRET=change-me-too
@@ -89,11 +91,8 @@ API_PUBLIC_URL=https://api.fantasy12.com
 
 ## Observação importante sobre autenticação
 
-A API também exige `JWT_SECRET` no ambiente.
-
-Sem essa variável, o container sobe e cai imediatamente com erro em `dist/utils/jwt.js`.
-
-Se você ainda não tiver uma estratégia separada para JWT, pode usar o mesmo valor do `SESSION_SECRET` temporariamente, embora o ideal seja manter secrets distintos.
+A API exige `SESSION_SECRET` e `REDIS_URL`. As sessões são armazenadas no Redis,
+possuem timeout ocioso renovável e expiração absoluta. O login não emite JWT.
 
 ## Comandos úteis no console da API
 
@@ -618,7 +617,9 @@ WORKER_HEALTH_PORT=3002
 DATABASE_URL=postgresql://...
 ```
 
-A API HTTP nao precisa de `REDIS_URL`. Nao logar `REDIS_URL` completo (credenciais).
+A API HTTP e o worker precisam de `REDIS_URL`. A API usa Redis para sessoes
+compartilhadas e revogacao; o worker usa o mesmo servidor para BullMQ. Nao logar
+`REDIS_URL` completo (credenciais).
 
 ### Redis em producao
 

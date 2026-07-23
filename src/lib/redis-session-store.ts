@@ -1,4 +1,4 @@
-import session, { SessionData, Store } from 'express-session'
+import { SessionData, Store } from 'express-session'
 import IORedis from 'ioredis'
 import { logger } from './logger'
 
@@ -146,5 +146,3 @@ export async function revokeUserSessions(userId: string): Promise<void> {
   const store = getRedisSessionStore(redisUrl, idleTtlMinutes * 60)
   await store.revokeUserSessions(userId)
 }
-
-export const MemoryStore = session.MemoryStore

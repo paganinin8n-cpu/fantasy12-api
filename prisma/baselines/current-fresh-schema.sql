@@ -58,6 +58,7 @@ CREATE TABLE "users" (
     "scoreTotal" INTEGER NOT NULL DEFAULT 0,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),
+    "sessionVersion" INTEGER NOT NULL DEFAULT 0,
     "adminBlockedAt" TIMESTAMP(3),
     "adminBlockedReason" TEXT,
     "adminBlockedById" TEXT,

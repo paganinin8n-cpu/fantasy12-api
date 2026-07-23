@@ -407,7 +407,17 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `Implementado localmente; pendente migration, deploy e QA com duas replicas`
+
+Nota 2026-07-23:
+
+- sessoes migradas do `MemoryStore` para Redis compartilhado
+- login regenera o ID antes de persistir a identidade autenticada
+- timeout ocioso e expiracao absoluta ficaram configuraveis
+- reset/troca de senha e bloqueio administrativo incrementam `sessionVersion` e removem sessoes Redis
+- cookies de logout/revogacao reutilizam os atributos de criacao
+- JWT sem consumidor foi removido do login e das dependencias
+- suite de seguranca cobre rotacao, expiracao, revogacao e paridade do cookie
 
 Escopo:
 
