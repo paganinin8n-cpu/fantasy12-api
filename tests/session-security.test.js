@@ -207,3 +207,15 @@ test('login no longer creates or returns an unused JWT', () => {
 
   assert.doesNotMatch(source, /generateToken|token,/) 
 })
+
+test('password change destroys the current session so response touch cannot recreate it', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../src/controllers/me.controller.ts'),
+    'utf8'
+  )
+
+  assert.match(
+    source,
+    /ChangePasswordService\.execute[\s\S]+req\.session\.destroy[\s\S]+clearSessionCookie/
+  )
+})
