@@ -1,0 +1,240 @@
+name: Production session security QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type RUN_SESSION_QA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fantasy12-production-session-qa
+  cancel-in-progress: false
+
+jobs:
+  session-qa:
+    if: inputs.confirmation == 'RUN_SESSION_QA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Verify shared session lifecycle and clean up
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          QA_RUN_ID: ${{ github.run_id }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          envs: QA_RUN_ID
+          command_timeout: 12m
+          script: |
+            set -euo pipefail
+
+            API_SERVICE='f12-prd_api'
+            REDIS_SERVICE='f12-prd_redis'
+            API_URL='https://api.fantasy12.com'
+            QA_EMAIL="qa-session-${QA_RUN_ID}@example.invalid"
+            QA_CPF="9$(date +%s)"
+            QA_PASSWORD="Qa!$(openssl rand -hex 18)"
+            QA_NEW_PASSWORD="Qb!$(openssl rand -hex 18)"
+            COOKIE_ONE="/tmp/f12-session-qa-${QA_RUN_ID}-one.cookies"
+            COOKIE_TWO="/tmp/f12-session-qa-${QA_RUN_ID}-two.cookies"
+            COOKIE_THREE="/tmp/f12-session-qa-${QA_RUN_ID}-three.cookies"
+            HEADERS="/tmp/f12-session-qa-${QA_RUN_ID}.headers"
+            RESPONSE="/tmp/f12-session-qa-${QA_RUN_ID}.response"
+
+            api_container() {
+              docker ps --filter "name=${API_SERVICE}" --format '{{.ID}}' | head -n 1
+            }
+
+            wait_replicas() {
+              expected="$1"
+              for attempt in $(seq 1 60); do
+                actual="$(docker service ls --filter "name=${2}" --format '{{.Replicas}}' | head -n 1)"
+                if [ "$actual" = "${expected}/${expected}" ]; then
+                  return 0
+                fi
+                sleep 5
+              done
+              echo "Service ${2} did not reach ${expected}/${expected}" >&2
+              return 1
+            }
+
+            cleanup() {
+              set +e
+              cleanup_status=0
+              docker service scale "${API_SERVICE}=1" >/dev/null 2>&1 || cleanup_status=1
+              wait_replicas 1 "$API_SERVICE" >/dev/null 2>&1 || cleanup_status=1
+              container="$(api_container)"
+              if [ -n "$container" ]; then
+                docker exec -i -e QA_EMAIL="$QA_EMAIL" "$container" node - <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { revokeUserSessions } = require('/app/dist/lib/redis-session-store')
+
+            async function cleanupQaUser() {
+              const user = await prisma.user.findUnique({
+                where: { email: process.env.QA_EMAIL },
+                select: { id: true },
+              })
+              if (!user) return
+              await revokeUserSessions(user.id)
+              await prisma.user.delete({ where: { id: user.id } })
+            }
+
+            cleanupQaUser()
+              .catch(error => {
+                console.error(error.message)
+                process.exitCode = 1
+              })
+              .finally(() => prisma.$disconnect())
+            NODE
+                test "$?" = '0' || cleanup_status=1
+              else
+                cleanup_status=1
+              fi
+              rm -f "$COOKIE_ONE" "$COOKIE_TWO" "$COOKIE_THREE" "$HEADERS" "$RESPONSE" || cleanup_status=1
+              set -e
+              return "$cleanup_status"
+            }
+            trap cleanup EXIT INT TERM
+
+            wait_replicas 1 "$API_SERVICE"
+            wait_replicas 1 "$REDIS_SERVICE"
+            API_CONTAINER="$(api_container)"
+            test -n "$API_CONTAINER"
+
+            ORIGIN="$(docker exec "$API_CONTAINER" node -e '
+              const configured = process.env.CORS_ALLOWED_ORIGINS || process.env.FRONTEND_ORIGIN || "https://fantasy12.com"
+              process.stdout.write(configured.split(",")[0].trim())
+            ')"
+            test -n "$ORIGIN"
+
+            REDIS_POLICY="$(docker exec "$API_CONTAINER" node -e '
+              const Redis = require("ioredis")
+              const redis = new Redis(process.env.REDIS_URL)
+              Promise.all([
+                redis.config("GET", "appendonly"),
+                redis.config("GET", "appendfsync"),
+                redis.config("GET", "maxmemory-policy"),
+              ]).then(values => {
+                process.stdout.write(JSON.stringify(values))
+              }).finally(() => redis.quit())
+            ')"
+            printf '%s' "$REDIS_POLICY" | grep -q '"appendonly","yes"'
+            printf '%s' "$REDIS_POLICY" | grep -q '"appendfsync","everysec"'
+            printf '%s' "$REDIS_POLICY" | grep -q '"maxmemory-policy","noeviction"'
+
+            status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
+              -H 'Content-Type: application/json' \
+              --data "{\"name\":\"Session QA\",\"nickname\":\"sessionqa${QA_RUN_ID}\",\"email\":\"${QA_EMAIL}\",\"cpf\":\"${QA_CPF}\",\"phone\":\"5599999999999\",\"password\":\"${QA_PASSWORD}\"}" \
+              "${API_URL}/api/users")"
+            test "$status" = '201'
+
+            login() {
+              password="$1"
+              cookie_file="$2"
+              status="$(curl -sS -D "$HEADERS" -o "$RESPONSE" -w '%{http_code}' \
+                -c "$cookie_file" \
+                -H 'Content-Type: application/json' \
+                --data "{\"email\":\"${QA_EMAIL}\",\"password\":\"${password}\"}" \
+                "${API_URL}/api/auth/login")"
+              test "$status" = '200'
+              grep -qi 'set-cookie: f12\.session=' "$HEADERS"
+              grep -qi 'HttpOnly' "$HEADERS"
+              grep -qi 'Secure' "$HEADERS"
+              grep -qi 'SameSite=None' "$HEADERS"
+            }
+
+            authenticated_me() {
+              cookie_file="$1"
+              expected="$2"
+              status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
+                -b "$cookie_file" "${API_URL}/api/me")"
+              test "$status" = "$expected"
+            }
+
+            login "$QA_PASSWORD" "$COOKIE_ONE"
+            login "$QA_PASSWORD" "$COOKIE_TWO"
+            SID_ONE="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_ONE")"
+            SID_TWO="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_TWO")"
+            test -n "$SID_ONE"
+            test -n "$SID_TWO"
+            test "$SID_ONE" != "$SID_TWO"
+            authenticated_me "$COOKIE_ONE" '200'
+
+            docker service update --force "$REDIS_SERVICE" >/dev/null
+            wait_replicas 1 "$REDIS_SERVICE"
+            for attempt in $(seq 1 30); do
+              if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
+                break
+              fi
+              if [ "$attempt" = '30' ]; then
+                echo 'Session did not survive Redis restart' >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
+            docker service update --force "$API_SERVICE" >/dev/null
+            wait_replicas 1 "$API_SERVICE"
+            for attempt in $(seq 1 30); do
+              if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
+                break
+              fi
+              if [ "$attempt" = '30' ]; then
+                echo 'Session did not survive API restart' >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
+            docker service scale "${API_SERVICE}=2" >/dev/null
+            wait_replicas 2 "$API_SERVICE"
+            SESSION_COOKIE="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_ONE")"
+            CONTAINER_COUNT=0
+            for container in $(docker ps --filter "name=${API_SERVICE}" --format '{{.ID}}'); do
+              ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' "$container" | head -n 1)"
+              test -n "$ip"
+              status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
+                -H "Cookie: f12.session=${SESSION_COOKIE}" \
+                "http://${ip}:3001/api/me")"
+              test "$status" = '200'
+              CONTAINER_COUNT=$((CONTAINER_COUNT + 1))
+            done
+            test "$CONTAINER_COUNT" = '2'
+            docker service scale "${API_SERVICE}=1" >/dev/null
+            wait_replicas 1 "$API_SERVICE"
+
+            status="$(curl -sS -D "$HEADERS" -o "$RESPONSE" -w '%{http_code}' \
+              -b "$COOKIE_ONE" -c "$COOKIE_ONE" \
+              -H "Origin: ${ORIGIN}" \
+              -H 'Content-Type: application/json' \
+              --data "{\"currentPassword\":\"${QA_PASSWORD}\",\"newPassword\":\"${QA_NEW_PASSWORD}\"}" \
+              "${API_URL}/api/me/password")"
+            test "$status" = '200'
+            authenticated_me "$COOKIE_TWO" '401'
+
+            login "$QA_NEW_PASSWORD" "$COOKIE_THREE"
+            status="$(curl -sS -D "$HEADERS" -o "$RESPONSE" -w '%{http_code}' \
+              -b "$COOKIE_THREE" -c "$COOKIE_THREE" \
+              -H "Origin: ${ORIGIN}" \
+              -H 'Content-Type: application/json' \
+              -X POST "${API_URL}/api/auth/logout")"
+            test "$status" = '200'
+            grep -qi 'set-cookie: f12\.session=;' "$HEADERS"
+            grep -qi 'Path=/' "$HEADERS"
+            grep -qi 'HttpOnly' "$HEADERS"
+            grep -qi 'Secure' "$HEADERS"
+            grep -qi 'SameSite=None' "$HEADERS"
+            authenticated_me "$COOKIE_THREE" '401'
+
+            cleanup
+            trap - EXIT INT TERM
+            echo 'Production session security QA passed and synthetic account removed.'
