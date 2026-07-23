@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-07-15
+- 2026-07-22
 
 Objetivo:
 
@@ -19,6 +19,7 @@ Documentos de origem:
 - [`docs/roadmap.md`](/Users/roberson/dev/personal/fantasy12-api/docs/roadmap.md)
 - [`docs/user-profiles-alignment.md`](/Users/roberson/dev/personal/fantasy12-api/docs/user-profiles-alignment.md)
 - [`docs/ui-patterns-backlog.md`](/Users/roberson/dev/personal/fantasy12-api/docs/ui-patterns-backlog.md)
+- [`docs/security-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/security-review.md)
 - [`docs/updates-2026-05-18-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-18-review.md)
 - [`docs/updates-2026-05-22-review.md`](/Users/roberson/dev/personal/fantasy12-api/docs/updates-2026-05-22-review.md)
 
@@ -185,6 +186,485 @@ Nota 2026-06-06:
 - cadeia historica fica congelada como legado auditado
 - ambientes fresh deixam de executar a cadeia quebrada e passam a registra-la como aplicada depois do `db push`
 - releases de schema passam por `npm run prisma:schema:release:check`, incluindo auditoria, baseline, politica de migrations e build
+
+## P0/P1. Programa de seguranca — revisao 2026-07-22
+
+Objetivo:
+
+- proteger integridade financeira, contas, operacoes administrativas e pagamentos
+- transformar achados da revisao de seguranca em trabalho sequenciado e verificavel
+- impedir release quando um controle critico regredir
+
+Regra de execucao:
+
+- itens `Release blocker` precisam estar concluidos antes do proximo deploy de producao
+- cada item deve incluir teste de regressao no mesmo PR
+- correcoes de saldo, inventario, pagamento e sessao exigem revisao de seguranca
+- este trecho e a fila oficial; `docs/security-review.md` permanece como evidencia e contexto
+
+### Ordem de entrega
+
+1. Contencao imediata: `SEC-003` e `SEC-004`
+2. Integridade financeira e de requisicao: `SEC-001` e `SEC-002`
+3. Identidade e autorizacao: `SEC-005`, `SEC-007` e `SEC-009`
+4. Fronteiras de entrada e concorrencia: `SEC-006` e `SEC-008`
+5. Plataforma, privacidade e gates: `SEC-010`, `SEC-011` e `SEC-012`
+
+### SEC-001 — Tornar debitos e consumos atomicamente seguros
+
+Prioridade:
+
+- `P0`
+- `Release blocker`
+
+Tipo:
+
+- Backend / Banco / Integridade financeira
+
+Status:
+
+- `Implementado localmente; pendente aplicar migration e validar concorrencia no PostgreSQL de homologacao`
+
+Nota 2026-07-22:
+
+- debitos de carteira e inventario agora usam updates condicionais
+- constraints nao negativas foram adicionadas para migration e bootstrap fresh
+- testes unitarios cobrem disputa perdida e impedem ledger sem debito
+
+Problema:
+
+- debitos de carteira fazem leitura, validacao e decremento em operacoes separadas
+- requisicoes concorrentes podem aprovar o mesmo saldo e deixar a carteira negativa
+- estoques de beneficios usam padrao semelhante e nao possuem restricao final no banco
+
+Escopo:
+
+- trocar debitos por `UPDATE ... WHERE balance >= amount` e exigir uma linha alterada
+- aplicar o mesmo padrao a inventarios e beneficios consumiveis
+- adicionar constraints para impedir saldo, quantidade e beneficios negativos
+- revisar debito administrativo com a mesma regra
+
+Criterios de aceite:
+
+- duas compras concorrentes nunca gastam o mesmo saldo
+- saldo e inventario nunca ficam negativos, inclusive por SQL direto acidental
+- ledger e saldo permanecem atomicamente consistentes
+- testes concorrentes executam contra PostgreSQL real e cobrem sucesso mais rejeicao
+
+Dependencias:
+
+- nenhuma
+
+### SEC-002 — Proteger mutacoes autenticadas contra CSRF
+
+Prioridade:
+
+- `P0`
+- `Release blocker`
+
+Tipo:
+
+- Backend / Frontend / Autenticacao
+
+Status:
+
+- `Implementado localmente; pendente QA integrado com o frontend oficial`
+
+Nota 2026-07-22:
+
+- mutacoes com sessao exigem `Origin` ou `Referer` oficial
+- corpos autenticados precisam usar `application/json`
+- rotas internas e mutacoes publicas preservam seus controles proprios
+- suite cobre origem valida, ausente, invalida e content type inseguro
+
+Problema:
+
+- autenticacao usa cookie de sessao
+- producao pode operar com `SameSite=None`
+- rotas mutaveis nao validam token CSRF nem origem da requisicao
+
+Escopo:
+
+- escolher e documentar token CSRF ou validacao estrita de `Origin`/`Referer`
+- aplicar o controle a todo `POST`, `PUT`, `PATCH` e `DELETE` autenticado
+- exigir `application/json` nas mutacoes da API
+- manter excecoes explicitas somente para webhooks e jobs com autenticacao propria
+- usar `SameSite=Lax` ou `Strict` quando a topologia permitir
+
+Criterios de aceite:
+
+- requisicao cross-site sem prova CSRF recebe `403`
+- frontend oficial continua operando com credenciais
+- webhooks e jobs continuam funcionais e nao passam pelo controle de sessao
+- testes cobrem usuario normal, administrador, origem ausente, origem invalida e preflight
+
+Dependencias:
+
+- alinhamento com o frontend e dominios oficiais
+
+### SEC-003 — Eliminar vulnerabilidades conhecidas de dependencias
+
+Prioridade:
+
+- `P0`
+- `Release blocker`
+
+Tipo:
+
+- Backend / Supply chain
+
+Status:
+
+- `Concluido`
+
+Nota 2026-07-22:
+
+- dependencias diretas e transitivas vulneraveis foram atualizadas
+- `npm audit --omit=dev` passou de 8 vulnerabilidades para zero
+- audit de producao agora faz parte de `npm run ci:check`
+
+Baseline 2026-07-22:
+
+- `npm audit --omit=dev`: 8 vulnerabilidades
+- 3 altas e 5 moderadas
+- pacotes diretos afetados incluem `axios`, `nodemailer`, `express` e `express-rate-limit`
+
+Escopo:
+
+- atualizar `axios` para versao sem os advisories reportados
+- atualizar `nodemailer` e validar compatibilidade SMTP
+- atualizar Express, rate limiter e dependencias transitivas vulneraveis
+- revisar o lockfile completo depois das atualizacoes
+
+Criterios de aceite:
+
+- `npm audit --omit=dev` nao reporta vulnerabilidade alta ou critica
+- vulnerabilidade moderada remanescente possui excecao documentada, dono e prazo
+- checkout, consulta de pagamento, email e rate limiting possuem testes verdes
+- lockfile atualizado e reproduzivel com `npm ci`
+
+Dependencias:
+
+- nenhuma
+
+### SEC-004 — Endurecer autenticidade e logs do webhook Mercado Pago
+
+Prioridade:
+
+- `P0`
+- `Release blocker`
+
+Tipo:
+
+- Backend / Pagamentos / Observabilidade
+
+Status:
+
+- `Concluido localmente; pendente deploy e observacao operacional`
+
+Nota 2026-07-22:
+
+- HMAC, assinatura recebida e manifest foram removidos dos logs de falha
+- assinatura moderna ganhou janela de validade e limites de entrada
+- IPN legacy ganhou rate limit separado e mais restritivo
+- testes cobrem replay, vazamento em log e entrada acima dos limites
+
+Problema:
+
+- falhas de assinatura registram HMAC esperado e recebido
+- timestamp assinado nao possui janela de validade
+- IPN legacy numerica ignora HMAC e pode amplificar chamadas ao provedor
+
+Escopo:
+
+- remover assinaturas, HMAC e manifest completo dos logs
+- validar formato e janela de tempo do timestamp
+- limitar tamanho de headers, IDs e payloads do webhook
+- isolar IPN legacy com limite mais restritivo e politica de desativacao
+- preservar consulta ao provedor, validacao de valor/moeda/referencia e idempotencia
+
+Criterios de aceite:
+
+- nenhum log contem segredo ou material de assinatura reutilizavel
+- evento moderno expirado e rejeitado
+- evento moderno valido continua aceito com as duas chaves configuradas
+- IPN legacy nao consegue criar credito sem confirmacao autentica no Mercado Pago
+- testes cobrem replay, timestamp futuro, assinatura malformada e rotacao de chave
+
+Dependencias:
+
+- `SEC-003` recomendado antes da validacao final do cliente Axios
+
+### SEC-005 — Consolidar ciclo de vida de sessao
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / Autenticacao / Infraestrutura
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- substituir `MemoryStore` por store compartilhado de producao
+- regenerar ID da sessao depois do login
+- definir timeout ocioso e expiracao absoluta
+- revogar outras sessoes apos reset/troca de senha e bloqueio administrativo
+- remover geracao JWT nao utilizada ou formalizar seu caso de uso
+
+Criterios de aceite:
+
+- sessoes sobrevivem reinicio controlado e funcionam com mais de uma replica
+- login troca o identificador anonimo por um novo identificador autenticado
+- reset de senha invalida sessoes anteriores
+- cookies sao apagados com os mesmos atributos usados na criacao
+- testes cobrem expiracao, rotacao, logout e revogacao
+
+Dependencias:
+
+- Redis ou store compartilhado definido pela infraestrutura
+- `SEC-002` deve usar o mesmo modelo oficial de sessao
+
+### SEC-006 — Padronizar validacao de entrada em todas as rotas
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / API
+
+Status:
+
+- `Nao iniciado`
+
+Escopo inicial:
+
+- monetizacao administrativa
+- criacao, atualizacao e resultado de rodada
+- CRUD administrativo de times
+- criacao, revisao, fechamento e convites de Mesa
+- filtros, paginacao, UUIDs, datas, enums e inteiros financeiros
+
+Criterios de aceite:
+
+- toda entrada de body, params e query possui schema explicito
+- schemas rejeitam campos desconhecidos em operacoes sensiveis
+- valores financeiros aceitam apenas inteiros positivos dentro de limite documentado
+- paginacao possui limites maximos
+- nenhum controller sensivel depende de `Number(req.body...)` ou cast sem validacao
+- testes negativos cobrem tipo incorreto, overflow, enum invalido e payload extra
+
+Dependencias:
+
+- nenhuma; pode ser dividido por dominio
+
+### SEC-007 — Unificar autorizacao no RBAC granular
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / Autorizacao / Admin
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- remover bypass de operacoes sensiveis baseado apenas em `User.role = ADMIN`
+- exigir permissao especifica para fechamento e liquidacao forcada de Mesa
+- revisar todas as rotas admin e servicos chamados fora de roteadores admin
+- definir politica de separacao entre permissao financeira e de competicao
+- registrar resultado da operacao, nao somente permissao concedida
+
+Criterios de aceite:
+
+- administrador sem permissao especifica recebe `403`
+- `SUPERADMIN` continua com bypass explicitamente testado
+- operacao financeira ou de liquidacao gera auditoria de sucesso e falha
+- matriz rota x permissao fica versionada e coberta por testes
+
+Dependencias:
+
+- catalogo oficial de permissoes administrativas
+
+### SEC-008 — Corrigir concorrencia e semantica de convites de Mesa
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / Dominio / Integridade
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- executar reserva do convite, entrada e incremento em uma unica transacao
+- usar incremento condicional para respeitar `maxUses`
+- validar `maxUses`, `expiresAt` e codigo com schemas
+- documentar se convite e requisito de acesso ou apenas atalho para Mesa publica
+
+Criterios de aceite:
+
+- concorrencia nunca ultrapassa `maxUses`
+- falha na entrada nao consome uso do convite
+- uso repetido pelo mesmo usuario e idempotente ou explicitamente rejeitado
+- testes concorrentes executam contra PostgreSQL real
+
+Dependencias:
+
+- decisao de produto sobre Mesa publica versus privada
+- reutilizar padrao atomico de `SEC-001`
+
+### SEC-009 — Endurecer identidade, senhas e lockout
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / Identidade
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- normalizar email antes de consultar e persistir
+- garantir unicidade case-insensitive no banco
+- validar e normalizar CPF e telefone
+- elevar politica de senha e permitir senhas longas
+- tornar incremento de falhas e lockout atomicos
+- avaliar protecao por conta mais IP/dispositivo sem facilitar DoS de lockout
+
+Criterios de aceite:
+
+- variantes de caixa do mesmo email nao criam contas diferentes
+- cadastro, login e reset usam a mesma identidade canonica
+- tentativas paralelas nao burlam o lockout
+- politica de senha fica centralizada e compartilhada pelos tres fluxos
+- testes cobrem Unicode, caixa, concorrencia e senha longa
+
+Dependencias:
+
+- plano de migracao para emails existentes antes da constraint
+
+### SEC-010 — Minimizar e governar PII e dados de pagamento
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Backend / Privacidade / Operacao
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- remover email de logs de recuperacao e entrega ou aplicar mascaramento
+- inventariar CPF, telefone, email e payload completo do Mercado Pago
+- definir retencao e expurgo para tokens, webhooks, auditoria e logs
+- limitar acesso operacional a dados sensiveis
+- documentar criptografia em transito, repouso e backups
+
+Criterios de aceite:
+
+- logs normais nao contem CPF, token, cookie, assinatura ou email completo
+- payload de pagamento persiste somente campos necessarios ou possui retencao definida
+- processo de expurgo e testavel e auditavel
+- matriz de dados documenta finalidade, retencao e acesso
+
+Dependencias:
+
+- politica legal/LGPD e requisitos operacionais de auditoria
+
+### SEC-011 — Criar suite e gates de seguranca
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- QA / CI / Seguranca
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- adicionar testes de autenticacao, autorizacao, CSRF, rate limit e headers
+- adicionar testes concorrentes para carteira, inventario e convite
+- tornar audit de dependencias um gate de release
+- transformar os 39 achados conhecidos da cadeia legacy de migrations em baseline controlada
+- falhar CI quando surgir regressao nova na cadeia, baseline fresh ou politica de bootstrap
+
+Criterios de aceite:
+
+- PR nao pode reduzir controles de rota sem teste falhar
+- vulnerabilidade alta ou critica bloqueia release
+- regressao nova de migration bloqueia CI sem exigir que a cadeia legacy seja reescrita
+- suite publica relatorio reproduzivel e mantem tempo de execucao aceitavel
+
+Dependencias:
+
+- cenarios produzidos por `SEC-001` a `SEC-009`
+
+### SEC-012 — Endurecer container e runtime de producao
+
+Prioridade:
+
+- `P1`
+
+Tipo:
+
+- Infraestrutura / Supply chain
+
+Status:
+
+- `Nao iniciado`
+
+Escopo:
+
+- migrar para runtime Node LTS suportado
+- executar processo como usuario nao-root
+- instalar/copiar apenas dependencias de producao no runtime
+- fixar imagem por digest e automatizar atualizacoes
+- revisar pacotes de sistema e superficie dos scripts copiados
+- gerar SBOM e registrar procedencia da imagem
+
+Criterios de aceite:
+
+- container nao executa a aplicacao como root
+- runtime nao contem dependencias de desenvolvimento
+- scanner de imagem nao reporta vulnerabilidade alta/critica sem excecao aprovada
+- healthcheck, API, worker, Prisma e scripts operacionais continuam funcionais
+
+Dependencias:
+
+- `SEC-003` para baseline limpa de dependencias Node
 
 ## P1. Regras centrais do produto
 

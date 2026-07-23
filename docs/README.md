@@ -6,6 +6,7 @@ Arquivos:
 
 - `architecture-current.md`: fotografia do estado atual de `fantasy12-api` e `fantasy12-frontend`
 - `architecture-target.md`: arquitetura alvo e escopo do futuro `fantasy12-infra`
+- `backlog-master.md`: backlog oficial, incluindo o programa de seguranca `SEC-*`
 - `roadmap.md`: fases de execução com prioridades e entregáveis
 - `security-review.md`: avaliação inicial de segurança e hardening
 
