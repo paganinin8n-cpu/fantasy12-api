@@ -44,6 +44,7 @@ import internalRoutes from './routes/internal'
 import { errorHandler } from './middleware/error-handler'
 import { globalRateLimiter } from './middleware/rate-limit.middleware'
 import { requestLogger } from './middleware/request-logger.middleware'
+import { createCsrfProtection } from './middleware/csrf-protection.middleware'
 import { logger } from './lib/logger'
 
 dotenv.config()
@@ -144,6 +145,11 @@ app.use(
     },
   })
 )
+
+/* ======================================================
+   🛡️ CSRF / REQUEST ORIGIN
+====================================================== */
+app.use(createCsrfProtection({ allowedOrigins }))
 
 /* ======================================================
    🔴 LOG GLOBAL (estruturado, com request ID)
