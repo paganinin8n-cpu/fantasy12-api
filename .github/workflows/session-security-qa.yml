@@ -124,20 +124,33 @@ jobs:
                 connectTimeout: 5000,
                 maxRetriesPerRequest: 1,
               })
-              Promise.all([
-                redis.config("GET", "appendonly"),
-                redis.config("GET", "appendfsync"),
-                redis.config("GET", "maxmemory-policy"),
-              ]).then(values => {
-                const config = Object.fromEntries(values)
-                if (config.appendonly !== "yes") throw new Error("Redis appendonly is not yes")
-                if (config.appendfsync !== "everysec") throw new Error("Redis appendfsync is not everysec")
-                if (config["maxmemory-policy"] !== "noeviction") throw new Error("Redis policy is not noeviction")
-                console.log("Redis policy verified")
-              }).catch(error => {
-                console.error(`${error.name}: ${error.message}`)
-                process.exitCode = 1
-              }).finally(() => redis.quit())
+              const desired = {
+                appendonly: "yes",
+                appendfsync: "everysec",
+                "maxmemory-policy": "noeviction",
+              }
+              async function main() {
+                const current = Object.fromEntries(await Promise.all(
+                  Object.keys(desired).map(key => redis.config("GET", key))
+                ))
+                for (const [key, value] of Object.entries(desired)) {
+                  if (current[key] !== value) await redis.config("SET", key, value)
+                }
+                await redis.config("REWRITE")
+                const persisted = Object.fromEntries(await Promise.all(
+                  Object.keys(desired).map(key => redis.config("GET", key))
+                ))
+                for (const [key, value] of Object.entries(desired)) {
+                  if (persisted[key] !== value) throw new Error(`Redis ${key} is not ${value}`)
+                }
+                console.log("Redis policy persisted")
+              }
+              main()
+                .catch(error => {
+                  console.error(`${error.name}: ${error.message}`)
+                  process.exitCode = 1
+                })
+                .finally(() => redis.quit())
             '
 
             echo 'QA phase: synthetic account creation'
@@ -178,6 +191,53 @@ jobs:
               test "$status" = "$expected"
             }
 
+            verify_redis_policy() {
+              enforce="$1"
+              API_CONTAINER="$(api_container)"
+              test -n "$API_CONTAINER"
+              docker exec -e REDIS_ENFORCE="$enforce" "$API_CONTAINER" node -e '
+                const Redis = require("ioredis")
+                const redis = new Redis(process.env.REDIS_URL, {
+                  connectTimeout: 5000,
+                  maxRetriesPerRequest: 1,
+                })
+                const desired = {
+                  appendonly: "yes",
+                  appendfsync: "everysec",
+                  "maxmemory-policy": "noeviction",
+                }
+
+                async function readConfig() {
+                  const values = await Promise.all(
+                    Object.keys(desired).map(key => redis.config("GET", key))
+                  )
+                  return Object.fromEntries(values)
+                }
+
+                async function main() {
+                  let config = await readConfig()
+                  if (process.env.REDIS_ENFORCE === "true") {
+                    for (const [key, value] of Object.entries(desired)) {
+                      if (config[key] !== value) await redis.config("SET", key, value)
+                    }
+                    await redis.config("REWRITE")
+                    config = await readConfig()
+                  }
+                  for (const [key, value] of Object.entries(desired)) {
+                    if (config[key] !== value) throw new Error(`Redis ${key} is not ${value}`)
+                  }
+                  console.log("Redis policy verified")
+                }
+
+                main()
+                  .catch(error => {
+                    console.error(`${error.name}: ${error.message}`)
+                    process.exitCode = 1
+                  })
+                  .finally(() => redis.quit())
+              '
+            }
+
             echo 'QA phase: independent login sessions'
             login "$QA_PASSWORD" "$COOKIE_ONE"
             login "$QA_PASSWORD" "$COOKIE_TWO"
@@ -201,6 +261,7 @@ jobs:
               fi
               sleep 2
             done
+            verify_redis_policy 'false'
 
             echo 'QA phase: API restart persistence'
             docker service update --force "$API_SERVICE" >/dev/null
