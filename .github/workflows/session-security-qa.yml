@@ -76,16 +76,40 @@ jobs:
               if [ -n "$container" ]; then
                 docker exec -i -e QA_EMAIL="$QA_EMAIL" "$container" node - <<'NODE'
             const { prisma } = require('/app/dist/lib/prisma')
-            const { revokeUserSessions } = require('/app/dist/lib/redis-session-store')
+            const Redis = require('ioredis')
 
             async function cleanupQaUser() {
-              const user = await prisma.user.findUnique({
-                where: { email: process.env.QA_EMAIL },
+              const users = await prisma.user.findMany({
+                where: {
+                  email: {
+                    startsWith: 'qa-session-',
+                    endsWith: '@example.invalid',
+                  },
+                },
                 select: { id: true },
               })
-              if (!user) return
-              await revokeUserSessions(user.id)
-              await prisma.user.delete({ where: { id: user.id } })
+              if (users.length === 0) return
+              const redis = new Redis(process.env.REDIS_URL, {
+                connectTimeout: 5000,
+                maxRetriesPerRequest: 1,
+              })
+              try {
+                for (const user of users) {
+                  const indexKey = `f12:user-sessions:${user.id}`
+                  const sessionIds = await redis.smembers(indexKey)
+                  if (sessionIds.length > 0) {
+                    await redis.del(...sessionIds.map(id => `f12:session:${id}`))
+                  }
+                  await redis.del(indexKey)
+                }
+              } catch (error) {
+                console.warn(`Redis cleanup warning: ${error.name}`)
+              } finally {
+                await redis.quit().catch(() => redis.disconnect())
+              }
+              await prisma.user.deleteMany({
+                where: { id: { in: users.map(user => user.id) } },
+              })
             }
 
             cleanupQaUser()
@@ -249,6 +273,7 @@ jobs:
             test -n "$SID_TWO"
             test "$SID_ONE" != "$SID_TWO"
             authenticated_me "$COOKIE_ONE" '200'
+            sleep 2
 
             echo 'QA phase: Redis restart persistence'
             docker service update --force "$REDIS_SERVICE" >/dev/null
