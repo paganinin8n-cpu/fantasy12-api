@@ -118,34 +118,36 @@ jobs:
             test -n "$ORIGIN"
 
             echo 'QA phase: Redis policy'
+            if ! docker service inspect "$REDIS_SERVICE" \
+              --format '{{json .Spec.TaskTemplate.ContainerSpec.Args}}' \
+              | grep -q -- '--appendonly'; then
+              docker service update \
+                --args-add=--appendonly \
+                --args-add=yes \
+                --args-add=--appendfsync \
+                --args-add=everysec \
+                --args-add=--maxmemory-policy \
+                --args-add=noeviction \
+                "$REDIS_SERVICE" >/dev/null
+              wait_replicas 1 "$REDIS_SERVICE"
+            fi
             docker exec "$API_CONTAINER" node -e '
               const Redis = require("ioredis")
               const redis = new Redis(process.env.REDIS_URL, {
                 connectTimeout: 5000,
                 maxRetriesPerRequest: 1,
               })
-              const desired = {
-                appendonly: "yes",
-                appendfsync: "everysec",
-                "maxmemory-policy": "noeviction",
-              }
-              async function main() {
-                const current = Object.fromEntries(await Promise.all(
-                  Object.keys(desired).map(key => redis.config("GET", key))
-                ))
-                for (const [key, value] of Object.entries(desired)) {
-                  if (current[key] !== value) await redis.config("SET", key, value)
-                }
-                await redis.config("REWRITE")
-                const persisted = Object.fromEntries(await Promise.all(
-                  Object.keys(desired).map(key => redis.config("GET", key))
-                ))
-                for (const [key, value] of Object.entries(desired)) {
-                  if (persisted[key] !== value) throw new Error(`Redis ${key} is not ${value}`)
-                }
-                console.log("Redis policy persisted")
-              }
-              main()
+              Promise.all([
+                redis.config("GET", "appendonly"),
+                redis.config("GET", "appendfsync"),
+                redis.config("GET", "maxmemory-policy"),
+              ]).then(values => {
+                const config = Object.fromEntries(values)
+                if (config.appendonly !== "yes") throw new Error("Redis appendonly is not yes")
+                if (config.appendfsync !== "everysec") throw new Error("Redis appendfsync is not everysec")
+                if (config["maxmemory-policy"] !== "noeviction") throw new Error("Redis policy is not noeviction")
+                console.log("Redis policy verified")
+              })
                 .catch(error => {
                   console.error(`${error.name}: ${error.message}`)
                   process.exitCode = 1
