@@ -341,12 +341,19 @@ jobs:
             SESSION_COOKIE="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_ONE")"
             CONTAINER_COUNT=0
             for container in $(docker ps --filter "name=${API_SERVICE}" --format '{{.ID}}'); do
-              ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' "$container" | head -n 1)"
-              test -n "$ip"
-              status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
-                -H "Cookie: f12.session=${SESSION_COOKIE}" \
-                "http://${ip}:3001/api/me")"
-              test "$status" = '200'
+              docker exec -e SESSION_COOKIE="$SESSION_COOKIE" "$container" node -e '
+                fetch("http://127.0.0.1:3001/api/me", {
+                  headers: { cookie: `f12.session=${process.env.SESSION_COOKIE}` },
+                  signal: AbortSignal.timeout(10000),
+                }).then(response => {
+                  if (response.status !== 200) {
+                    throw new Error(`Replica returned HTTP ${response.status}`)
+                  }
+                }).catch(error => {
+                  console.error(error.message)
+                  process.exitCode = 1
+                })
+              '
               CONTAINER_COUNT=$((CONTAINER_COUNT + 1))
             done
             test "$CONTAINER_COUNT" = '2'
