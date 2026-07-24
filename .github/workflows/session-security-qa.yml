@@ -105,6 +105,7 @@ jobs:
             }
             trap cleanup EXIT INT TERM
 
+            echo 'QA phase: infrastructure readiness'
             wait_replicas 1 "$API_SERVICE"
             wait_replicas 1 "$REDIS_SERVICE"
             API_CONTAINER="$(api_container)"
@@ -116,6 +117,7 @@ jobs:
             ')"
             test -n "$ORIGIN"
 
+            echo 'QA phase: Redis policy'
             REDIS_POLICY="$(docker exec "$API_CONTAINER" node -e '
               const Redis = require("ioredis")
               const redis = new Redis(process.env.REDIS_URL)
@@ -131,11 +133,16 @@ jobs:
             printf '%s' "$REDIS_POLICY" | grep -q '"appendfsync","everysec"'
             printf '%s' "$REDIS_POLICY" | grep -q '"maxmemory-policy","noeviction"'
 
+            echo 'QA phase: synthetic account creation'
             status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
               -H 'Content-Type: application/json' \
               --data "{\"name\":\"Session QA\",\"nickname\":\"sessionqa${QA_RUN_ID}\",\"email\":\"${QA_EMAIL}\",\"cpf\":\"${QA_CPF}\",\"phone\":\"5599999999999\",\"password\":\"${QA_PASSWORD}\"}" \
               "${API_URL}/api/users")"
-            test "$status" = '201'
+            if [ "$status" != '201' ]; then
+              echo "Synthetic account creation returned HTTP ${status}" >&2
+              head -c 500 "$RESPONSE" >&2
+              exit 1
+            fi
 
             login() {
               password="$1"
@@ -145,7 +152,11 @@ jobs:
                 -H 'Content-Type: application/json' \
                 --data "{\"email\":\"${QA_EMAIL}\",\"password\":\"${password}\"}" \
                 "${API_URL}/api/auth/login")"
-              test "$status" = '200'
+              if [ "$status" != '200' ]; then
+                echo "Login returned HTTP ${status}" >&2
+                head -c 500 "$RESPONSE" >&2
+                return 1
+              fi
               grep -qi 'set-cookie: f12\.session=' "$HEADERS"
               grep -qi 'HttpOnly' "$HEADERS"
               grep -qi 'Secure' "$HEADERS"
@@ -160,6 +171,7 @@ jobs:
               test "$status" = "$expected"
             }
 
+            echo 'QA phase: independent login sessions'
             login "$QA_PASSWORD" "$COOKIE_ONE"
             login "$QA_PASSWORD" "$COOKIE_TWO"
             SID_ONE="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_ONE")"
@@ -169,6 +181,7 @@ jobs:
             test "$SID_ONE" != "$SID_TWO"
             authenticated_me "$COOKIE_ONE" '200'
 
+            echo 'QA phase: Redis restart persistence'
             docker service update --force "$REDIS_SERVICE" >/dev/null
             wait_replicas 1 "$REDIS_SERVICE"
             for attempt in $(seq 1 30); do
@@ -182,6 +195,7 @@ jobs:
               sleep 2
             done
 
+            echo 'QA phase: API restart persistence'
             docker service update --force "$API_SERVICE" >/dev/null
             wait_replicas 1 "$API_SERVICE"
             for attempt in $(seq 1 30); do
@@ -195,6 +209,7 @@ jobs:
               sleep 2
             done
 
+            echo 'QA phase: two-replica shared sessions'
             docker service scale "${API_SERVICE}=2" >/dev/null
             wait_replicas 2 "$API_SERVICE"
             SESSION_COOKIE="$(awk '$6 == "f12.session" { print $7 }' "$COOKIE_ONE")"
@@ -212,6 +227,7 @@ jobs:
             docker service scale "${API_SERVICE}=1" >/dev/null
             wait_replicas 1 "$API_SERVICE"
 
+            echo 'QA phase: password-change revocation'
             status="$(curl -sS -D "$HEADERS" -o "$RESPONSE" -w '%{http_code}' \
               -b "$COOKIE_ONE" -c "$COOKIE_ONE" \
               -H "Origin: ${ORIGIN}" \
@@ -221,6 +237,7 @@ jobs:
             test "$status" = '200'
             authenticated_me "$COOKIE_TWO" '401'
 
+            echo 'QA phase: logout cookie deletion'
             login "$QA_NEW_PASSWORD" "$COOKIE_THREE"
             status="$(curl -sS -D "$HEADERS" -o "$RESPONSE" -w '%{http_code}' \
               -b "$COOKIE_THREE" -c "$COOKIE_THREE" \
@@ -235,6 +252,7 @@ jobs:
             grep -qi 'SameSite=None' "$HEADERS"
             authenticated_me "$COOKIE_THREE" '401'
 
+            echo 'QA phase: cleanup'
             cleanup
             trap - EXIT INT TERM
             echo 'Production session security QA passed and synthetic account removed.'
