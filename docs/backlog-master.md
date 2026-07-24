@@ -407,7 +407,15 @@ Tipo:
 
 Status:
 
-- `Implementado localmente; pendente migration, deploy e QA com duas replicas`
+- `Concluido, implantado e QA de producao aprovado em 2026-07-24`
+
+Nota de conclusao 2026-07-24:
+
+- deploy oficial do SEC-005 aprovado no run [30053877020](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30053877020), com a migration `20260723150000_add_user_session_version` aplicada e os quatro invariantes financeiros preservados em zero
+- Redis privado e autenticado opera com AOF, `appendfsync=everysec` e `maxmemory-policy=noeviction`; a API usa timeout ocioso de 30 minutos e expiracao absoluta de 24 horas
+- QA de producao aprovado no run [30059297261](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30059297261): duas sessoes independentes, persistencia apos reinicio de Redis e API, leitura compartilhada em duas replicas, revogacao por troca de senha e exclusao correta do cookie no logout
+- o QA removeu a conta sintetica e suas sessoes, restaurou API e Redis para `1/1` e a saude final permaneceu `api=ok`, `db=ok`, versao `a27ae52d7f71edf4796f78810c7d69b121fd0e699d6c9a3b3861cb7dd0d3b098`
+- workflow reutilizavel de QA ficou versionado em `.github/workflows/session-security-qa.yml`; o deploy final de verificacao foi aprovado no run [30059170481](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30059170481)
 
 Nota 2026-07-23:
 
