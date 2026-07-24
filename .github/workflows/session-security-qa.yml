@@ -118,20 +118,27 @@ jobs:
             test -n "$ORIGIN"
 
             echo 'QA phase: Redis policy'
-            REDIS_POLICY="$(docker exec "$API_CONTAINER" node -e '
+            docker exec "$API_CONTAINER" node -e '
               const Redis = require("ioredis")
-              const redis = new Redis(process.env.REDIS_URL)
+              const redis = new Redis(process.env.REDIS_URL, {
+                connectTimeout: 5000,
+                maxRetriesPerRequest: 1,
+              })
               Promise.all([
                 redis.config("GET", "appendonly"),
                 redis.config("GET", "appendfsync"),
                 redis.config("GET", "maxmemory-policy"),
               ]).then(values => {
-                process.stdout.write(JSON.stringify(values))
+                const config = Object.fromEntries(values)
+                if (config.appendonly !== "yes") throw new Error("Redis appendonly is not yes")
+                if (config.appendfsync !== "everysec") throw new Error("Redis appendfsync is not everysec")
+                if (config["maxmemory-policy"] !== "noeviction") throw new Error("Redis policy is not noeviction")
+                console.log("Redis policy verified")
+              }).catch(error => {
+                console.error(`${error.name}: ${error.message}`)
+                process.exitCode = 1
               }).finally(() => redis.quit())
-            ')"
-            printf '%s' "$REDIS_POLICY" | grep -q '"appendonly","yes"'
-            printf '%s' "$REDIS_POLICY" | grep -q '"appendfsync","everysec"'
-            printf '%s' "$REDIS_POLICY" | grep -q '"maxmemory-policy","noeviction"'
+            '
 
             echo 'QA phase: synthetic account creation'
             status="$(curl -sS -o "$RESPONSE" -w '%{http_code}' \
