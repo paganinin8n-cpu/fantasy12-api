@@ -67,6 +67,23 @@ jobs:
               return 1
             }
 
+            wait_service_update() {
+              service="$1"
+              for attempt in $(seq 1 60); do
+                state="$(docker service inspect "$service" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}completed{{end}}')"
+                case "$state" in
+                  completed) return 0 ;;
+                  paused|rollback_started|rollback_paused|rollback_completed)
+                    echo "Service ${service} update ended in state ${state}" >&2
+                    return 1
+                    ;;
+                esac
+                sleep 5
+              done
+              echo "Service ${service} update did not complete" >&2
+              return 1
+            }
+
             cleanup() {
               set +e
               cleanup_status=0
@@ -142,19 +159,21 @@ jobs:
             test -n "$ORIGIN"
 
             echo 'QA phase: Redis policy'
-            if ! docker service inspect "$REDIS_SERVICE" \
-              --format '{{json .Spec.TaskTemplate.ContainerSpec.Args}}' \
-              | grep -q -- '--appendonly'; then
-              docker service update \
-                --args-add=--appendonly \
-                --args-add=yes \
-                --args-add=--appendfsync \
-                --args-add=everysec \
-                --args-add=--maxmemory-policy \
-                --args-add=noeviction \
-                "$REDIS_SERVICE" >/dev/null
-              wait_replicas 1 "$REDIS_SERVICE"
-            fi
+            REDIS_PASSWORD="$(docker exec "$API_CONTAINER" node -e '
+              const url = new URL(process.env.REDIS_URL)
+              process.stdout.write(decodeURIComponent(url.password))
+            ')"
+            case "$REDIS_PASSWORD" in
+              *[!A-Za-z0-9_-]*|'')
+                echo 'Redis password format is unsafe for service command replacement' >&2
+                exit 1
+                ;;
+            esac
+            docker service update --detach=true \
+              --args "redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --appendfsync everysec --maxmemory-policy noeviction" \
+              "$REDIS_SERVICE" >/dev/null
+            wait_service_update "$REDIS_SERVICE"
+            wait_replicas 1 "$REDIS_SERVICE"
             docker exec "$API_CONTAINER" node -e '
               const Redis = require("ioredis")
               const redis = new Redis(process.env.REDIS_URL, {
@@ -276,7 +295,8 @@ jobs:
             sleep 2
 
             echo 'QA phase: Redis restart persistence'
-            docker service update --force "$REDIS_SERVICE" >/dev/null
+            docker service update --detach=true --force "$REDIS_SERVICE" >/dev/null
+            wait_service_update "$REDIS_SERVICE"
             wait_replicas 1 "$REDIS_SERVICE"
             for attempt in $(seq 1 30); do
               if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
@@ -291,7 +311,8 @@ jobs:
             verify_redis_policy 'false'
 
             echo 'QA phase: API restart persistence'
-            docker service update --force "$API_SERVICE" >/dev/null
+            docker service update --detach=true --force "$API_SERVICE" >/dev/null
+            wait_service_update "$API_SERVICE"
             wait_replicas 1 "$API_SERVICE"
             for attempt in $(seq 1 30); do
               if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
