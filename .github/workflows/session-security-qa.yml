@@ -177,7 +177,8 @@ jobs:
             esac
             REDIS_VERSION="$(docker service inspect "$REDIS_SERVICE" --format '{{.Version.Index}}')"
             docker service update --detach=true \
-              --args "redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --appendfsync everysec --maxmemory-policy noeviction" \
+              --entrypoint redis-server \
+              --args "--requirepass ${REDIS_PASSWORD} --appendonly yes --appendfsync everysec --maxmemory-policy noeviction" \
               "$REDIS_SERVICE" >/dev/null
             wait_service_update "$REDIS_SERVICE" "$REDIS_VERSION"
             wait_replicas 1 "$REDIS_SERVICE"
