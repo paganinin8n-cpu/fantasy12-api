@@ -69,8 +69,14 @@ jobs:
 
             wait_service_update() {
               service="$1"
+              previous_version="$2"
               for attempt in $(seq 1 60); do
+                current_version="$(docker service inspect "$service" --format '{{.Version.Index}}')"
                 state="$(docker service inspect "$service" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}completed{{end}}')"
+                if [ "$current_version" = "$previous_version" ]; then
+                  sleep 5
+                  continue
+                fi
                 case "$state" in
                   completed) return 0 ;;
                   paused|rollback_started|rollback_paused|rollback_completed)
@@ -169,10 +175,11 @@ jobs:
                 exit 1
                 ;;
             esac
+            REDIS_VERSION="$(docker service inspect "$REDIS_SERVICE" --format '{{.Version.Index}}')"
             docker service update --detach=true \
               --args "redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --appendfsync everysec --maxmemory-policy noeviction" \
               "$REDIS_SERVICE" >/dev/null
-            wait_service_update "$REDIS_SERVICE"
+            wait_service_update "$REDIS_SERVICE" "$REDIS_VERSION"
             wait_replicas 1 "$REDIS_SERVICE"
             docker exec "$API_CONTAINER" node -e '
               const Redis = require("ioredis")
@@ -295,8 +302,9 @@ jobs:
             sleep 2
 
             echo 'QA phase: Redis restart persistence'
+            REDIS_VERSION="$(docker service inspect "$REDIS_SERVICE" --format '{{.Version.Index}}')"
             docker service update --detach=true --force "$REDIS_SERVICE" >/dev/null
-            wait_service_update "$REDIS_SERVICE"
+            wait_service_update "$REDIS_SERVICE" "$REDIS_VERSION"
             wait_replicas 1 "$REDIS_SERVICE"
             for attempt in $(seq 1 30); do
               if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
@@ -311,8 +319,9 @@ jobs:
             verify_redis_policy 'false'
 
             echo 'QA phase: API restart persistence'
+            API_VERSION="$(docker service inspect "$API_SERVICE" --format '{{.Version.Index}}')"
             docker service update --detach=true --force "$API_SERVICE" >/dev/null
-            wait_service_update "$API_SERVICE"
+            wait_service_update "$API_SERVICE" "$API_VERSION"
             wait_replicas 1 "$API_SERVICE"
             for attempt in $(seq 1 30); do
               if authenticated_me "$COOKIE_ONE" '200' 2>/dev/null; then
