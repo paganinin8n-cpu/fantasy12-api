@@ -18,7 +18,7 @@ test('cadastro persiste identidade canônica e aceita senha longa sem truncament
     email: '  USER@Example.COM ',
     cpf: '123.456.789-01',
     phone: '+55 (11) 99999-9999',
-    password: `á${'longa'.repeat(20)}`,
+    password: `Á${'longa'.repeat(20)}1`,
     birthDate: '1990-01-15',
   })
 
@@ -26,8 +26,8 @@ test('cadastro persiste identidade canônica e aceita senha longa sem truncament
   assert.equal(parsed.cpf, '12345678901')
   assert.equal(parsed.phone, '5511999999999')
 
-  const first = `á${'x'.repeat(80)}A`
-  const second = `á${'x'.repeat(80)}B`
+  const first = `Á${'x'.repeat(80)}a1`
+  const second = `Á${'x'.repeat(80)}b1`
   const hash = await hashPassword(first)
   assert.equal(await verifyPassword(first, hash), true)
   assert.equal(await verifyPassword(second, hash), false)

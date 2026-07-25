@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { canonicalizeEmail } from '../security/identity'
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '../security/password'
+import { NewPasswordSchema } from './password.schema'
 
 export const RequestPasswordResetSchema = z.object({
   email: z.string().trim().email('email inválido').transform(canonicalizeEmail),
@@ -8,9 +8,7 @@ export const RequestPasswordResetSchema = z.object({
 
 export const ResetPasswordSchema = z.object({
   token: z.string().min(10, 'token inválido'),
-  newPassword: z.string()
-    .min(PASSWORD_MIN_LENGTH, `senha deve ter ao menos ${PASSWORD_MIN_LENGTH} caracteres`)
-    .max(PASSWORD_MAX_LENGTH),
+  newPassword: NewPasswordSchema,
 }).strict()
 
 export type RequestPasswordResetDTO = z.infer<typeof RequestPasswordResetSchema>

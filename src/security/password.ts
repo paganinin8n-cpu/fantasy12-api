@@ -4,19 +4,49 @@ import { AppError } from '../errors/AppError'
 
 export const PASSWORD_MIN_LENGTH = 8
 export const PASSWORD_MAX_LENGTH = 128
+
+/** Texto curto para placeholders / dicas de UI. */
+export const PASSWORD_POLICY_HINT =
+  'Mín. 8 caracteres, com maiúscula, minúscula e número'
+
 const BCRYPT_ROUNDS = 10
 const SHA256_BCRYPT_PREFIX = '$f12-sha256$'
 
-export function assertPasswordPolicy(password: string): void {
+/**
+ * Política canônica de senha (cadastro, reset e troca).
+ * Login NÃO usa isto — senhas antigas precisam continuar autenticando.
+ */
+export function getPasswordPolicyError(password: unknown): string | null {
+  if (typeof password !== 'string') {
+    return `Senha deve ter entre ${PASSWORD_MIN_LENGTH} e ${PASSWORD_MAX_LENGTH} caracteres, com letra maiúscula, minúscula e número`
+  }
+
   if (
-    typeof password !== 'string'
-    || password.length < PASSWORD_MIN_LENGTH
+    password.length < PASSWORD_MIN_LENGTH
     || password.length > PASSWORD_MAX_LENGTH
   ) {
-    throw AppError.badRequest(
-      `Senha deve ter entre ${PASSWORD_MIN_LENGTH} e ${PASSWORD_MAX_LENGTH} caracteres`,
-      'weak_password'
-    )
+    return `Senha deve ter entre ${PASSWORD_MIN_LENGTH} e ${PASSWORD_MAX_LENGTH} caracteres, com letra maiúscula, minúscula e número`
+  }
+
+  if (!/\p{Ll}/u.test(password)) {
+    return 'Senha deve incluir pelo menos uma letra minúscula'
+  }
+
+  if (!/\p{Lu}/u.test(password)) {
+    return 'Senha deve incluir pelo menos uma letra maiúscula'
+  }
+
+  if (!/\d/.test(password)) {
+    return 'Senha deve incluir pelo menos um número'
+  }
+
+  return null
+}
+
+export function assertPasswordPolicy(password: string): void {
+  const error = getPasswordPolicyError(password)
+  if (error) {
+    throw AppError.badRequest(error, 'weak_password')
   }
 }
 

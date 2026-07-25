@@ -10,7 +10,7 @@ const baseUser = {
   email: 'teste@example.com',
   cpf: '12345678901',
   phone: '11999999999',
-  password: 'segredo12',
+  password: 'Segredo12',
   birthDate: '1990-01-15',
 }
 
