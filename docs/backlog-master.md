@@ -225,17 +225,19 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Implantar e validar o recorte V1 de `SEC-012`
+1. MVP V1 de seguranca concluido; manter gates em cada release
 2. Evolucoes V2 apos a liberacao do MVP
 
 Estado SEC-012 em 2026-07-25:
 
-- recorte do MVP V1 implementado e validado localmente; build/scan no CI pendente
+- recorte do MVP V1 concluido e implantado pelo run [30170999313](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30170999313)
 - build e runtime migrados para Node 22 LTS em Alpine e imagem multi-stage
 - API e worker executam como usuario `node`; dependencias dev removidas
-- Prisma CLI preservado como dependencia operacional para migrations
-- Trivy configurado para bloquear qualquer achado alto ou critico
-- CI e deploy verificam UID, runtime, API, worker, Prisma e healthcheck
+- Prisma CLI preservado como dependencia operacional; npm/npx globais removidos
+- Trivy executado com zero achado alto ou critico e gate bloqueante ativo
+- CI e deploy confirmaram UID nao-root, Node 22, API, worker, Prisma e healthcheck
+- API e banco saudaveis na versao `541df568439886916f2dd166e974c72977d13908c69b6ef43802c0d9bfc5ea77`
+- API e Redis confirmados em `1/1`
 
 Estado SEC-011 em 2026-07-25:
 
@@ -876,7 +878,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente; build/scan no CI pendente`
+- `MVP V1 concluido e implantado em producao`
 
 Escopo obrigatorio do MVP V1:
 
