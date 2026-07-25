@@ -225,9 +225,15 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Implantar e executar QA produtiva de `SEC-007`, `SEC-009` e `SEC-006`
-2. Convites de Mesa: recorte condicional de `SEC-008`
-3. Privacidade, gates e runtime: recortes V1 de `SEC-010`, `SEC-011` e `SEC-012`
+1. Convites de Mesa: recorte condicional de `SEC-008`
+2. Privacidade, gates e runtime: recortes V1 de `SEC-010`, `SEC-011` e `SEC-012`
+
+Estado SEC-007, SEC-009 e SEC-006 em 2026-07-25:
+
+- recortes do MVP V1 concluidos e implantados pelo run [30166055241](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30166055241)
+- migration de identidade aplicada e schema de producao sem pendencias
+- API e banco saudaveis na versao `82b1431363aea566ef0ad634ce8490e35516a5eced9c36e6c64dc9ce5f91ddec`
+- QA produtiva confirmou `1/1` para API e Redis e rejeicao de campo desconhecido no login
 
 Estado P0 em 2026-07-25:
 
@@ -509,7 +515,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+- `MVP V1 concluido e implantado em producao em 2026-07-25`
 
 Evidencias do MVP V1:
 
@@ -563,7 +569,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+- `MVP V1 concluido e implantado em producao em 2026-07-25`
 
 Evidencias do MVP V1:
 
@@ -670,7 +676,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+- `MVP V1 concluido e implantado em producao em 2026-07-25`
 
 Evidencias do MVP V1:
 
