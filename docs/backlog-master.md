@@ -225,17 +225,19 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Implantar e validar o recorte V1 de `SEC-010`
-2. Gates de seguranca: recorte V1 de `SEC-011`
-3. Runtime e imagem: recorte V1 de `SEC-012`
+1. Gates de seguranca: recorte V1 de `SEC-011`
+2. Runtime e imagem: recorte V1 de `SEC-012`
+3. Evolucoes V2 de privacidade apos a liberacao do MVP
 
 Estado SEC-010 em 2026-07-25:
 
-- recorte do MVP V1 implementado e validado localmente; implantacao pendente
+- recorte do MVP V1 concluido e implantado pelo run [30167621379](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30167621379)
 - logs redigem credenciais, CPF, telefone, cookies e assinaturas e mascaram e-mail
 - payloads novos e legados do Mercado Pago sao reduzidos a uma allowlist
 - PII completa exige `USER_PII_READ`, fora do papel `ADMIN` padrao, com auditoria
 - matriz LGPD minima e runbook/script manual de solicitacao do titular versionados
+- migration de minimizacao aplicada; API e banco saudaveis na versao `ec231af5cc50c325dc7915f000735f479530368ce057805bf894463b32fa263f`
+- API e Redis confirmados em `1/1`
 
 Estado SEC-008 em 2026-07-25:
 
@@ -759,7 +761,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente; implantacao pendente`
+- `MVP V1 concluido e implantado em producao`
 
 Escopo obrigatorio do MVP V1:
 
