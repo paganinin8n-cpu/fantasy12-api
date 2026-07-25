@@ -1,0 +1,61 @@
+name: Production P0 security QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type RUN_P0_SECURITY_QA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fantasy12-production-p0-security-qa
+  cancel-in-progress: false
+
+jobs:
+  p0-security-qa:
+    if: inputs.confirmation == 'RUN_P0_SECURITY_QA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Validate P0 controls and clean up
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          P0_QA_RUN_ID: ${{ github.run_id }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          envs: P0_QA_RUN_ID
+          command_timeout: 12m
+          script: |
+            set -euo pipefail
+
+            API_SERVICE='f12-prd_api'
+            API_CONTAINER="$(docker ps --filter "name=${API_SERVICE}" --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            QA_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+            docker exec \
+              -e P0_QA_RUN_ID="$P0_QA_RUN_ID" \
+              -e P0_QA_CONFIRMATION='RUN_P0_SECURITY_QA' \
+              "$API_CONTAINER" \
+              node /app/scripts/production-p0-security-qa.js
+
+            sleep 2
+            if docker logs --since "$QA_STARTED_AT" "$API_CONTAINER" 2>&1 \
+              | grep -Eqi 'expectedSignatures|receivedSignature|manifest|x-signature|v1='; then
+              echo 'SEC-004 failed: webhook logs contain forbidden signature material' >&2
+              exit 1
+            fi
+
+            WEBHOOK_ERRORS="$(docker logs --since 24h "$API_CONTAINER" 2>&1 \
+              | grep -c 'webhook.error' || true)"
+            echo "SEC-004 operational observation: webhook.error count in current container over 24h = ${WEBHOOK_ERRORS}"
+            echo 'Production P0 security QA and log-redaction check passed.'
