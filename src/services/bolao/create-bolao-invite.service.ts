@@ -17,6 +17,19 @@ export class CreateBolaoInviteService {
     maxUses,
     expiresAt,
   }: CreateInviteInput) {
+    if (
+      maxUses !== undefined
+      && (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 10_000)
+    ) {
+      throw new Error('maxUses deve ser um inteiro entre 1 e 10000');
+    }
+    if (expiresAt && (!(expiresAt instanceof Date) || Number.isNaN(expiresAt.getTime()))) {
+      throw new Error('expiresAt deve ser uma data válida');
+    }
+    if (expiresAt && expiresAt <= new Date()) {
+      throw new Error('expiresAt deve estar no futuro');
+    }
+
     await AssertActiveProUserService.execute(createdByUserId);
 
     // validar ranking (Mesa privada)

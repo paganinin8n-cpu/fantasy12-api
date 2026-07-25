@@ -225,7 +225,7 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Convites de Mesa: recorte condicional de `SEC-008`
+1. Implantar e executar QA produtiva de `SEC-008`
 2. Privacidade, gates e runtime: recortes V1 de `SEC-010`, `SEC-011` e `SEC-012`
 
 Estado SEC-007, SEC-009 e SEC-006 em 2026-07-25:
@@ -625,7 +625,16 @@ Tipo:
 
 Status:
 
-- `Pendente; obrigatorio no MVP V1 somente se convites permanecerem habilitados`
+- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+
+Evidencias do MVP V1:
+
+- politica hibrida versionada em `docs/security/mesa-invite-policy-v1.md`
+- reserva condicional em `bolao-invite-reservation.ts` e entrada executadas na mesma transacao
+- repeticao por participante aprovado e idempotente e nao consome novo uso
+- codigo do convite removido dos metadados de auditoria
+- constraints de contador e limite na migration `20260725170000_bolao_invite_atomicity`
+- 12 reservas paralelas e rollback de falha validados em PostgreSQL 16 real por `test:invite:postgres`
 
 Escopo obrigatorio do MVP V1 quando convites estiverem ativos:
 

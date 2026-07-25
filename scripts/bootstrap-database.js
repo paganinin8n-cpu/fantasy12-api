@@ -16,6 +16,9 @@ const NON_NEGATIVE_BALANCES_CONSTRAINT = path.join(
 const CANONICAL_USER_IDENTITY_CONSTRAINT = path.join(
   PROJECT_ROOT, 'prisma', 'constraints', 'canonical-user-identity.sql'
 )
+const BOLAO_INVITE_INTEGRITY_CONSTRAINT = path.join(
+  PROJECT_ROOT, 'prisma', 'constraints', 'bolao-invite-integrity.sql'
+)
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -98,6 +101,11 @@ async function main() {
   run('npx', [
     'prisma', 'db', 'execute',
     '--file', CANONICAL_USER_IDENTITY_CONSTRAINT,
+    '--schema', 'prisma/schema.prisma',
+  ])
+  run('npx', [
+    'prisma', 'db', 'execute',
+    '--file', BOLAO_INVITE_INTEGRITY_CONSTRAINT,
     '--schema', 'prisma/schema.prisma',
   ])
 

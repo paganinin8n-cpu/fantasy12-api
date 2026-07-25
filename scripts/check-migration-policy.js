@@ -15,6 +15,9 @@ const nonNegativeBalancesConstraintPath = path.join(
 const canonicalUserIdentityConstraintPath = path.join(
   repoRoot, 'prisma', 'constraints', 'canonical-user-identity.sql'
 )
+const bolaoInviteIntegrityConstraintPath = path.join(
+  repoRoot, 'prisma', 'constraints', 'bolao-invite-integrity.sql'
+)
 
 function assert(condition, message) {
   if (!condition) {
@@ -47,6 +50,10 @@ function main() {
     'database-only canonical user identity constraints are missing'
   )
   assert(
+    fs.existsSync(bolaoInviteIntegrityConstraintPath),
+    'database-only bolao invite integrity constraints are missing'
+  )
+  assert(
     pkg.scripts['prisma:bootstrap:fresh']?.includes('scripts/bootstrap-database.js'),
     'official fresh bootstrap script is missing'
   )
@@ -68,6 +75,7 @@ function main() {
     bootstrap.includes('single-open-round.sql') &&
       bootstrap.includes('non-negative-balances.sql') &&
       bootstrap.includes('canonical-user-identity.sql') &&
+      bootstrap.includes('bolao-invite-integrity.sql') &&
       bootstrap.includes("'prisma', 'db', 'execute'"),
     'fresh bootstrap must apply database-only operational constraints'
   )

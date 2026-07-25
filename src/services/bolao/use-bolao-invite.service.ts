@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { JoinBolaoService } from './join-bolao.service';
+import { reserveBolaoInviteUse } from './bolao-invite-reservation';
 
 type UseInviteInput = {
   code: string;
@@ -9,6 +10,7 @@ type UseInviteInput = {
 export class UseBolaoInviteService {
   static async execute({ code, userId }: UseInviteInput) {
     return prisma.$transaction(async tx => {
+      const now = new Date();
       const invite = await tx.bolaoInvite.findUnique({
         where: { code },
         select: {
@@ -22,27 +24,59 @@ export class UseBolaoInviteService {
       });
 
       if (!invite) throw new Error('Invite not found');
+
+      const existingParticipant = await tx.rankingParticipant.findUnique({
+        where: {
+          rankingId_userId: {
+            rankingId: invite.rankingId,
+            userId,
+          },
+        },
+        select: { id: true, status: true, entryPaidAt: true },
+      });
+
+      if (existingParticipant?.status === 'APPROVED') {
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: 'BOLAO_INVITE_REUSED',
+            entity: 'BOLAO_INVITE',
+            entityId: invite.id,
+            metadata: {
+              rankingId: invite.rankingId,
+              participantId: existingParticipant.id,
+              inviteUseConsumed: false,
+            },
+          },
+        });
+
+        return {
+          status: 'APPROVED' as const,
+          rankingId: invite.rankingId,
+          participantId: existingParticipant.id,
+          inviteCode: code,
+          idempotent: true,
+        };
+      }
+
       if (!invite.isActive) throw new Error('Invite is not active');
-      if (invite.expiresAt && invite.expiresAt < new Date()) {
+      if (invite.expiresAt && invite.expiresAt <= now) {
         throw new Error('Invite has expired');
       }
       if (invite.maxUses !== null && invite.usedCount >= invite.maxUses) {
         throw new Error('Invite usage limit reached');
       }
 
-      // delega entrada ao fluxo oficial
+      const reservation = await reserveBolaoInviteUse(tx, invite.id, now);
+      if (!reservation) {
+        throw new Error('Invite is no longer available');
+      }
+
+      // A entrada usa exatamente a mesma transação da reserva do convite.
       const joinResult = await JoinBolaoService.execute({
         rankingId: invite.rankingId,
         userId,
-      });
-
-      // incrementa uso do convite
-      await tx.bolaoInvite.update({
-        where: { id: invite.id },
-        data: {
-          usedCount: invite.usedCount + 1,
-        },
-      });
+      }, tx);
 
       await tx.auditLog.create({
         data: {
@@ -52,10 +86,10 @@ export class UseBolaoInviteService {
           entityId: invite.id,
           metadata: {
             rankingId: invite.rankingId,
-            code,
             usedCountBefore: invite.usedCount,
-            usedCountAfter: invite.usedCount + 1,
+            usedCountAfter: reservation.usedCount,
             joinStatus: joinResult.status,
+            inviteUseConsumed: true,
           },
         },
       });
@@ -63,6 +97,7 @@ export class UseBolaoInviteService {
       return {
         ...joinResult,
         inviteCode: code,
+        idempotent: false,
       };
     });
   }

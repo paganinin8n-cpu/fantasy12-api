@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
@@ -10,8 +11,21 @@ type JoinBolaoInput = {
 };
 
 export class JoinBolaoService {
-  static async execute({ rankingId, userId }: JoinBolaoInput) {
-    return prisma.$transaction(async tx => {
+  static async execute(
+    input: JoinBolaoInput,
+    transaction?: Prisma.TransactionClient
+  ) {
+    if (transaction) {
+      return this.executeInTransaction(transaction, input);
+    }
+
+    return prisma.$transaction(tx => this.executeInTransaction(tx, input));
+  }
+
+  private static async executeInTransaction(
+    tx: Prisma.TransactionClient,
+    { rankingId, userId }: JoinBolaoInput
+  ) {
       const bolao = await tx.ranking.findUnique({
         where: { id: rankingId },
         select: {
@@ -150,6 +164,5 @@ export class JoinBolaoService {
         rankingId,
         participantId: participant.id,
       };
-    });
   }
 }
