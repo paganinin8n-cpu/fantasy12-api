@@ -34,7 +34,7 @@ test('CI verifica conteúdo, escaneia a imagem e valida o runtime produtivo', ()
   assert.match(workflow, /verify-container-hardening\.sh/)
   assert.match(
     workflow,
-    /uses: aquasecurity\/trivy-action@[a-f0-9]{40} # v0\.28\.0/
+    /uses: aquasecurity\/trivy-action@[a-f0-9]{40} # v0\.33\.1/
   )
   assert.match(workflow, /exit-code: '1'/)
   assert.match(workflow, /ignore-unfixed: false/)
