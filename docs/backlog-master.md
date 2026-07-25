@@ -225,18 +225,19 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Implantar e validar o recorte V1 de `SEC-011`
-2. Runtime e imagem: recorte V1 de `SEC-012`
-3. Evolucoes V2 apos a liberacao do MVP
+1. Runtime e imagem: recorte V1 de `SEC-012`
+2. Evolucoes V2 apos a liberacao do MVP
 
 Estado SEC-011 em 2026-07-25:
 
-- recorte do MVP V1 implementado e validado localmente; implantacao pendente
+- recorte do MVP V1 concluido e implantado pelo run [30168328268](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30168328268)
 - `ci:check` consolida oito gates e gera relatorio JSON reproduzivel
-- workflow publica o relatorio e bloqueia imagem/deploy quando qualquer gate falha
+- workflow publicou o relatorio com sucesso e bloqueia imagem/deploy quando qualquer gate falha
 - 32 rotas administrativas/internas protegidas por matriz canônica e teste AST
 - headers, rate limit, CSRF, sessao, RBAC, privacidade e concorrencia cobertos
 - 43 achados legacy de migrations congelados por fingerprint; mudanca nova falha
+- API e banco saudaveis na versao `b61352319f9ab430c6217db150145f49103a0aae6519dca324fd8e6b39e1ba1e`
+- API e Redis confirmados em `1/1`
 
 Estado SEC-010 em 2026-07-25:
 
@@ -818,7 +819,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente; implantacao pendente`
+- `MVP V1 concluido e implantado em producao`
 
 Escopo obrigatorio do MVP V1:
 
