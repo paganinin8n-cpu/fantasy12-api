@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "findingsCount": 43,
-  "fingerprint": "fec8399889c698f72df0919fec51a59d948646eb649419edf520e3f7d821df2d",
+  "findingsCount": 44,
+  "fingerprint": "aa2782b9d65e5b64b378e3280d6fd13721706849911781ee1d553a4e523a374c",
   "note": "Legacy findings accepted for MVP V1. Any change requires explicit review."
 }

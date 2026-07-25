@@ -55,6 +55,7 @@ CREATE TABLE "users" (
     "profileImage" TEXT,
     "bio" TEXT,
     "phone" TEXT,
+    "birthDate" DATE,
     "scoreTotal" INTEGER NOT NULL DEFAULT 0,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),

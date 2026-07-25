@@ -122,6 +122,6 @@ test('gate de migrations usa baseline controlada, não modo relatório', () => {
   )
   const baseline = require('../prisma/migration-audit-baseline.json')
   assert.equal(baseline.schemaVersion, 1)
-  assert.equal(baseline.findingsCount, 43)
+  assert.equal(baseline.findingsCount, 44)
   assert.match(baseline.fingerprint, /^[a-f0-9]{64}$/)
 })
