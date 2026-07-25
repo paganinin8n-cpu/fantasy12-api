@@ -43,7 +43,13 @@ export class TeamController {
       const skip = (Number(page) - 1) * Number(limit)
 
       const where: any = {}
-      if (q) where.name = { contains: String(q), mode: 'insensitive' }
+      if (q) {
+        const term = String(q).trim()
+        where.OR = [
+          { name: { contains: term, mode: 'insensitive' } },
+          { shortName: { contains: term, mode: 'insensitive' } },
+        ]
+      }
       if (type) where.type = type
       if (country) where.country = { contains: String(country), mode: 'insensitive' }
 

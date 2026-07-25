@@ -2,10 +2,19 @@ import { prisma } from '../../lib/prisma'
 
 export class SearchTeamsService {
   static async execute(query: string, limit = 10) {
+    const q = String(query ?? '').trim()
+
     const teams = await prisma.team.findMany({
       where: {
         active: true,
-        name: { contains: query, mode: 'insensitive' },
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: 'insensitive' } },
+                { shortName: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -18,6 +27,7 @@ export class SearchTeamsService {
       orderBy: { name: 'asc' },
       take: limit,
     })
+
     return teams
   }
 }

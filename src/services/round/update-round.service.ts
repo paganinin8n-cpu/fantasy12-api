@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { RoundStatus } from '@prisma/client'
 import type { RoundMatchInput } from './round-match.types'
-import { normalizeRoundMatches } from './round-match.types'
+import { normalizeRoundMatches, resolveRoundMatchTeams } from './round-match.types'
 import { OfficialRoundScheduleService } from './official-round-schedule.service'
 
 type UpdateRoundInput = {
@@ -33,28 +33,37 @@ export class UpdateRoundService {
         throw new Error('Somente rodadas em rascunho podem ser editadas')
       }
 
-      const normalizedMatches = normalizeRoundMatches(matches ?? round.matches)
-      const schedule = OfficialRoundScheduleService.resolve(normalizedMatches, {
-        openAt,
-        closeAt,
-      })
-
-      await tx.round.update({
-        where: { id: roundId },
-        data: { openAt: schedule.openAt, closeAt: schedule.closeAt },
-      })
-
       if (matches) {
+        const resolvedMatches = await resolveRoundMatchTeams(matches)
+        const schedule = OfficialRoundScheduleService.resolve(resolvedMatches, {
+          openAt,
+          closeAt,
+        })
+
+        await tx.round.update({
+          where: { id: roundId },
+          data: { openAt: schedule.openAt, closeAt: schedule.closeAt },
+        })
 
         await tx.roundMatch.deleteMany({
           where: { roundId },
         })
 
         await tx.roundMatch.createMany({
-          data: normalizedMatches.map(match => ({
+          data: resolvedMatches.map(match => ({
             ...match,
             roundId,
           })),
+        })
+      } else {
+        const schedule = OfficialRoundScheduleService.resolve(
+          normalizeRoundMatches(round.matches),
+          { openAt, closeAt }
+        )
+
+        await tx.round.update({
+          where: { id: roundId },
+          data: { openAt: schedule.openAt, closeAt: schedule.closeAt },
         })
       }
 

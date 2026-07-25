@@ -1,9 +1,23 @@
+import { prisma } from '../../lib/prisma'
+
 export type RoundMatchInput = {
   position: number
   homeTeam: string
   awayTeam: string
+  homeTeamId?: string | null
+  awayTeamId?: string | null
   groupLabel?: string | null
   matchTime?: Date | string | null
+}
+
+export type ResolvedRoundMatch = {
+  position: number
+  homeTeam: string
+  awayTeam: string
+  homeTeamId: string
+  awayTeamId: string
+  groupLabel: string | null
+  matchTime: Date | null
 }
 
 export type RoundMatchResultInput = {
@@ -27,6 +41,8 @@ export function normalizeRoundMatches(matches: RoundMatchInput[]) {
       const position = Number(match.position ?? index + 1)
       const homeTeam = String(match.homeTeam ?? '').trim()
       const awayTeam = String(match.awayTeam ?? '').trim()
+      const homeTeamId = match.homeTeamId ? String(match.homeTeamId).trim() : ''
+      const awayTeamId = match.awayTeamId ? String(match.awayTeamId).trim() : ''
       const groupLabel = match.groupLabel ? String(match.groupLabel).trim() : null
       const matchTime = match.matchTime ? new Date(match.matchTime) : null
 
@@ -38,7 +54,7 @@ export function normalizeRoundMatches(matches: RoundMatchInput[]) {
         throw new Error('A rodada não pode ter jogos com posição repetida')
       }
 
-      if (!homeTeam || !awayTeam) {
+      if ((!homeTeam && !homeTeamId) || (!awayTeam && !awayTeamId)) {
         throw new Error('Cada jogo precisa informar mandante e visitante')
       }
 
@@ -52,11 +68,63 @@ export function normalizeRoundMatches(matches: RoundMatchInput[]) {
         position,
         homeTeam,
         awayTeam,
+        homeTeamId: homeTeamId || null,
+        awayTeamId: awayTeamId || null,
         groupLabel,
         matchTime,
       }
     })
     .sort((a, b) => a.position - b.position)
+}
+
+/** Resolve times do catálogo e grava nomes canônicos + FKs. */
+export async function resolveRoundMatchTeams(
+  matches: RoundMatchInput[]
+): Promise<ResolvedRoundMatch[]> {
+  const normalized = normalizeRoundMatches(matches)
+
+  const ids = normalized.flatMap(match => {
+    if (!match.homeTeamId || !match.awayTeamId) {
+      throw new Error(
+        `Jogo ${match.position}: selecione mandante e visitante do cadastro de times`
+      )
+    }
+    if (match.homeTeamId === match.awayTeamId) {
+      throw new Error(
+        `Jogo ${match.position}: mandante e visitante devem ser times diferentes`
+      )
+    }
+    return [match.homeTeamId, match.awayTeamId]
+  })
+
+  const uniqueIds = [...new Set(ids)]
+  const teams = await prisma.team.findMany({
+    where: { id: { in: uniqueIds }, active: true },
+    select: { id: true, name: true },
+  })
+  const byId = new Map(teams.map(team => [team.id, team]))
+
+  return normalized.map(match => {
+    const home = byId.get(match.homeTeamId!)
+    const away = byId.get(match.awayTeamId!)
+
+    if (!home) {
+      throw new Error(`Jogo ${match.position}: mandante não encontrado no cadastro`)
+    }
+    if (!away) {
+      throw new Error(`Jogo ${match.position}: visitante não encontrado no cadastro`)
+    }
+
+    return {
+      position: match.position,
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      homeTeam: home.name,
+      awayTeam: away.name,
+      groupLabel: match.groupLabel,
+      matchTime: match.matchTime,
+    }
+  })
 }
 
 export function normalizeRoundResult(result: string) {

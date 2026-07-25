@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { RoundStatus } from '@prisma/client';
 import type { RoundMatchInput } from '../services/round/round-match.types';
-import { normalizeRoundMatches } from '../services/round/round-match.types';
+import { resolveRoundMatchTeams } from '../services/round/round-match.types';
 
 export class RoundRepository {
 
@@ -26,7 +26,7 @@ export class RoundRepository {
     closeAt: Date;
     matches: RoundMatchInput[];
   }) {
-    const matches = normalizeRoundMatches(data.matches);
+    const matches = await resolveRoundMatchTeams(data.matches);
 
     return prisma.$transaction(async tx => {
       const round = await tx.round.create({
@@ -77,6 +77,8 @@ export class RoundRepository {
             position: true,
             homeTeam: true,
             awayTeam: true,
+            homeTeamId: true,
+            awayTeamId: true,
             groupLabel: true,
             matchTime: true,
             result: true
