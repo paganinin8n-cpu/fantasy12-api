@@ -72,14 +72,16 @@ jobs:
         run: sh scripts/verify-container-hardening.sh "fantasy12-api:${GITHUB_SHA}"
 
       - name: Scan production image
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
-        with:
-          image-ref: fantasy12-api:${{ github.sha }}
-          format: table
-          exit-code: '1'
-          ignore-unfixed: false
-          vuln-type: os,library
-          severity: CRITICAL,HIGH
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${HOME}/.cache/trivy:/root/.cache/" \
+            aquasec/trivy:0.65.0 image \
+            --exit-code 1 \
+            --ignore-unfixed=false \
+            --pkg-types os,library \
+            --severity HIGH,CRITICAL \
+            "fantasy12-api:${GITHUB_SHA}"
 
   deploy:
     name: Deploy production

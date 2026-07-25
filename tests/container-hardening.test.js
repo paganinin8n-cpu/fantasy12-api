@@ -32,13 +32,11 @@ test('CI verifica conteúdo, escaneia a imagem e valida o runtime produtivo', ()
   const workflow = read('.github/workflows/deploy.yml')
   assert.match(workflow, /NODE_VERSION: '22'/)
   assert.match(workflow, /verify-container-hardening\.sh/)
-  assert.match(
-    workflow,
-    /uses: aquasecurity\/trivy-action@[a-f0-9]{40} # v0\.33\.1/
-  )
-  assert.match(workflow, /exit-code: '1'/)
-  assert.match(workflow, /ignore-unfixed: false/)
-  assert.match(workflow, /severity: CRITICAL,HIGH/)
+  assert.match(workflow, /aquasec\/trivy:0\.65\.0 image/)
+  assert.match(workflow, /--exit-code 1/)
+  assert.match(workflow, /--ignore-unfixed=false/)
+  assert.match(workflow, /--pkg-types os,library/)
+  assert.match(workflow, /--severity HIGH,CRITICAL/)
   assert.match(workflow, /Verify production runtime hardening/)
   assert.match(workflow, /docker exec "\$API_CONTAINER" id -u/)
 })
