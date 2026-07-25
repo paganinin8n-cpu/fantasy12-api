@@ -5,7 +5,7 @@ echo "Starting Fantasy12 API..."
 
 if [ "${RUN_DB_MIGRATIONS:-false}" = "true" ]; then
   echo "RUN_DB_MIGRATIONS=true -> applying Prisma migrations"
-  npx prisma migrate deploy
+  ./node_modules/.bin/prisma migrate deploy
 else
   echo "RUN_DB_MIGRATIONS=false -> skipping Prisma migrations on boot"
 fi

@@ -8,6 +8,8 @@ Baseline operacional do SEC-012:
   desenvolvimento;
 - Prisma CLI permanece em dependências de produção porque o processo de deploy
   executa `prisma migrate deploy/status` dentro do contêiner ativo;
+- npm, npx, Corepack, Yarn e pnpm globais são removidos do runtime; migrations
+  chamam diretamente o binário local e versionado do Prisma;
 - o runtime contém `dist`, Prisma, scripts operacionais, healthcheck e diretório
   gravável exclusivo para backups;
 - Trivy escaneia pacotes do sistema e bibliotecas e bloqueia achados `HIGH` ou

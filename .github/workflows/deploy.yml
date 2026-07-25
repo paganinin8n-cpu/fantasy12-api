@@ -176,8 +176,8 @@ jobs:
             docker exec "$API_CONTAINER" node /app/scripts/preflight-production-deploy.js
             docker cp "$CODE_DIR/prisma/schema.prisma" "$API_CONTAINER:/app/prisma/schema.prisma"
             docker cp "$CODE_DIR/prisma/migrations/." "$API_CONTAINER:/app/prisma/migrations/"
-            docker exec "$API_CONTAINER" npx prisma migrate deploy
-            docker exec "$API_CONTAINER" npx prisma migrate status
+            docker exec "$API_CONTAINER" ./node_modules/.bin/prisma migrate deploy
+            docker exec "$API_CONTAINER" ./node_modules/.bin/prisma migrate status
 
       - name: Trigger EasyPanel deploy
         env:
@@ -274,6 +274,9 @@ jobs:
             docker exec "$API_CONTAINER" test -f /app/dist/index.js
             docker exec "$API_CONTAINER" test -f /app/dist/worker.js
             docker exec "$API_CONTAINER" test -x /app/node_modules/.bin/prisma
+            docker exec "$API_CONTAINER" test ! -e /usr/local/bin/npm
+            docker exec "$API_CONTAINER" test ! -e /usr/local/bin/npx
+            docker exec "$API_CONTAINER" ./node_modules/.bin/prisma version
             docker exec "$API_CONTAINER" node -e '
               require("@prisma/client")
               require("prisma/package.json")

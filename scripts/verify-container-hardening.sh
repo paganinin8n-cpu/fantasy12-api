@@ -13,10 +13,13 @@ docker run --rm --entrypoint sh "$IMAGE" -c '
   test -f scripts/start-production.sh
   test -f prisma/schema.prisma
   test -x node_modules/.bin/prisma
+  test ! -e /usr/local/bin/npm
+  test ! -e /usr/local/bin/npx
   test ! -d node_modules/typescript
   test ! -d node_modules/ts-node-dev
   test ! -d node_modules/pino-pretty
   node -e "require(\"@prisma/client\"); require(\"prisma/package.json\")"
+  ./node_modules/.bin/prisma version >/dev/null
 '
 
 HEALTHCHECK="$(docker inspect --format '{{json .Config.Healthcheck.Test}}' "$IMAGE")"

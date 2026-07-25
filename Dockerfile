@@ -33,7 +33,17 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates curl openssl \
   && mkdir -p /app/backups \
-  && chown -R node:node /app
+  && chown -R node:node /app \
+  && rm -rf \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /usr/local/bin/yarn \
+    /usr/local/bin/yarnpkg \
+    /usr/local/bin/pnpm \
+    /usr/local/bin/pnpx
 
 COPY --from=build --chown=node:node /app/package*.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
