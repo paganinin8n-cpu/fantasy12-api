@@ -122,6 +122,8 @@ model User {
   profileImage String?
   bio          String?
   phone        String?
+  /// Data de nascimento (somente data). Obrigatória em novos cadastros; null em contas legadas.
+  birthDate    DateTime? @db.Date
   scoreTotal   Int     @default(0)
 
   // Anti brute-force por conta (independente de IP)

@@ -19,6 +19,7 @@ test('cadastro persiste identidade canônica e aceita senha longa sem truncament
     cpf: '123.456.789-01',
     phone: '+55 (11) 99999-9999',
     password: `á${'longa'.repeat(20)}`,
+    birthDate: '1990-01-15',
   })
 
   assert.equal(parsed.email, 'user@example.com')
