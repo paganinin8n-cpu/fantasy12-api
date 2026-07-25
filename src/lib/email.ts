@@ -1,5 +1,6 @@
 import { logger } from './logger'
 import nodemailer from 'nodemailer'
+import { maskEmail } from '../security/privacy'
 
 /**
  * Abstração de envio de email.
@@ -25,12 +26,15 @@ class ConsoleEmailService implements EmailService {
     text: string
   }): Promise<void> {
     logger.info(
-      { to, subject, length: text.length },
+      { recipient: maskEmail(to), template: 'email', length: text.length },
       '📧 [DEV] Email simulado enviado (configure EMAIL_PROVIDER em produção)'
     )
 
     if (process.env.NODE_ENV !== 'production') {
-      logger.debug({ to, subject, html, text }, '📧 conteúdo do email')
+      logger.debug(
+        { recipient: maskEmail(to), template: 'email', length: text.length },
+        '📧 conteúdo sensível do email omitido do log'
+      )
     }
   }
 }
@@ -75,7 +79,10 @@ class SmtpEmailService implements EmailService {
       text,
     })
 
-    logger.info({ to, subject }, 'Email enviado via SMTP')
+    logger.info(
+      { recipient: maskEmail(to), template: 'email' },
+      'Email enviado via SMTP'
+    )
   }
 }
 

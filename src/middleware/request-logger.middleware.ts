@@ -21,14 +21,14 @@ export const requestLogger = pinoHttp({
     return 'info'
   },
   customSuccessMessage: (req, res) =>
-    `${req.method} ${req.url} → ${res.statusCode}`,
-  customErrorMessage: (req, res, err) =>
-    `${req.method} ${req.url} → ${res.statusCode} (${err?.message})`,
+    `${req.method} ${(req.url ?? '').split('?')[0]} → ${res.statusCode}`,
+  customErrorMessage: (req, res) =>
+    `${req.method} ${(req.url ?? '').split('?')[0]} → ${res.statusCode}`,
   serializers: {
     req: req => ({
       id: req.id,
       method: req.method,
-      url: req.url,
+      url: (req.url ?? '').split('?')[0],
       remoteAddress: req.remoteAddress,
     }),
     res: res => ({ statusCode: res.statusCode }),

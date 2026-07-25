@@ -131,13 +131,20 @@ test('credita fichas e conclui pagamento aprovado na mesma transacao', async t =
     transaction_amount: 10,
     currency_id: 'BRL',
     external_reference: 'f12_payment-1',
+    payer: {
+      email: 'sensitive@example.com',
+      identification: { number: '12345678901' },
+    },
+    card: { last_four_digits: '1234' },
   })
 
   const updates = []
+  let storedWebhookPayload = null
   const transactionClient = {
     paymentWebhookEvent: {
       create: async ({ data }) => {
         assert.equal(data.externalEventId, '987')
+        storedWebhookPayload = data.payload
       },
     },
     payment: {
@@ -178,4 +185,11 @@ test('credita fichas e conclui pagamento aprovado na mesma transacao', async t =
   assert.equal(updates[0].data.isCredited, true)
   assert.equal(updates[0].data.externalPaymentId, '654')
   assert.equal(updates[0].data.processedAt instanceof Date, true)
+  assert.deepEqual(storedWebhookPayload, {
+    id: 654,
+    status: 'approved',
+    external_reference: 'f12_payment-1',
+    transaction_amount: 10,
+    currency_id: 'BRL',
+  })
 })

@@ -3,6 +3,7 @@ import { ListAdminUsersService } from '../../services/admin/list-admin-users.ser
 import { AdminUserManagementService } from '../../services/admin/admin-user-management.service'
 import { GetAdminUserHistoryService } from '../../services/admin/get-admin-user-history.service'
 import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
+import { GetAdminUserPiiService } from '../../services/admin/get-admin-user-pii.service'
 
 export class ListAdminUsersController {
   static async handle(req: Request, res: Response): Promise<Response> {
@@ -15,6 +16,19 @@ export class ListAdminUsersController {
     })
 
     return res.status(200).json(result)
+  }
+
+  static async pii(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
+    try {
+      const result = await GetAdminUserPiiService.execute(req.params.userId)
+      return res.status(200).json(result)
+    } catch (err) {
+      return next(err)
+    }
   }
 
   static async block(

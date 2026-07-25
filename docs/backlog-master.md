@@ -225,9 +225,17 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Privacidade: recorte V1 de `SEC-010`
+1. Implantar e validar o recorte V1 de `SEC-010`
 2. Gates de seguranca: recorte V1 de `SEC-011`
 3. Runtime e imagem: recorte V1 de `SEC-012`
+
+Estado SEC-010 em 2026-07-25:
+
+- recorte do MVP V1 implementado e validado localmente; implantacao pendente
+- logs redigem credenciais, CPF, telefone, cookies e assinaturas e mascaram e-mail
+- payloads novos e legados do Mercado Pago sao reduzidos a uma allowlist
+- PII completa exige `USER_PII_READ`, fora do papel `ADMIN` padrao, com auditoria
+- matriz LGPD minima e runbook/script manual de solicitacao do titular versionados
 
 Estado SEC-008 em 2026-07-25:
 
@@ -751,7 +759,7 @@ Tipo:
 
 Status:
 
-- `Parcialmente implementado; baseline de privacidade do MVP V1 pendente`
+- `MVP V1 implementado e validado localmente; implantacao pendente`
 
 Escopo obrigatorio do MVP V1:
 

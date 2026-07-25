@@ -13,6 +13,7 @@ import {
   normalizeMercadoPagoPaymentEvent,
   validateMercadoPagoPayment,
 } from './mercado-pago-payment.helpers'
+import { minimizeMercadoPagoPayload } from '../../security/privacy'
 
 export class ProcessMercadoPagoWebhookService {
   static async execute(event: unknown): Promise<void> {
@@ -38,7 +39,7 @@ export class ProcessMercadoPagoWebhookService {
             id: randomUUID(),
             provider: PaymentProvider.MERCADO_PAGO,
             externalEventId: normalizedEvent.externalEventId,
-            payload: mpPayment,
+            payload: minimizeMercadoPagoPayload(mpPayment),
           },
         })
       } catch (error) {

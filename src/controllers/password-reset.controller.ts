@@ -6,6 +6,7 @@ import {
   isEmailPreviewMode,
   sendPasswordResetEmail,
 } from '../lib/email'
+import { maskEmail, safeErrorForLog } from '../security/privacy'
 
 const PASSWORD_RESET_TTL_MIN = 30
 
@@ -29,7 +30,7 @@ export class PasswordResetController {
 
       if (!canDeliverEmail) {
         ;(req as any).log?.warn(
-          { email },
+          { recipient: maskEmail(email) },
           'Recuperacao de senha solicitada sem provedor de email configurado'
         )
 
@@ -47,7 +48,7 @@ export class PasswordResetController {
         rawToken = result.rawToken
       } catch (tokenErr) {
         ;(req as any).log?.warn(
-          { err: tokenErr, email },
+          { err: safeErrorForLog(tokenErr), recipient: maskEmail(email) },
           'Falha ao persistir token de reset; pedido sera respondido sem link'
         )
       }
@@ -64,7 +65,7 @@ export class PasswordResetController {
           })
         } catch (emailErr) {
           ;(req as any).log?.error(
-            { err: emailErr, email },
+            { err: safeErrorForLog(emailErr), recipient: maskEmail(email) },
             'Falha ao enviar email de reset de senha'
           )
         }

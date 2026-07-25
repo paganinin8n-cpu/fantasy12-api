@@ -1,4 +1,8 @@
 import { prisma } from '../../lib/prisma';
+import {
+  maskEmail,
+  minimizeMercadoPagoPayload,
+} from '../../security/privacy';
 
 export class GetAdminSubscriptionService {
   static async execute(subscriptionId: string) {
@@ -59,12 +63,18 @@ export class GetAdminSubscriptionService {
         createdAt: subscription.createdAt,
         updatedAt: subscription.updatedAt,
       },
-      user: subscription.user,
+      user: {
+        ...subscription.user,
+        email: maskEmail(subscription.user.email),
+      },
       webhookEvents: webhookEvents.map((event) => ({
         id: event.id,
         externalEventId: event.externalEventId,
         receivedAt: event.receivedAt,
-        payload: event.payload,
+        payload:
+          event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
+            ? minimizeMercadoPagoPayload(event.payload as Record<string, unknown>)
+            : {},
       })),
     };
   }

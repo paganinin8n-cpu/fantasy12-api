@@ -5,6 +5,7 @@ import {
   SubscriptionPlan,
   PaymentProvider,
 } from '@prisma/client';
+import { maskEmail } from '../../security/privacy';
 
 /**
  * Lista assinaturas para o painel ADMIN
@@ -69,7 +70,6 @@ export class ListAdminSubscriptionsService {
           startAt: true,
           endAt: true,
           externalSubscriptionId: true,
-          externalCustomerId: true,
           createdAt: true,
           updatedAt: true,
 
@@ -96,7 +96,13 @@ export class ListAdminSubscriptionsService {
         total,
         totalPages: Math.ceil(total / limit),
       },
-      data: subscriptions,
+      data: subscriptions.map(subscription => ({
+        ...subscription,
+        user: {
+          ...subscription.user,
+          email: maskEmail(subscription.user.email),
+        },
+      })),
     };
   }
 }

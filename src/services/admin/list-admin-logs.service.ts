@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { maskEmail, redactSensitiveMetadata } from '../../security/privacy'
 
 type ListAdminLogsInput = {
   entity?: string
@@ -70,14 +71,14 @@ export class ListAdminLogsService {
         action: item.action,
         entity: item.entity,
         entityId: item.entityId,
-        metadata: item.metadata,
+        metadata: redactSensitiveMetadata(item.metadata),
         ipAddress: item.ipAddress,
         createdAt: item.createdAt,
         actor: item.user
           ? {
               id: item.user.id,
               name: item.user.name,
-              email: item.user.email,
+              email: maskEmail(item.user.email),
             }
           : null,
       })),
@@ -87,13 +88,13 @@ export class ListAdminLogsService {
         action: item.action,
         entity: item.entity,
         entityId: item.entityId,
-        metadata: item.payload,
+        metadata: redactSensitiveMetadata(item.payload),
         ipAddress: item.ipAddress,
         createdAt: item.createdAt,
         actor: {
           id: item.admin.id,
           name: item.admin.name,
-          email: item.admin.email,
+          email: maskEmail(item.admin.email),
         },
       })),
     ]

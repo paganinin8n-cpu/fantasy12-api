@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { ProcessMercadoPagoWebhookService } from '../../services/payment/process-mercado-pago-webhook.service'
+import { logger } from '../../lib/logger'
+import { safeErrorForLog } from '../../security/privacy'
 
 export class MercadoPagoWebhookController {
   static async handle(
@@ -20,14 +22,12 @@ export class MercadoPagoWebhookController {
       : req.body
     const timestamp = new Date().toISOString()
 
-    console.info({
-      level: 'INFO',
-      service: 'MercadoPagoWebhookController',
+    logger.info({
       action: 'webhook.received',
       provider: 'MERCADO_PAGO',
       externalEventId: event?.id,
       timestamp,
-    })
+    }, 'Webhook recebido')
 
     try {
       if (event?.type === 'payment') {
@@ -36,13 +36,11 @@ export class MercadoPagoWebhookController {
 
       return res.status(200).json({ received: true })
     } catch (error) {
-      console.error({
-        level: 'ERROR',
-        service: 'MercadoPagoWebhookController',
+      logger.error({
         action: 'webhook.error',
-        error,
+        err: safeErrorForLog(error),
         timestamp,
-      })
+      }, 'Falha ao processar webhook')
 
       return next(error)
     }

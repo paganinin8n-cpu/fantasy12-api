@@ -29,6 +29,18 @@ router.get(
   ListAdminUsersController.history
 )
 
+router.get(
+  '/admin/users/:userId/pii',
+  authMiddleware,
+  authorize('USER_PII_READ', {
+    audit: true,
+    entity: 'USER_PII',
+    getEntityId: req => req.params.userId,
+  }),
+  validateRequest(UserIdParamsSchema, 'params'),
+  ListAdminUsersController.pii
+)
+
 router.post(
   '/admin/users/:userId/admin-roles',
   authMiddleware,

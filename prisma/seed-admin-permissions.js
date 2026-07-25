@@ -15,6 +15,7 @@ const permissions = [
   'FINANCE_EXECUTE',
   'FINANCE_FORCE',
   'USER_READ',
+  'USER_PII_READ',
   'USER_WRITE',
   'USER_FORCE',
   'USER_BLOCK',

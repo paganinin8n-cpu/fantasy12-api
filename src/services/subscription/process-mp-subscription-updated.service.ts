@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { MercadoPagoClient } from '../../lib/mercado-pago.client';
 import { randomUUID } from "crypto";
+import { minimizeMercadoPagoPayload } from '../../security/privacy';
 
 /**
  * Processa o evento subscription.updated do Mercado Pago
@@ -59,7 +60,7 @@ export class ProcessMpSubscriptionUpdatedService {
       id: randomUUID( ),
         provider: 'MERCADO_PAGO',
         externalEventId,
-        payload: mpSubscription,
+        payload: minimizeMercadoPagoPayload(mpSubscription),
       },
     });
 

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { maskEmail } from '../../security/privacy'
 
 type ListAdminUsersInput = {
   page?: number
@@ -34,9 +35,7 @@ export class ListAdminUsersService {
           id: true,
           name: true,
           email: true,
-          cpf: true,
           nickname: true,
-          phone: true,
           role: true,
           adminBlockedAt: true,
           adminBlockedReason: true,
@@ -86,10 +85,8 @@ export class ListAdminUsersService {
       data: users.map(user => ({
         id: user.id,
         name: user.name,
-        email: user.email,
-        cpf: user.cpf,
+        email: maskEmail(user.email),
         nickname: user.nickname,
-        phone: user.phone,
         role: user.role,
         adminBlockedAt: user.adminBlockedAt,
         adminBlockedReason: user.adminBlockedReason,
