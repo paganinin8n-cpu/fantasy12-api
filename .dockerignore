@@ -7,6 +7,10 @@ dist
 coverage
 backups
 .release
+.artifacts
+.playwright-mcp
+docs
+tests
 
 # 🔒 Prisma (garantir inclusão)
 !prisma

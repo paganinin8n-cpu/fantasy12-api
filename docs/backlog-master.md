@@ -225,8 +225,17 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Runtime e imagem: recorte V1 de `SEC-012`
+1. Implantar e validar o recorte V1 de `SEC-012`
 2. Evolucoes V2 apos a liberacao do MVP
+
+Estado SEC-012 em 2026-07-25:
+
+- recorte do MVP V1 implementado e validado localmente; build/scan no CI pendente
+- build e runtime migrados para Node 22 LTS em Alpine e imagem multi-stage
+- API e worker executam como usuario `node`; dependencias dev removidas
+- Prisma CLI preservado como dependencia operacional para migrations
+- Trivy configurado para bloquear qualquer achado alto ou critico
+- CI e deploy verificam UID, runtime, API, worker, Prisma e healthcheck
 
 Estado SEC-011 em 2026-07-25:
 
@@ -867,7 +876,7 @@ Tipo:
 
 Status:
 
-- `Parcialmente implementado; hardening minimo do MVP V1 pendente`
+- `MVP V1 implementado e validado localmente; build/scan no CI pendente`
 
 Escopo obrigatorio do MVP V1:
 
