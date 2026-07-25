@@ -225,8 +225,16 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Implantar e executar QA produtiva de `SEC-008`
-2. Privacidade, gates e runtime: recortes V1 de `SEC-010`, `SEC-011` e `SEC-012`
+1. Privacidade: recorte V1 de `SEC-010`
+2. Gates de seguranca: recorte V1 de `SEC-011`
+3. Runtime e imagem: recorte V1 de `SEC-012`
+
+Estado SEC-008 em 2026-07-25:
+
+- recorte do MVP V1 concluido e implantado pelo run [30166808482](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30166808482)
+- migration de integridade dos convites aplicada e schema de producao sem pendencias
+- API e banco saudaveis na versao `bf72bc30ec31152a15b23c3dacc0861939498a45b7b39a9dd49df7760fff865b`
+- API e Redis confirmados em `1/1`
 
 Estado SEC-007, SEC-009 e SEC-006 em 2026-07-25:
 
@@ -625,7 +633,7 @@ Tipo:
 
 Status:
 
-- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+- `MVP V1 concluido e implantado em producao em 2026-07-25`
 
 Evidencias do MVP V1:
 
