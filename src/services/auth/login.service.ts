@@ -1,6 +1,8 @@
-import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
+import { canonicalizeEmail } from '../../security/identity'
+import { verifyPassword } from '../../security/password'
 
 const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_MS = 15 * 60 * 1000 // 15 minutos
@@ -26,7 +28,7 @@ export class LoginService {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: canonicalizeEmail(email) },
     })
 
     if (!user) {
@@ -48,19 +50,22 @@ export class LoginService {
       )
     }
 
-    const validPassword = await bcrypt.compare(password, user.password)
+    const validPassword = await verifyPassword(password, user.password)
 
     if (!validPassword) {
-      const nextAttempts = user.failedLoginAttempts + 1
-      const shouldLock = nextAttempts >= MAX_FAILED_ATTEMPTS
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: nextAttempts,
-          lockedUntil: shouldLock ? new Date(Date.now() + LOCKOUT_MS) : null,
-        },
-      })
+      const lockUntil = new Date(Date.now() + LOCKOUT_MS)
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE "users"
+        SET
+          "failedLoginAttempts" = "failedLoginAttempts" + 1,
+          "lockedUntil" = CASE
+            WHEN "failedLoginAttempts" + 1 >= ${MAX_FAILED_ATTEMPTS}
+              THEN ${lockUntil}
+            ELSE "lockedUntil"
+          END,
+          "updatedAt" = NOW()
+        WHERE "id" = ${user.id}
+      `)
 
       throw AppError.unauthorized('Credenciais inválidas', 'invalid_credentials')
     }

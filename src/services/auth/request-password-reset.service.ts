@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { prisma } from '../../lib/prisma'
+import { canonicalizeEmail } from '../../security/identity'
 
 const TOKEN_BYTES = 32
 const TOKEN_TTL_MS = 30 * 60 * 1000 // 30 minutos
@@ -24,7 +25,7 @@ export class RequestPasswordResetService {
     email: string
   }): Promise<{ rawToken: string | null }> {
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: canonicalizeEmail(email) },
     })
 
     if (!user) {

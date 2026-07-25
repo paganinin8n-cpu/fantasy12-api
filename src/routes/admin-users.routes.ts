@@ -8,6 +8,8 @@ import {
   AdminUserRolesSchema,
   AdminUserSubscriptionSchema,
 } from '../validators/admin-user.validator'
+import { UserIdParamsSchema } from '../validators/common.validator'
+import { AdminUsersQuerySchema } from '../validators/admin-query.validator'
 
 const router = Router()
 
@@ -15,6 +17,7 @@ router.get(
   '/admin/users',
   authMiddleware,
   authorize('USER_READ'),
+  validateRequest(AdminUsersQuerySchema, 'query'),
   ListAdminUsersController.handle
 )
 
@@ -22,6 +25,7 @@ router.get(
   '/admin/users/:userId/history',
   authMiddleware,
   authorize('AUDIT_READ'),
+  validateRequest(UserIdParamsSchema, 'params'),
   ListAdminUsersController.history
 )
 
@@ -33,6 +37,7 @@ router.post(
     entity: 'USER',
     getEntityId: req => req.params.userId,
   }),
+  validateRequest(UserIdParamsSchema, 'params'),
   validateRequest(AdminUserRolesSchema),
   ListAdminUsersController.setAdminRoles
 )
@@ -45,6 +50,7 @@ router.post(
     entity: 'USER',
     getEntityId: req => req.params.userId,
   }),
+  validateRequest(UserIdParamsSchema, 'params'),
   validateRequest(AdminUserReasonSchema),
   ListAdminUsersController.block
 )
@@ -57,6 +63,7 @@ router.post(
     entity: 'USER',
     getEntityId: req => req.params.userId,
   }),
+  validateRequest(UserIdParamsSchema, 'params'),
   validateRequest(AdminUserReasonSchema),
   ListAdminUsersController.unblock
 )
@@ -69,6 +76,7 @@ router.post(
     entity: 'SUBSCRIPTION',
     getEntityId: req => req.params.userId,
   }),
+  validateRequest(UserIdParamsSchema, 'params'),
   validateRequest(AdminUserSubscriptionSchema),
   ListAdminUsersController.setSubscription
 )
@@ -81,6 +89,7 @@ router.post(
     entity: 'SUBSCRIPTION',
     getEntityId: req => req.params.userId,
   }),
+  validateRequest(UserIdParamsSchema, 'params'),
   validateRequest(AdminUserReasonSchema),
   ListAdminUsersController.cancelSubscription
 )

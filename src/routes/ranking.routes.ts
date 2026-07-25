@@ -12,6 +12,15 @@ import { ListUserBoloesController } from '../controllers/bolao/list-user-boloes.
 import { ListAvailableBoloesController } from '../controllers/bolao/list-available-boloes.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { CreateBolaoController } from '../controllers/bolao/create-bolao.controller';
+import { validateRequest } from '../middleware/validate-request.middleware';
+import { RankingIdParamsSchema } from '../validators/common.validator';
+import {
+  CreateBolaoInviteSchema,
+  CreateBolaoSchema,
+  InviteCodeParamsSchema,
+  RankingParticipantParamsSchema,
+  ReviewBolaoRequestSchema,
+} from '../validators/bolao.validator';
 
 const router = Router();
 const controller = new RankingController();
@@ -28,7 +37,7 @@ router.get('/rankings/weekly', WeeklyRankingController.handle);
 //
 router.get('/boloes/me', authMiddleware, ListUserBoloesController.handle);
 router.get('/boloes/available', authMiddleware, ListAvailableBoloesController.handle);
-router.post('/boloes', authMiddleware, CreateBolaoController.handle);
+router.post('/boloes', authMiddleware, validateRequest(CreateBolaoSchema), CreateBolaoController.handle);
 
 //
 // 🔹 Ranking genérico por ID (SEMPRE POR ÚLTIMO)
@@ -38,10 +47,12 @@ router.get('/rankings/:rankingId', controller.show);
 //
 // 🔹 Entrada direta em bolão
 //
-router.post('/rankings/:rankingId/join', authMiddleware, JoinBolaoController.handle);
+router.post('/rankings/:rankingId/join', authMiddleware, validateRequest(RankingIdParamsSchema, 'params'), JoinBolaoController.handle);
 router.patch(
   '/rankings/:rankingId/participants/:participantId',
   authMiddleware,
+  validateRequest(RankingParticipantParamsSchema, 'params'),
+  validateRequest(ReviewBolaoRequestSchema),
   ReviewBolaoRequestController.handle
 );
 
@@ -49,12 +60,12 @@ router.patch(
 // 🔹 Ranking de leitura do bolão
 //
 router.get('/rankings/:rankingId/bolao', authMiddleware, BolaoRankingController.handle);
-router.post('/rankings/:rankingId/bolao/close', authMiddleware, BolaoRankingController.close);
+router.post('/rankings/:rankingId/bolao/close', authMiddleware, validateRequest(RankingIdParamsSchema, 'params'), BolaoRankingController.close);
 
 //
 // 🔹 Convites de bolão
 //
-router.post('/rankings/:rankingId/invites', authMiddleware, CreateBolaoInviteController.handle);
-router.post('/boloes/invites/:code/join', authMiddleware, UseBolaoInviteController.handle);
+router.post('/rankings/:rankingId/invites', authMiddleware, validateRequest(RankingIdParamsSchema, 'params'), validateRequest(CreateBolaoInviteSchema), CreateBolaoInviteController.handle);
+router.post('/boloes/invites/:code/join', authMiddleware, validateRequest(InviteCodeParamsSchema, 'params'), UseBolaoInviteController.handle);
 
 export default router;

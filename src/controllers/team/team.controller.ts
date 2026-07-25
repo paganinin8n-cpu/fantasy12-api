@@ -39,8 +39,8 @@ export class TeamController {
 
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const { q, type, country, page = '1', limit = '50' } = req.query
-      const skip = (Number(page) - 1) * Number(limit)
+      const { q, type, country, page, limit } = req.query as any
+      const skip = (page - 1) * limit
 
       const where: any = {}
       if (q) {
@@ -58,12 +58,12 @@ export class TeamController {
           where,
           orderBy: { name: 'asc' },
           skip,
-          take: Number(limit),
+          take: limit,
         }),
         prisma.team.count({ where }),
       ])
 
-      return res.json({ teams, total, page: Number(page), limit: Number(limit) })
+      return res.json({ teams, total, page, limit })
     } catch (err) {
       return next(err)
     }

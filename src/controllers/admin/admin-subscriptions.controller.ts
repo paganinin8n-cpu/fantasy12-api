@@ -22,48 +22,29 @@ export class AdminSubscriptionsController {
    * GET /api/admin/subscriptions
    */
   static async list(req: Request, res: Response): Promise<Response> {
-    const { page, limit, status, plan, provider, userId } = req.query;
-
-    /**
-     * 🧮 Paginação segura
-     */
-    const parsedPage =
-      typeof page === 'string' && Number(page) > 0
-        ? Number(page)
-        : undefined;
-
-    const parsedLimit =
-      typeof limit === 'string' && Number(limit) > 0
-        ? Number(limit)
-        : undefined;
+    const { page, limit, status, plan, provider, userId } = req.query as any;
 
     /**
      * 🔎 Filtros tipados (ALINHADOS AO SCHEMA)
      */
     const parsedStatus =
-      typeof status === 'string'
-        ? (status as SubscriptionStatus)
-        : undefined;
+      status as SubscriptionStatus | undefined;
 
     const parsedPlan =
-      typeof plan === 'string'
-        ? (plan as SubscriptionPlan)
-        : undefined;
+      plan as SubscriptionPlan | undefined;
 
     const parsedProvider =
-      typeof provider === 'string'
-        ? (provider as PaymentProvider)
-        : undefined;
+      provider as PaymentProvider | undefined;
 
     const parsedUserId =
-      typeof userId === 'string' ? userId : undefined;
+      userId as string | undefined;
 
     /**
      * ⚙️ Execução do service
      */
     const result = await ListAdminSubscriptionsService.execute({
-      page: parsedPage,
-      limit: parsedLimit,
+      page,
+      limit,
       status: parsedStatus,
       plan: parsedPlan,
       provider: parsedProvider,

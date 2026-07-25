@@ -1,9 +1,11 @@
-import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
 import { revokeUserSessions } from '../../lib/redis-session-store'
-
-const BCRYPT_ROUNDS = 10
+import {
+  assertPasswordPolicy,
+  hashPassword,
+  verifyPassword,
+} from '../../security/password'
 
 interface Input {
   userId: string
@@ -13,12 +15,7 @@ interface Input {
 
 export class ChangePasswordService {
   static async execute({ userId, currentPassword, newPassword }: Input) {
-    if (newPassword.length < 6) {
-      throw AppError.badRequest(
-        'Nova senha deve ter ao menos 6 caracteres',
-        'weak_password'
-      )
-    }
+    assertPasswordPolicy(newPassword)
 
     if (currentPassword === newPassword) {
       throw AppError.badRequest(
@@ -32,7 +29,7 @@ export class ChangePasswordService {
       throw AppError.notFound('Usuário', 'user_not_found')
     }
 
-    const valid = await bcrypt.compare(currentPassword, user.password)
+    const valid = await verifyPassword(currentPassword, user.password)
     if (!valid) {
       throw AppError.unauthorized(
         'Senha atual incorreta',
@@ -40,7 +37,7 @@ export class ChangePasswordService {
       )
     }
 
-    const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
+    const hashed = await hashPassword(newPassword)
 
     await prisma.user.update({
       where: { id: userId },

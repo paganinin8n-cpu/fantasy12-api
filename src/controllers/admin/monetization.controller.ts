@@ -35,7 +35,7 @@ export class AdminMonetizationController {
       const result = await AdminWalletCreditService.credit(
         adminUserId,
         userId,
-        Number(amount),
+        amount,
         reason
       );
       return res.json(result);
@@ -53,7 +53,7 @@ export class AdminMonetizationController {
       const result = await AdminWalletCreditService.debit(
         adminUserId,
         userId,
-        Number(amount),
+        amount,
         reason
       );
       return res.json(result);
@@ -83,7 +83,7 @@ export class AdminMonetizationController {
         userId,
         String(roundId),
         type,
-        Number(amount)
+        amount
       );
       return res.json(result);
     } catch (e: any) {
@@ -100,7 +100,7 @@ export class AdminMonetizationController {
       const result = await AdminPaidBenefitsService.creditPaid(
         adminUserId,
         userId,
-        Number(amount),
+        amount,
         type
       );
       return res.json(result);
@@ -118,7 +118,7 @@ export class AdminMonetizationController {
       const result = await AdminPaidBenefitsService.debitPaid(
         adminUserId,
         userId,
-        Number(amount),
+        amount,
         type
       );
       return res.json(result);

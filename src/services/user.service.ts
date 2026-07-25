@@ -1,6 +1,6 @@
-import bcrypt from "bcryptjs";
 import { UserRepository } from "../repositories/user.repository";
 import { CreateUserSchema } from "../validators/createUser.validator";
+import { hashPassword } from '../security/password'
 
 export class UserService {
   private repository = new UserRepository();
@@ -18,7 +18,7 @@ export class UserService {
       throw new Error("CPF já cadastrado");
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await hashPassword(data.password);
 
     const user = await this.repository.create({
       ...data,

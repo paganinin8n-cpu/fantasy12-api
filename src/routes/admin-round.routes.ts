@@ -8,6 +8,14 @@ import { SetRoundResultController } from '../controllers/admin/set-round-result.
 import { UpdateRoundController } from '../controllers/admin/update-round.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { authorize } from '../middleware/authorize.middleware'
+import { validateRequest } from '../middleware/validate-request.middleware'
+import { RoundIdParamsSchema } from '../validators/common.validator'
+import {
+  CreateRoundSchema,
+  EmptyBodySchema,
+  SetRoundResultSchema,
+  UpdateRoundSchema,
+} from '../validators/round-admin.validator'
 
 
 const router = Router()
@@ -29,6 +37,7 @@ router.post(
     audit: true,
     entity: 'ROUND'
   }),
+  validateRequest(CreateRoundSchema),
   CreateRoundController.handle
 )
 
@@ -40,6 +49,8 @@ router.patch(
     entity: 'ROUND',
     getEntityId: (req) => req.params.roundId
   }),
+  validateRequest(RoundIdParamsSchema, 'params'),
+  validateRequest(UpdateRoundSchema),
   UpdateRoundController.handle
 )
 
@@ -54,6 +65,8 @@ router.post(
     entity: 'ROUND',
     getEntityId: (req) => req.params.roundId
   }),
+  validateRequest(RoundIdParamsSchema, 'params'),
+  validateRequest(EmptyBodySchema),
   OpenRoundController.handle
 )
 
@@ -68,6 +81,8 @@ router.post(
     entity: 'ROUND',
     getEntityId: (req) => req.params.roundId
   }),
+  validateRequest(RoundIdParamsSchema, 'params'),
+  validateRequest(SetRoundResultSchema),
   SetRoundResultController.handle
 )
 
@@ -82,6 +97,8 @@ router.post(
     entity: 'ROUND',
     getEntityId: (req) => req.params.roundId
   }),
+  validateRequest(RoundIdParamsSchema, 'params'),
+  validateRequest(EmptyBodySchema),
   RoundAdminController.handle
 )
 
@@ -93,6 +110,8 @@ router.post(
     entity: 'ROUND',
     getEntityId: (req) => req.params.roundId
   }),
+  validateRequest(RoundIdParamsSchema, 'params'),
+  validateRequest(EmptyBodySchema),
   CancelRoundController.handle
 )
 

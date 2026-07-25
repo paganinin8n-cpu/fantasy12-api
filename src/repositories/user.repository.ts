@@ -1,16 +1,17 @@
 import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
+import { canonicalizeEmail, normalizeDigits } from '../security/identity'
 
 export class UserRepository {
   async findByEmail(email: string) {
     return prisma.user.findUnique({
-      where: { email }
+      where: { email: canonicalizeEmail(email) }
     });
   }
 
   async findByCpf(cpf: string) {
     return prisma.user.findUnique({
-      where: { cpf }
+      where: { cpf: normalizeDigits(cpf) }
     });
   }
 

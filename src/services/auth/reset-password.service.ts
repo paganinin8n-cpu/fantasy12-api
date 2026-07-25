@@ -1,10 +1,8 @@
 import crypto from 'crypto'
-import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { AppError } from '../../errors/AppError'
 import { revokeUserSessions } from '../../lib/redis-session-store'
-
-const BCRYPT_ROUNDS = 10
+import { hashPassword } from '../../security/password'
 
 /**
  * Confirma a redefinição de senha usando o token enviado por email.
@@ -21,13 +19,6 @@ export class ResetPasswordService {
     token: string
     newPassword: string
   }) {
-    if (newPassword.length < 6) {
-      throw AppError.badRequest(
-        'Senha deve ter ao menos 6 caracteres',
-        'weak_password'
-      )
-    }
-
     const tokenHash = crypto
       .createHash('sha256')
       .update(token)
@@ -45,7 +36,7 @@ export class ResetPasswordService {
         )
       }
 
-      const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
+      const hashed = await hashPassword(newPassword)
 
       await tx.user.update({
         where: { id: record.userId },

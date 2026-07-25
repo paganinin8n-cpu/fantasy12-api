@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.middleware'
 import { validateRequest } from '../middleware/validate-request.middleware'
 import { CreateSubscriptionCheckoutSchema } from '../validators/subscription.validator'
 import { subscriptionRateLimiter } from '../middleware/rate-limit.middleware'
+import { EmptyBodySchema } from '../validators/round-admin.validator'
 
 const router = Router()
 
@@ -20,6 +21,7 @@ router.delete(
   '/api/subscription',
   subscriptionRateLimiter,
   authMiddleware,
+  validateRequest(EmptyBodySchema),
   SubscriptionController.cancel
 )
 

@@ -5,6 +5,6 @@ export const CreatePaymentSchema = z.object({
   method: z.enum(['PIX', 'CARD'], {
     message: 'method deve ser PIX ou CARD',
   }),
-})
+}).strict()
 
 export type CreatePaymentDTO = z.infer<typeof CreatePaymentSchema>

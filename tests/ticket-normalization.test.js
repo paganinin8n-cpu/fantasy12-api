@@ -10,7 +10,9 @@ const normalizedPrediction = ['X', ...Array(11).fill('1')].join(',')
 
 test('validador normaliza palpites com trim e uppercase', () => {
   const parsed = CreateTicketSchema.parse({
-    roundId: 'round-1', prediction: rawPrediction, multipliers: Array(12).fill(1),
+    roundId: '00000000-0000-4000-8000-000000000001',
+    prediction: rawPrediction,
+    multipliers: Array(12).fill(1),
   })
   assert.equal(parsed.prediction, normalizedPrediction)
 })

@@ -187,7 +187,7 @@ Nota 2026-06-06:
 - ambientes fresh deixam de executar a cadeia quebrada e passam a registra-la como aplicada depois do `db push`
 - releases de schema passam por `npm run prisma:schema:release:check`, incluindo auditoria, baseline, politica de migrations e build
 
-## P0/P1. Programa de seguranca — revisao 2026-07-22
+## P0/P1. Programa de seguranca — MVP V1 e evolucao V2
 
 Objetivo:
 
@@ -202,13 +202,32 @@ Regra de execucao:
 - correcoes de saldo, inventario, pagamento e sessao exigem revisao de seguranca
 - este trecho e a fila oficial; `docs/security-review.md` permanece como evidencia e contexto
 
-### Ordem de entrega
+### Decisao de escopo — 2026-07-25
 
-1. Contencao imediata: `SEC-003` e `SEC-004`
-2. Integridade financeira e de requisicao: `SEC-001` e `SEC-002`
-3. Identidade e autorizacao: `SEC-005`, `SEC-007` e `SEC-009`
-4. Fronteiras de entrada e concorrencia: `SEC-006` e `SEC-008`
-5. Plataforma, privacidade e gates: `SEC-010`, `SEC-011` e `SEC-012`
+- `MVP V1` significa o minimo seguro para abrir o produto a usuarios reais com conta, pagamento, carteira, rodada, Mesa e operacao administrativa
+- `V2` concentra automacao avancada, governanca continua e recursos que aumentam maturidade sem corrigir uma exploracao critica imediata
+- controles de dinheiro, autenticacao, autorizacao, identidade e runtime suportado nao podem ser adiados para V2
+- se convites de Mesa permanecerem habilitados no MVP, o recorte V1 de `SEC-008` e obrigatorio; caso contrario, as rotas de convite devem ficar desabilitadas ate a V2
+- qualquer achado alto ou critico descoberto durante o recorte V1 volta a ser `Release blocker`, mesmo quando relacionado a um item planejado para V2
+
+### Mapa de entrega V1 x V2
+
+| Item | MVP V1 | Evolucao V2 |
+| --- | --- | --- |
+| `SEC-001` a `SEC-005` | Concluidos; manter gates e QA de regressao | Observacao continua e ajustes operacionais |
+| `SEC-006` | Validacao estrita nas rotas mutaveis, financeiras, administrativas e de competicao | Cobertura uniforme de leituras/filtros legados, geracao de contrato e fuzzing |
+| `SEC-007` | Matriz de permissao e um middleware oficial para toda operacao sensivel | Editor de papeis, papeis customizados e recertificacao periodica |
+| `SEC-008` | Obrigatorio se convites estiverem ativos: uso atomico, limite e idempotencia | Revogacao em massa, campanhas, analytics e politicas avancadas |
+| `SEC-009` | Identidade canonica, senha compartilhada entre fluxos e lockout atomico | MFA, risco adaptativo por IP/dispositivo e verificacao de senha vazada |
+| `SEC-010` | Redacao de PII, minimizacao de payload e matriz LGPD minima | Expurgo automatizado, solicitacoes do titular e governanca avancada |
+| `SEC-011` | Consolidar no CI os gates criticos que ja existem e cobrir autorizacao/rotas | SAST/DAST, secret scanning, relatorios agendados e tendencias |
+| `SEC-012` | Node LTS suportado, usuario nao-root, dependencias de producao e scan da imagem | Digest, SBOM, assinatura/proveniencia e hardening avancado do runtime |
+
+### Ordem restante para liberar o MVP V1
+
+1. Implantar e executar QA produtiva de `SEC-007`, `SEC-009` e `SEC-006`
+2. Convites de Mesa: recorte condicional de `SEC-008`
+3. Privacidade, gates e runtime: recortes V1 de `SEC-010`, `SEC-011` e `SEC-012`
 
 Estado P0 em 2026-07-25:
 
@@ -490,7 +509,26 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+
+Evidencias do MVP V1:
+
+- schemas estritos em `src/validators` para monetizacao administrativa, usuarios, assinaturas, rodadas, times, pagamentos, tickets, beneficios e Mesa
+- `body`, `params` e `query` sensiveis ligados a `validateRequest`, com UUID, data ISO, enum, inteiro seguro e paginacao limitada
+- testes negativos em `tests/security-identity-validation.test.js`
+
+Escopo obrigatorio do MVP V1:
+
+- exigir schema de `body`, `params` e `query` em toda rota mutavel ou sensivel de monetizacao, usuarios, rodadas, times, pagamentos, assinatura, ticket, beneficios e Mesa
+- rejeitar campos desconhecidos nas operacoes financeiras e administrativas
+- validar UUIDs, datas, enums, paginacao e inteiros financeiros com limites explicitos
+- adicionar testes negativos para tipo incorreto, overflow, enum invalido e payload extra nas rotas cobertas
+
+Fica para V2:
+
+- padronizar tambem filtros e leituras publicas legadas de baixo risco
+- gerar documentacao/contrato de API a partir dos schemas
+- adicionar fuzzing e testes baseados em propriedades para parsers complexos
 
 Escopo inicial:
 
@@ -525,7 +563,30 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+
+Evidencias do MVP V1:
+
+- catalogo tipado em `src/domain/permissions.ts` e autorizacao oficial em `src/middleware/authorize.middleware.ts`
+- matriz rota x permissao versionada em `docs/security/authorization-matrix-v1.md`
+- bypass legado por `User.role = ADMIN` removido do fechamento/liquidacao de Mesa
+- cenarios de usuario comum, admin sem permissao, admin autorizado e `SUPERADMIN` cobertos em `tests/security-rbac.test.js`
+- concessao/negacao financeira e liquidacao forcada auditadas
+
+Escopo obrigatorio do MVP V1:
+
+- manter uma unica matriz rota x permissao para todas as rotas administrativas e operacoes sensiveis de competicao, usuarios, auditoria e financas
+- usar um middleware oficial de autorizacao e remover bypass baseado somente em `User.role = ADMIN`
+- exigir permissao especifica para debito/credito, bloqueio de usuario, operacao de rodada e fechamento/liquidacao de Mesa
+- testar usuario comum, administrador sem permissao, administrador autorizado e `SUPERADMIN`
+- auditar sucesso e falha das operacoes financeiras e de liquidacao forcada
+
+Fica para V2:
+
+- editor visual de papeis e permissoes
+- papeis customizados por equipe operacional
+- aprovacao em duas etapas para operacoes de alto valor
+- recertificacao periodica de acessos administrativos
 
 Escopo:
 
@@ -558,7 +619,25 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `Pendente; obrigatorio no MVP V1 somente se convites permanecerem habilitados`
+
+Escopo obrigatorio do MVP V1 quando convites estiverem ativos:
+
+- decidir e documentar se a Mesa e publica, privada ou hibrida
+- executar entrada, reserva do uso e incremento do convite na mesma transacao
+- usar incremento condicional para nunca ultrapassar `maxUses`
+- garantir que falha na entrada nao consuma o convite e que repeticao do mesmo usuario seja idempotente ou rejeitada
+- validar codigo, `maxUses` e `expiresAt` e executar teste concorrente no PostgreSQL real
+
+Alternativa valida para o MVP V1:
+
+- desabilitar criacao e uso de convites e manter entrada direta na Mesa; nesse caso, o restante deste item passa integralmente para V2
+
+Fica para V2:
+
+- revogacao em massa e rotacao de convites
+- campanhas, analytics de conversao e limites por periodo
+- politicas avancadas de compartilhamento e administracao
 
 Escopo:
 
@@ -591,7 +670,30 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `MVP V1 implementado e validado localmente em 2026-07-25; deploy pendente`
+
+Evidencias do MVP V1:
+
+- email canonico compartilhado por cadastro, login e reset; CPF e telefone normalizados
+- migration `20260725120000_canonical_user_identity` com preflight de colisao, backfill, indice unico funcional e constraint
+- politica central de senha com pre-hash SHA-256 antes do bcrypt para preservar senhas longas e compatibilidade com hashes legados
+- lockout usa incremento atomico no PostgreSQL
+- bootstrap e constraints verificados em PostgreSQL 16 efemero
+
+Escopo obrigatorio do MVP V1:
+
+- aplicar a mesma normalizacao de email em cadastro, login e reset e garantir unicidade case-insensitive no banco
+- fazer backfill seguro dos emails existentes antes da constraint
+- centralizar politica de senha nos tres fluxos, aceitar senhas longas e exigir minimo compativel com o MVP
+- tornar incremento de falhas e lockout atomicos e cobrir tentativas paralelas
+- normalizar CPF e telefone no cadastro para impedir duplicidade por formatacao
+
+Fica para V2:
+
+- MFA para administradores e usuarios
+- deteccao adaptativa por IP, dispositivo e reputacao
+- verificacao de senhas conhecidas em vazamentos
+- reautenticacao para operacoes especialmente sensiveis
 
 Escopo:
 
@@ -626,7 +728,22 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `Parcialmente implementado; baseline de privacidade do MVP V1 pendente`
+
+Escopo obrigatorio do MVP V1:
+
+- confirmar por teste que logs normais nao contem CPF, token, cookie, assinatura ou email completo
+- armazenar somente os campos dos payloads do Mercado Pago necessarios ao processamento, conciliacao e auditoria
+- restringir acesso operacional a PII e registrar quem pode consultar cada categoria
+- versionar uma matriz LGPD minima com dado, finalidade, base de uso, acesso, retencao e responsavel
+- definir procedimento manual auditavel de correcao e exclusao para o lancamento
+
+Fica para V2:
+
+- expurgo automatizado por categoria e politica
+- portal/processo automatizado para solicitacoes do titular
+- criptografia de campos selecionados em repouso e gestao dedicada de chaves
+- governanca de backups, anonimização e relatorios periodicos de acesso
 
 Escopo:
 
@@ -659,7 +776,22 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `Parcialmente implementado; consolidacao dos gates do MVP V1 pendente`
+
+Escopo obrigatorio do MVP V1:
+
+- manter audit de dependencias, baseline fresh, politica de migrations, build e suites criticas como gates de release
+- adicionar matriz/testes que falhem quando rota administrativa ou sensivel perder autenticacao ou permissao
+- cobrir headers, rate limit e os cenarios concorrentes habilitados no MVP
+- bloquear vulnerabilidade alta ou critica e regressao nova de migration
+- manter QA produtiva reproduzivel para controles financeiros, CSRF, webhook e sessao
+
+Fica para V2:
+
+- SAST, DAST e secret scanning dedicados
+- execucao agendada de suites ofensivas e de carga
+- relatorios historicos, tendencias e SLA de correcao
+- cobertura automatizada de todos os cenarios V2 de identidade e privacidade
 
 Escopo:
 
@@ -692,7 +824,22 @@ Tipo:
 
 Status:
 
-- `Nao iniciado`
+- `Parcialmente implementado; hardening minimo do MVP V1 pendente`
+
+Escopo obrigatorio do MVP V1:
+
+- migrar API e worker para uma versao Node LTS ainda suportada
+- executar os processos como usuario nao-root
+- remover dependencias de desenvolvimento da imagem final
+- executar scanner da imagem e bloquear vulnerabilidade alta ou critica sem excecao documentada
+- preservar healthcheck, migrations, Prisma, API, worker e scripts operacionais
+
+Fica para V2:
+
+- fixar imagem base por digest e automatizar sua renovacao
+- gerar SBOM, assinatura e proveniencia verificavel do artefato
+- adotar filesystem somente leitura, capabilities minimas e politica de seccomp quando compativel
+- automatizar politicas de supply chain e atestacao no CI
 
 Escopo:
 

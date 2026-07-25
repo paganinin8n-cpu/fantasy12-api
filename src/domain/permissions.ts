@@ -1,17 +1,43 @@
-import { UserRole } from '@prisma/client';
+export const ADMIN_PERMISSION_CODES = [
+  'COMPETITION_READ',
+  'COMPETITION_WRITE',
+  'COMPETITION_EXECUTE',
+  'COMPETITION_FORCE',
+  'RANKING_READ',
+  'RANKING_REBUILD',
+  'RANKING_FORCE',
+  'FINANCE_READ',
+  'FINANCE_WRITE',
+  'FINANCE_EXECUTE',
+  'FINANCE_FORCE',
+  'USER_READ',
+  'USER_WRITE',
+  'USER_FORCE',
+  'USER_BLOCK',
+  'USER_UNBLOCK',
+  'USER_PLAN_WRITE',
+  'USER_PASSWORD_RESET',
+  'AUDIT_READ',
+  'SYSTEM_LOCK',
+  'SYSTEM_REBUILD',
+  'SYSTEM_FORCE',
+  'JOB_EXECUTE',
+  'JOB_FORCE',
+] as const
 
-// Exportar o tipo do Prisma como Role (compatibilidade)
-export type Role = UserRole;
+export type AdminPermissionCode = typeof ADMIN_PERMISSION_CODES[number]
 
-// Permissões do sistema
-export type Permission =
-  | 'USER_READ'
-  | 'USER_WRITE'
-  | 'ADMIN_PANEL'
-  | 'AUDIT_READ';
-
-// Mapeamento de roles para permissões
-export const RolePermissions: Record<UserRole, Permission[]> = {
-  ADMIN: ['USER_READ', 'USER_WRITE', 'ADMIN_PANEL', 'AUDIT_READ'],
-  NORMAL: []
-};
+export const SENSITIVE_ROUTE_PERMISSIONS = {
+  financeRead: 'FINANCE_READ',
+  financeExecute: 'FINANCE_EXECUTE',
+  userRead: 'USER_READ',
+  userWrite: 'USER_WRITE',
+  userBlock: 'USER_BLOCK',
+  userUnblock: 'USER_UNBLOCK',
+  userPlanWrite: 'USER_PLAN_WRITE',
+  roundRead: 'COMPETITION_READ',
+  roundWrite: 'COMPETITION_WRITE',
+  roundExecute: 'COMPETITION_EXECUTE',
+  mesaForcedSettlement: 'COMPETITION_EXECUTE',
+  auditRead: 'AUDIT_READ',
+} as const satisfies Record<string, AdminPermissionCode>

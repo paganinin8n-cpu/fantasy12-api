@@ -13,7 +13,7 @@ import {
  *   (1 = simples, 2 = dupla, 4 = super dupla)
  */
 export const CreateTicketSchema = z.object({
-  roundId: z.string().min(1, 'roundId é obrigatório'),
+  roundId: z.uuid('roundId deve ser um UUID válido'),
   prediction: z
     .string()
     .min(1, 'prediction é obrigatório')
@@ -31,6 +31,6 @@ export const CreateTicketSchema = z.object({
       message: 'multiplicador deve ser 1, 2 ou 4',
     }))
     .length(12, 'multipliers deve ter exatamente 12 posições'),
-})
+}).strict()
 
 export type CreateTicketDTO = z.infer<typeof CreateTicketSchema>

@@ -13,6 +13,9 @@ const SINGLE_OPEN_ROUND_CONSTRAINT = path.join(
 const NON_NEGATIVE_BALANCES_CONSTRAINT = path.join(
   PROJECT_ROOT, 'prisma', 'constraints', 'non-negative-balances.sql'
 )
+const CANONICAL_USER_IDENTITY_CONSTRAINT = path.join(
+  PROJECT_ROOT, 'prisma', 'constraints', 'canonical-user-identity.sql'
+)
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -90,6 +93,11 @@ async function main() {
   run('npx', [
     'prisma', 'db', 'execute',
     '--file', NON_NEGATIVE_BALANCES_CONSTRAINT,
+    '--schema', 'prisma/schema.prisma',
+  ])
+  run('npx', [
+    'prisma', 'db', 'execute',
+    '--file', CANONICAL_USER_IDENTITY_CONSTRAINT,
     '--schema', 'prisma/schema.prisma',
   ])
 

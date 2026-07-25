@@ -3,18 +3,15 @@ import { ListAdminLogsService } from '../../services/admin/list-admin-logs.servi
 
 export class ListAdminLogsController {
   static async handle(req: Request, res: Response): Promise<Response> {
-    const { entity, entityId, action, source, userId, limit } = req.query
+    const { entity, entityId, action, source, userId, limit } = req.query as any
 
     const result = await ListAdminLogsService.execute({
-      entity: typeof entity === 'string' ? entity : undefined,
-      entityId: typeof entityId === 'string' ? entityId : undefined,
-      action: typeof action === 'string' ? action : undefined,
-      source:
-        source === 'audit' || source === 'admin' || source === 'all'
-          ? source
-          : undefined,
-      userId: typeof userId === 'string' ? userId : undefined,
-      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      entity,
+      entityId,
+      action,
+      source,
+      userId,
+      limit,
     })
 
     return res.status(200).json(result)

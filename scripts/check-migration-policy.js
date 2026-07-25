@@ -12,6 +12,9 @@ const singleOpenConstraintPath = path.join(
 const nonNegativeBalancesConstraintPath = path.join(
   repoRoot, 'prisma', 'constraints', 'non-negative-balances.sql'
 )
+const canonicalUserIdentityConstraintPath = path.join(
+  repoRoot, 'prisma', 'constraints', 'canonical-user-identity.sql'
+)
 
 function assert(condition, message) {
   if (!condition) {
@@ -40,6 +43,10 @@ function main() {
     'database-only non-negative balance constraints are missing'
   )
   assert(
+    fs.existsSync(canonicalUserIdentityConstraintPath),
+    'database-only canonical user identity constraints are missing'
+  )
+  assert(
     pkg.scripts['prisma:bootstrap:fresh']?.includes('scripts/bootstrap-database.js'),
     'official fresh bootstrap script is missing'
   )
@@ -60,6 +67,7 @@ function main() {
   assert(
     bootstrap.includes('single-open-round.sql') &&
       bootstrap.includes('non-negative-balances.sql') &&
+      bootstrap.includes('canonical-user-identity.sql') &&
       bootstrap.includes("'prisma', 'db', 'execute'"),
     'fresh bootstrap must apply database-only operational constraints'
   )

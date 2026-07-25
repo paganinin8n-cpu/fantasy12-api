@@ -8,10 +8,10 @@ export const PurchaseBenefitsSchema = z.object({
     'super_single',
     'super_master',
   ]),
-})
+}).strict()
 
 export const BenefitBalanceQuerySchema = z.object({
   roundId: z.string().uuid().optional(),
-})
+}).strict()
 
 export type PurchaseBenefitsDTO = z.infer<typeof PurchaseBenefitsSchema>

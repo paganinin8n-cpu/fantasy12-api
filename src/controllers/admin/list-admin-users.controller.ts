@@ -6,17 +6,12 @@ import { SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 
 export class ListAdminUsersController {
   static async handle(req: Request, res: Response): Promise<Response> {
-    const { page, limit, q, query } = req.query
+    const { page, limit, q, query } = req.query as any
 
     const result = await ListAdminUsersService.execute({
-      page: typeof page === 'string' ? Number(page) : undefined,
-      limit: typeof limit === 'string' ? Number(limit) : undefined,
-      query:
-        typeof q === 'string'
-          ? q
-          : typeof query === 'string'
-            ? query
-            : undefined,
+      page,
+      limit,
+      query: q ?? query,
     })
 
     return res.status(200).json(result)
