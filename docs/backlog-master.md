@@ -210,6 +210,12 @@ Regra de execucao:
 4. Fronteiras de entrada e concorrencia: `SEC-006` e `SEC-008`
 5. Plataforma, privacidade e gates: `SEC-010`, `SEC-011` e `SEC-012`
 
+Estado P0 em 2026-07-25:
+
+- `SEC-001`, `SEC-002`, `SEC-003` e `SEC-004` concluidos e implantados
+- deploy de fechamento aprovado no run [30142014797](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30142014797)
+- QA produtiva consolidada aprovada no run [30142110626](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30142110626), com dados sinteticos removidos ao final
+
 ### SEC-001 — Tornar debitos e consumos atomicamente seguros
 
 Prioridade:
@@ -223,7 +229,15 @@ Tipo:
 
 Status:
 
-- `Implementado localmente; pendente aplicar migration e validar concorrencia no PostgreSQL de homologacao`
+- `Concluido, implantado e QA de producao aprovado em 2026-07-25`
+
+Nota de conclusao 2026-07-25:
+
+- migration `20260722220000_enforce_non_negative_balances` confirmada como aplicada e nao revertida no PostgreSQL de producao
+- as cinco constraints de carteira, ledger, beneficios gratuitos e inventario foram encontradas e confirmadas como validadas
+- disputas reais de debito de carteira, debito administrativo e consumo de inventario produziram exatamente um sucesso e uma rejeicao
+- carteira e inventario terminaram em zero, com um unico ledger e uma unica auditoria administrativa; tentativas SQL diretas de gravar valores negativos foram bloqueadas pelo banco
+- evidencia reproduzivel no run [30142110626](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30142110626)
 
 Nota 2026-07-22:
 
@@ -268,7 +282,15 @@ Tipo:
 
 Status:
 
-- `Implementado localmente; pendente QA integrado com o frontend oficial`
+- `Concluido, implantado e QA de producao aprovado em 2026-07-25`
+
+Nota de conclusao 2026-07-25:
+
+- preflight do frontend oficial confirmou origem permitida e credenciais CORS
+- mutacoes autenticadas de usuario normal e administrador aceitaram a origem oficial e o fallback por `Referer`
+- origem ausente ou externa recebeu `403` e corpo autenticado sem `application/json` recebeu `415`
+- login, mutacao e logout operaram com a sessao oficial; a conta e as sessoes sinteticas foram removidas ao final
+- evidencia reproduzivel no run [30142110626](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30142110626)
 
 Nota 2026-07-22:
 
@@ -360,7 +382,15 @@ Tipo:
 
 Status:
 
-- `Concluido localmente; pendente deploy e observacao operacional`
+- `Concluido, implantado e QA de producao aprovado em 2026-07-25`
+
+Nota de conclusao 2026-07-25:
+
+- ambiente produtivo confirmou token e segredo de webhook configurados, sem permitir webhook de teste sem assinatura
+- assinatura moderna valida foi aceita; assinatura ausente, invalida e expirada foi rejeitada, assim como entrada acima dos limites
+- verificacao dos logs da janela de QA nao encontrou HMAC, assinatura recebida, manifest ou header de assinatura
+- observacao do container ativo encontrou zero `webhook.error` nas 24 horas anteriores ao fechamento
+- evidencia reproduzivel no run [30142110626](https://github.com/paganinin8n-cpu/fantasy12-api/actions/runs/30142110626)
 
 Nota 2026-07-22:
 
