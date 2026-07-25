@@ -3,6 +3,7 @@ node_modules/
 
 # Build output (NUNCA versionar)
 dist/
+.artifacts/
 
 # Environment variables
 .env

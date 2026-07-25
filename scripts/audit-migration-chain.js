@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const repoRoot = path.resolve(__dirname, '..');
 const migrationsDir = path.join(repoRoot, 'prisma', 'migrations');
+const baselinePath = path.join(repoRoot, 'prisma', 'migration-audit-baseline.json');
 
 const requiredFreshTables = ['users', 'rounds', 'rankings', 'subscriptions'];
 const tableRefRegex = /REFERENCES\s+"([^"]+)"/g;
@@ -132,17 +134,47 @@ function main() {
 
   const errors = findings.filter((item) => item.severity === 'error');
   const warnings = findings.filter((item) => item.severity === 'warn');
+  const normalizedFindings = findings
+    .map(({ severity, migration, message }) => `${severity}|${migration}|${message}`)
+    .sort();
+  const fingerprint = crypto
+    .createHash('sha256')
+    .update(normalizedFindings.join('\n'))
+    .digest('hex');
 
   console.log('=== Audit da trilha de migrations ===');
   console.log(`Migrations analisadas: ${directories.length}`);
   console.log(`Erros: ${errors.length}`);
   console.log(`Avisos: ${warnings.length}`);
+  console.log(`Fingerprint: ${fingerprint}`);
   console.log('');
 
   findings.forEach((finding) => {
     const prefix = finding.severity === 'error' ? '[ERRO]' : '[AVISO]';
     console.log(`${prefix} ${finding.migration}: ${finding.message}`);
   });
+
+  if (process.argv.includes('--baseline-check')) {
+    if (!fs.existsSync(baselinePath)) {
+      console.error('Migration audit baseline is missing.');
+      process.exitCode = 1;
+      return;
+    }
+    const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+    if (
+      baseline.schemaVersion !== 1 ||
+      baseline.findingsCount !== findings.length ||
+      baseline.fingerprint !== fingerprint
+    ) {
+      console.error(
+        'Migration audit baseline changed. Review the findings and update the baseline intentionally.'
+      );
+      process.exitCode = 1;
+      return;
+    }
+    console.log('Migration audit baseline check passed.');
+    return;
+  }
 
   if (errors.length > 0 && !reportOnly) {
     process.exitCode = 1;

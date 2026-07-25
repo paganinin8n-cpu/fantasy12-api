@@ -225,9 +225,18 @@ Regra de execucao:
 
 ### Ordem restante para liberar o MVP V1
 
-1. Gates de seguranca: recorte V1 de `SEC-011`
+1. Implantar e validar o recorte V1 de `SEC-011`
 2. Runtime e imagem: recorte V1 de `SEC-012`
-3. Evolucoes V2 de privacidade apos a liberacao do MVP
+3. Evolucoes V2 apos a liberacao do MVP
+
+Estado SEC-011 em 2026-07-25:
+
+- recorte do MVP V1 implementado e validado localmente; implantacao pendente
+- `ci:check` consolida oito gates e gera relatorio JSON reproduzivel
+- workflow publica o relatorio e bloqueia imagem/deploy quando qualquer gate falha
+- 32 rotas administrativas/internas protegidas por matriz canônica e teste AST
+- headers, rate limit, CSRF, sessao, RBAC, privacidade e concorrencia cobertos
+- 43 achados legacy de migrations congelados por fingerprint; mudanca nova falha
 
 Estado SEC-010 em 2026-07-25:
 
@@ -809,7 +818,7 @@ Tipo:
 
 Status:
 
-- `Parcialmente implementado; consolidacao dos gates do MVP V1 pendente`
+- `MVP V1 implementado e validado localmente; implantacao pendente`
 
 Escopo obrigatorio do MVP V1:
 

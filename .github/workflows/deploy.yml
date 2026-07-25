@@ -46,6 +46,15 @@ jobs:
       - name: Run CI checks
         run: npm run ci:check
 
+      - name: Publish security gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-gates-${{ github.sha }}
+          path: .artifacts/security-gates.json
+          if-no-files-found: error
+          retention-days: 30
+
   docker-build:
     name: Docker image build
     runs-on: ubuntu-latest
