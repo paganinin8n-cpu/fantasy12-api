@@ -32,6 +32,7 @@ import adminUsersRoutes from './routes/admin-users.routes'
 import adminLogsRoutes from './routes/admin-logs.routes'
 import adminOperationalRoutes from './routes/admin-operational.routes'
 import teamRoutes from './routes/team.routes'
+import artRoutes from './routes/art.routes'
 
 /**
  * ⚙️ INTERNAL
@@ -97,6 +98,7 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 )
+app.use('/api/admin/arts', express.json({ limit: '2mb' }))
 app.use(express.json({ limit: '256kb' }))
 app.use(express.urlencoded({ extended: true }))
 
@@ -198,6 +200,7 @@ app.use('/api', adminUsersRoutes)
 app.use('/api', adminLogsRoutes)
 app.use('/api', adminOperationalRoutes)
 app.use('/', teamRoutes)
+app.use('/', artRoutes)
 
 /* ======================================================
    ❤️ HEALTH
