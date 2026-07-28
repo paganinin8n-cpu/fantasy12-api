@@ -1,0 +1,268 @@
+name: Diagnose mesa scores by id
+
+on:
+  workflow_dispatch:
+    inputs:
+      mesa_id:
+        description: Ranking/Mesa UUID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose mesa participant scores
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Inspect mesa scores, history and audits
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          envs: MESA_ID
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -e MESA_ID="$MESA_ID" -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { RankingWindowScoreService } = require('/app/dist/services/ranking/ranking-window-score.service')
+
+            async function main() {
+              const mesaId = process.env.MESA_ID
+              if (!mesaId) throw new Error('MESA_ID missing')
+
+              const mesa = await prisma.ranking.findUnique({
+                where: { id: mesaId },
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  status: true,
+                  startDate: true,
+                  entryEndDate: true,
+                  endDate: true,
+                  settledAt: true,
+                  createdAt: true,
+                  createdByUserId: true,
+                  participants: {
+                    select: {
+                      id: true,
+                      userId: true,
+                      status: true,
+                      score: true,
+                      scoreInitial: true,
+                      position: true,
+                      createdAt: true,
+                      approvedAt: true,
+                      entryFeePaid: true,
+                      user: {
+                        select: {
+                          nickname: true,
+                          name: true,
+                          scoreTotal: true,
+                        },
+                      },
+                    },
+                    orderBy: [{ position: 'asc' }, { score: 'desc' }, { createdAt: 'asc' }],
+                  },
+                },
+              })
+
+              if (!mesa) {
+                console.log(JSON.stringify({ error: 'mesa_not_found', mesaId }, null, 2))
+                return
+              }
+
+              const now = new Date()
+              const asOfLive = now
+              const asOfEnded = mesa.endDate
+                ? new Date(mesa.endDate.getTime() + 1)
+                : now
+
+              const recomputedLive = await RankingWindowScoreService.buildRows(
+                prisma,
+                mesa,
+                asOfLive
+              )
+              const recomputedAtEnd = await RankingWindowScoreService.buildRows(
+                prisma,
+                mesa,
+                asOfEnded
+              )
+              const byLive = new Map(recomputedLive.map(r => [r.userId, r]))
+              const byEnd = new Map(recomputedAtEnd.map(r => [r.userId, r]))
+
+              const userIds = mesa.participants.map(p => p.userId)
+              const windowStart = mesa.startDate
+                ? new Date(mesa.startDate.getTime() - 3 * 864e5)
+                : new Date(mesa.createdAt.getTime() - 3 * 864e5)
+              const windowEnd = mesa.endDate
+                ? new Date(mesa.endDate.getTime() + 3 * 864e5)
+                : new Date(now.getTime() + 864e5)
+
+              const histories = await prisma.userScoreHistory.findMany({
+                where: {
+                  userId: { in: userIds },
+                  round: {
+                    closeAt: {
+                      gte: windowStart,
+                      lte: windowEnd,
+                    },
+                  },
+                },
+                select: {
+                  userId: true,
+                  scoreRound: true,
+                  scoreTotal: true,
+                  createdAt: true,
+                  round: {
+                    select: {
+                      id: true,
+                      number: true,
+                      status: true,
+                      openAt: true,
+                      closeAt: true,
+                    },
+                  },
+                },
+                orderBy: [{ round: { closeAt: 'asc' } }, { createdAt: 'asc' }],
+              })
+
+              const rounds = await prisma.round.findMany({
+                where: {
+                  closeAt: {
+                    gte: windowStart,
+                    lte: windowEnd,
+                  },
+                },
+                select: {
+                  id: true,
+                  number: true,
+                  status: true,
+                  openAt: true,
+                  closeAt: true,
+                },
+                orderBy: { number: 'asc' },
+              })
+
+              const audits = await prisma.auditLog.findMany({
+                where: {
+                  OR: [
+                    { entityId: mesaId },
+                    { entityId: { in: mesa.participants.map(p => p.id) } },
+                    {
+                      action: {
+                        in: [
+                          'BOLAO_CREATED',
+                          'BOLAO_JOIN_APPROVED',
+                          'RANKING_PARTICIPANT_SCORE_RECALCULATED',
+                          'RANKING_CLOSED',
+                          'RANKING_PARTICIPANT_SCORE_REPAIRED',
+                          'BOLAO_CLOSED',
+                        ],
+                      },
+                      metadata: { path: ['rankingId'], equals: mesaId },
+                    },
+                  ],
+                },
+                select: {
+                  action: true,
+                  entity: true,
+                  entityId: true,
+                  userId: true,
+                  createdAt: true,
+                  metadata: true,
+                },
+                orderBy: { createdAt: 'asc' },
+                take: 200,
+              })
+
+              const participants = mesa.participants.map(p => {
+                const live = byLive.get(p.userId)
+                const atEnd = byEnd.get(p.userId)
+                const userHistories = histories.filter(h => h.userId === p.userId)
+                return {
+                  name: p.user.nickname || p.user.name,
+                  userId: p.userId,
+                  status: p.status,
+                  storedScore: p.score,
+                  scoreInitial: p.scoreInitial,
+                  position: p.position,
+                  approvedAt: p.approvedAt,
+                  userScoreTotalNow: p.user.scoreTotal,
+                  formulaNow: `${p.user.scoreTotal} - ${p.scoreInitial} = ${p.user.scoreTotal - p.scoreInitial}`,
+                  recomputedLive: live
+                    ? {
+                        score: live.score,
+                        scoreTotalCurrent: live.scoreTotalCurrent,
+                        scoreRound: live.scoreRound,
+                        position: live.position,
+                        deltaVsStored: live.score - p.score,
+                      }
+                    : null,
+                  recomputedAtEnd: atEnd
+                    ? {
+                        score: atEnd.score,
+                        scoreTotalCurrent: atEnd.scoreTotalCurrent,
+                        scoreRound: atEnd.scoreRound,
+                        position: atEnd.position,
+                        deltaVsStored: atEnd.score - p.score,
+                      }
+                    : null,
+                  historiesInWindow: userHistories.map(h => ({
+                    round: h.round.number,
+                    roundStatus: h.round.status,
+                    closeAt: h.round.closeAt,
+                    scoreRound: h.scoreRound,
+                    scoreTotal: h.scoreTotal,
+                    inMesaWindow:
+                      (!mesa.startDate || h.round.closeAt >= mesa.startDate) &&
+                      (!mesa.endDate || h.round.closeAt <= mesa.endDate),
+                  })),
+                }
+              })
+
+              console.log(
+                JSON.stringify(
+                  {
+                    now,
+                    mesa: {
+                      id: mesa.id,
+                      name: mesa.name,
+                      type: mesa.type,
+                      status: mesa.status,
+                      startDate: mesa.startDate,
+                      entryEndDate: mesa.entryEndDate,
+                      endDate: mesa.endDate,
+                      settledAt: mesa.settledAt,
+                      createdAt: mesa.createdAt,
+                      createdByUserId: mesa.createdByUserId,
+                      rankingEnded: mesa.endDate != null && now > mesa.endDate,
+                    },
+                    rounds,
+                    participants,
+                    audits,
+                  },
+                  null,
+                  2
+                )
+              )
+            }
+
+            main()
+              .catch(err => {
+                console.error(err)
+                process.exitCode = 1
+              })
+              .finally(() => prisma.$disconnect())
+            NODE
+        env:
+          MESA_ID: ${{ inputs.mesa_id }}
