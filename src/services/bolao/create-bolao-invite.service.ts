@@ -1,14 +1,13 @@
-import { prisma } from '../../lib/prisma';
-import { randomUUID } from 'crypto';
-import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
-import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
+import { prisma } from '../../lib/prisma'
+import { randomUUID } from 'crypto'
+import { BolaoRegistrationWindowService } from './bolao-registration-window.service'
 
 type CreateInviteInput = {
-  rankingId: string;
-  createdByUserId: string;
-  maxUses?: number;
-  expiresAt?: Date;
-};
+  rankingId: string
+  createdByUserId: string
+  maxUses?: number
+  expiresAt?: Date
+}
 
 export class CreateBolaoInviteService {
   static async execute({
@@ -21,18 +20,15 @@ export class CreateBolaoInviteService {
       maxUses !== undefined
       && (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 10_000)
     ) {
-      throw new Error('maxUses deve ser um inteiro entre 1 e 10000');
+      throw new Error('maxUses deve ser um inteiro entre 1 e 10000')
     }
     if (expiresAt && (!(expiresAt instanceof Date) || Number.isNaN(expiresAt.getTime()))) {
-      throw new Error('expiresAt deve ser uma data válida');
+      throw new Error('expiresAt deve ser uma data válida')
     }
     if (expiresAt && expiresAt <= new Date()) {
-      throw new Error('expiresAt deve estar no futuro');
+      throw new Error('expiresAt deve estar no futuro')
     }
 
-    await AssertActiveProUserService.execute(createdByUserId);
-
-    // validar ranking (Mesa privada)
     const ranking = await prisma.ranking.findUnique({
       where: { id: rankingId },
       select: {
@@ -40,31 +36,24 @@ export class CreateBolaoInviteService {
         type: true,
         status: true,
         createdByUserId: true,
+        startDate: true,
         entryEndDate: true,
-        rounds: {
-          orderBy: { round: { number: 'asc' } },
-          take: 1,
-          select: {
-            round: { select: { closeAt: true, status: true } },
-          },
-        },
       },
-    });
+    })
 
-    if (!ranking) throw new Error('Mesa não encontrada');
-    if (ranking.type !== 'BOLAO') throw new Error('Ranking não é uma Mesa');
+    if (!ranking) throw new Error('Mesa não encontrada')
+    if (ranking.type !== 'BOLAO') throw new Error('Ranking não é uma Mesa')
     if (ranking.status !== 'ACTIVE') {
-      throw new Error('Esta Mesa não está aberta para novos convites');
+      throw new Error('Esta Mesa não está aberta para novos convites')
     }
 
-    BolaoRegistrationWindowService.assertNotClosed(ranking);
+    BolaoRegistrationWindowService.assertNotClosed(ranking)
 
-    // apenas o criador pode gerar convite (regra inicial)
     if (ranking.createdByUserId !== createdByUserId) {
-      throw new Error('Apenas o dono da Mesa pode gerar convites');
+      throw new Error('Apenas o dono da Mesa pode gerar convites')
     }
 
-    const code = randomUUID();
+    const code = randomUUID()
 
     const invite = await prisma.bolaoInvite.create({
       data: {
@@ -74,7 +63,7 @@ export class CreateBolaoInviteService {
         expiresAt,
         createdByUserId,
       },
-    });
+    })
 
     await prisma.auditLog.create({
       data: {
@@ -88,7 +77,7 @@ export class CreateBolaoInviteService {
           expiresAt: invite.expiresAt?.toISOString() ?? null,
         },
       },
-    });
+    })
 
     return {
       id: invite.id,
@@ -97,6 +86,6 @@ export class CreateBolaoInviteService {
       expiresAt: invite.expiresAt,
       isActive: invite.isActive,
       createdAt: invite.createdAt,
-    };
+    }
   }
 }

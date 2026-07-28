@@ -37,13 +37,6 @@ export class JoinBolaoService {
           createdByUserId: true,
           startDate: true,
           entryEndDate: true,
-          rounds: {
-            orderBy: { round: { number: 'asc' } },
-            take: 1,
-            select: {
-              round: { select: { closeAt: true, status: true } },
-            },
-          },
         },
       });
 
@@ -59,7 +52,7 @@ export class JoinBolaoService {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
 
-      const firstRound = BolaoRegistrationWindowService.assertOpen(bolao);
+      BolaoRegistrationWindowService.assertOpen(bolao);
 
       if (bolao.createdByUserId === userId) {
         throw new Error('O criador já administra esta Mesa');
@@ -82,10 +75,11 @@ export class JoinBolaoService {
         throw new Error('A entrada desta participação já foi debitada');
       }
 
+      const baselineAt = BolaoRegistrationWindowService.baselineAt(bolao);
       const scoreInitial = await RankingWindowScoreService.getScoreTotalBefore(
         tx,
         userId,
-        firstRound.closeAt
+        baselineAt
       );
 
       await BolaoEntryPaymentService.debit(tx, {

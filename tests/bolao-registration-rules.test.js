@@ -3,9 +3,6 @@ const test = require('node:test')
 
 const { prisma } = require('../dist/lib/prisma')
 const {
-  AssertActiveProUserService,
-} = require('../dist/services/subscription/assert-active-pro-user.service')
-const {
   CreateBolaoService,
 } = require('../dist/services/bolao/create-bolao.service')
 const {
@@ -21,72 +18,41 @@ const {
 const REGISTRATION_CLOSED = 'As inscrições para esta competição foram encerradas.'
 const REGISTRATION_NOT_STARTED = 'As inscrições para esta competição ainda não começaram.'
 
-test('criacao da Mesa vincula a primeira rodada da janela', async t => {
+test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
-  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
-    prisma.round.findFirst = originalRoundFindFirst
   })
 
-  prisma.user.findUnique = async () => ({
-    id: 'creator-1',
-    subscription: {
-      status: 'ACTIVE',
-      plan: 'MONTHLY',
-      endAt: new Date('2027-01-01T00:00:00Z'),
-    },
-  })
+  prisma.user.findUnique = async () => ({ id: 'admin-1' })
 
-  prisma.round.findFirst = async () => ({
-    id: 'round-10',
-    status: 'OPEN',
-    closeAt: new Date('2026-08-05T12:00:00Z'),
-  })
-
-  let linkedRound = null
-  let createdStatus = null
-  let createdMaxParticipants = undefined
-  let createdEntryEndDate = null
+  let rankingData = null
+  let rankingRoundCreated = false
+  let participantCreated = false
   prisma.$transaction = async callback => callback({
     ranking: {
       create: async ({ data }) => {
-        createdStatus = data.status
-        createdMaxParticipants = data.maxParticipants
-        createdEntryEndDate = data.entryEndDate
+        rankingData = data
         return { ...data }
       },
-      update: async ({ data }) => ({
-        id: 'mesa-1',
-        name: 'Mesa Oficial',
-        status: 'DRAFT',
-        entryFee: 10,
-        maxParticipants: 50,
-        currentParticipants: data.currentParticipants,
-        startDate: new Date('2026-08-01T00:00:00Z'),
-        entryEndDate: new Date('2026-08-04T12:00:00Z'),
-        endDate: new Date('2026-08-31T23:59:59Z'),
-      }),
     },
     rankingRound: {
-      create: async ({ data }) => {
-        linkedRound = data
+      create: async () => {
+        rankingRoundCreated = true
       },
     },
-    rankingParticipant: { create: async () => ({}) },
-    wallet: {
-      findUnique: async () => ({ id: 'wallet-1', balance: 20 }),
-      updateMany: async () => ({ count: 1 }),
+    rankingParticipant: {
+      create: async () => {
+        participantCreated = true
+        return {}
+      },
     },
-    walletLedger: { create: async () => ({}) },
-    user: { findUnique: async () => ({ scoreTotal: 0 }) },
-    userScoreHistory: { findFirst: async () => null },
     auditLog: { create: async () => ({}) },
   })
 
-  await CreateBolaoService.execute({
+  const result = await CreateBolaoService.execute({
     name: 'Mesa Oficial',
     description: 'Premiação oficial 100% para o 1º colocado após a taxa.',
     startDate: new Date('2026-08-01T00:00:00Z'),
@@ -94,70 +60,59 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
     prizeDistribution: [{ position: 1, percentage: 100 }],
-    createdByUserId: 'creator-1',
+    createdByUserId: 'admin-1',
   })
 
-  assert.deepEqual(linkedRound, {
-    rankingId: linkedRound.rankingId,
-    roundId: 'round-10',
-  })
-  assert.ok(linkedRound.rankingId)
-  assert.equal(createdStatus, 'ACTIVE')
-  assert.equal(createdMaxParticipants, null)
-  assert.deepEqual(createdEntryEndDate, new Date('2026-08-04T12:00:00Z'))
+  assert.equal(rankingRoundCreated, false)
+  assert.equal(participantCreated, false)
+  assert.equal(rankingData.status, 'ACTIVE')
+  assert.equal(rankingData.maxParticipants, null)
+  assert.equal(rankingData.currentParticipants, 0)
+  assert.equal(rankingData.grossCollected, 0)
+  assert.equal(result.currentParticipants, 0)
 })
 
-test('bloqueia criacao de Mesa quando a primeira rodada ja fechou', async t => {
+test('bloqueia criacao de Mesa quando o termino das entradas ja passou', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
-  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
-    prisma.round.findFirst = originalRoundFindFirst
   })
 
-  prisma.user.findUnique = async () => ({
-    id: 'creator-1',
-    subscription: {
-      status: 'ACTIVE', plan: 'MONTHLY', endAt: new Date('2027-01-01T00:00:00Z'),
-    },
-  })
-  prisma.round.findFirst = async () => ({
-    id: 'round-closed', status: 'CLOSED', closeAt: new Date('2026-07-01T12:00:00Z'),
-  })
+  prisma.user.findUnique = async () => ({ id: 'admin-1' })
   prisma.$transaction = async () => {
-    throw new Error('nao deve abrir transaction com rodada fechada')
+    throw new Error('nao deve abrir transaction com entradas encerradas')
   }
 
   await assert.rejects(
     CreateBolaoService.execute({
       name: 'Mesa Tardia',
       description: 'Premiação oficial 100% para o primeiro colocado.',
-      startDate: new Date('2026-07-01T00:00:00Z'),
-      entryEndDate: new Date('2026-07-01T10:00:00Z'),
-      endDate: new Date('2026-07-31T23:59:59Z'),
+      startDate: new Date('2020-07-01T00:00:00Z'),
+      entryEndDate: new Date('2020-07-02T00:00:00Z'),
+      endDate: new Date('2020-07-31T23:59:59Z'),
       entryFee: 10,
       prizeDistribution: [{ position: 1, percentage: 100 }],
-      createdByUserId: 'creator-1',
+      createdByUserId: 'admin-1',
     }),
-    { message: REGISTRATION_CLOSED }
+    (error) => {
+      assert.equal(error.message, REGISTRATION_CLOSED)
+      return true
+    }
   )
 })
 
 test('bloqueia solicitacao antes da data de abertura da Mesa', async t => {
-  const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
   t.after(() => {
-    AssertActiveProUserService.execute = originalAssertPro
     prisma.$transaction = originalTransaction
   })
 
-  AssertActiveProUserService.execute = async () => ({ id: 'user-2' })
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
-        ...openBolaoWithOpenFirstRound(),
+        ...openBolao(),
         startDate: new Date('2099-08-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
       }),
@@ -175,19 +130,16 @@ test('bloqueia solicitacao antes da data de abertura da Mesa', async t => {
   )
 })
 
-test('bloqueia solicitacao depois do termino das entradas mesmo com rodada aberta', async t => {
-  const originalAssertPro = AssertActiveProUserService.execute
+test('bloqueia solicitacao depois do termino das entradas', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => {
-    AssertActiveProUserService.execute = originalAssertPro
     prisma.$transaction = originalTransaction
   })
 
-  AssertActiveProUserService.execute = async () => ({ id: 'user-2' })
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
-        ...openBolaoWithOpenFirstRound(),
+        ...openBolao(),
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2020-01-02T00:00:00Z'),
       }),
@@ -206,25 +158,23 @@ test('bloqueia solicitacao depois do termino das entradas mesmo com rodada abert
 })
 
 test('nao limita a quantidade de participantes da Mesa', async t => {
-  const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
   t.after(() => {
-    AssertActiveProUserService.execute = originalAssertPro
     prisma.$transaction = originalTransaction
   })
 
-  AssertActiveProUserService.execute = async () => ({ id: 'user-501' })
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
-        ...openBolaoWithOpenFirstRound(),
+        ...openBolao(),
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
         maxParticipants: 50,
         currentParticipants: 500,
+        entryFee: 0,
       }),
       update: async ({ data }) => data.grossCollected
-        ? { grossCollected: 10 }
+        ? { grossCollected: 0 }
         : data,
     },
     rankingParticipant: {
@@ -249,17 +199,14 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
   assert.equal(result.status, 'APPROVED')
 })
 
-test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async t => {
-  const originalAssertPro = AssertActiveProUserService.execute
+test('bloqueia nova solicitacao depois do termino das entradas', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => {
-    AssertActiveProUserService.execute = originalAssertPro
     prisma.$transaction = originalTransaction
   })
 
-  AssertActiveProUserService.execute = async () => ({ id: 'user-2' })
   prisma.$transaction = async callback => callback({
-    ranking: { findUnique: async () => openBolaoWithClosedFirstRound() },
+    ranking: { findUnique: async () => closedEntriesBolao() },
     rankingParticipant: {
       findUnique: async () => null,
       create: async () => ({ id: 'participant-2' }),
@@ -273,7 +220,7 @@ test('bloqueia nova solicitacao depois do fechamento da primeira rodada', async 
   )
 })
 
-test('bloqueia aprovacao pendente depois do fechamento da primeira rodada', async t => {
+test('bloqueia aprovacao pendente depois do termino das entradas', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
@@ -281,7 +228,7 @@ test('bloqueia aprovacao pendente depois do fechamento da primeira rodada', asyn
 
   prisma.$transaction = async callback => callback({
     ranking: {
-      findUnique: async () => openBolaoWithClosedFirstRound(),
+      findUnique: async () => closedEntriesBolao(),
       update: async () => ({}),
     },
     rankingParticipant: {
@@ -309,20 +256,17 @@ test('bloqueia aprovacao pendente depois do fechamento da primeira rodada', asyn
   )
 })
 
-test('bloqueia a criacao de convite depois do fechamento da primeira rodada', async t => {
-  const originalAssertPro = AssertActiveProUserService.execute
+test('bloqueia a criacao de convite depois do termino das entradas', async t => {
   const originalFindUnique = prisma.ranking.findUnique
   const originalInviteCreate = prisma.bolaoInvite.create
   const originalAuditCreate = prisma.auditLog.create
   t.after(() => {
-    AssertActiveProUserService.execute = originalAssertPro
     prisma.ranking.findUnique = originalFindUnique
     prisma.bolaoInvite.create = originalInviteCreate
     prisma.auditLog.create = originalAuditCreate
   })
 
-  AssertActiveProUserService.execute = async () => ({ id: 'creator-1' })
-  prisma.ranking.findUnique = async () => openBolaoWithClosedFirstRound()
+  prisma.ranking.findUnique = async () => closedEntriesBolao()
   prisma.bolaoInvite.create = async ({ data }) => ({
     id: 'invite-1',
     code: data.code,
@@ -342,7 +286,7 @@ test('bloqueia a criacao de convite depois do fechamento da primeira rodada', as
   )
 })
 
-function openBolaoWithClosedFirstRound() {
+function closedEntriesBolao() {
   return {
     id: 'mesa-1',
     type: 'BOLAO',
@@ -351,17 +295,12 @@ function openBolaoWithClosedFirstRound() {
     maxParticipants: 50,
     currentParticipants: 1,
     createdByUserId: 'creator-1',
-    rounds: [{
-      round: {
-        number: 10,
-        status: 'CLOSED',
-        closeAt: new Date('2026-07-01T12:00:00Z'),
-      },
-    }],
+    startDate: new Date('2020-01-01T00:00:00Z'),
+    entryEndDate: new Date('2020-06-01T00:00:00Z'),
   }
 }
 
-function openBolaoWithOpenFirstRound() {
+function openBolao() {
   return {
     id: 'mesa-1',
     type: 'BOLAO',
@@ -370,12 +309,7 @@ function openBolaoWithOpenFirstRound() {
     maxParticipants: null,
     currentParticipants: 500,
     createdByUserId: 'creator-1',
-    rounds: [{
-      round: {
-        number: 10,
-        status: 'OPEN',
-        closeAt: new Date('2099-08-03T12:00:00Z'),
-      },
-    }],
+    startDate: new Date('2020-01-01T00:00:00Z'),
+    entryEndDate: new Date('2099-08-02T00:00:00Z'),
   }
 }

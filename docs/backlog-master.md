@@ -6,7 +6,7 @@ Data de consolidacao:
 
 Ultima atualizacao:
 
-- 2026-07-22
+- 2026-07-28
 
 Objetivo:
 
@@ -42,10 +42,15 @@ Status da fase em 2026-07-15:
 - [x] Coorte mensal fecha junto com a primeira rodada válida do mês
 - [x] Fechamento atrasado usa o último acumulado histórico até o fim da competição
 - [x] Pontuação negativa é preservada
-- [x] Mesa exige PRO ativo, regras/observações, entrada positiva e distribuição de 100%
+- [x] Mesa exige regras/observações, entrada positiva e distribuição de 100% (criação via admin)
+
 - [x] Mesa válida nasce `ACTIVE`; `DRAFT` permanece apenas como compatibilidade de fechamento legado
 - [x] Entrada do criador e dos participantes é imediata, atômica e condicionada ao saldo de fichas
-- [x] Mesa aceita inscrições somente antes do fechamento da primeira rodada
+- [x] Mesa aceita inscrições somente antes do término das entradas (`entryEndDate`)
+- [x] Criação de Mesa desacoplada de rodada; exclusiva do admin
+- [x] Usuário PRO (e fluxo de convite) entra na Mesa; não cria Mesa nesta fase
+
+### Premiação adiada — fora da fase atual
 - [x] Caixa, taxa, prêmio líquido e pagamentos aos vencedores são auditáveis
 - [x] Política de taxa: `floor(10%)`; como fichas são indivisíveis, todo resto fica no prêmio dos jogadores
 - [x] Liquidação de Mesa possui preflight e bloqueia configuração financeira legada inconsistente
@@ -1784,33 +1789,56 @@ Tipo:
 
 Status sugerido:
 
-- `Implementado localmente em 2026-06-13`
+- `Parcialmente implementado; criar Mesa saiu do jogador em 2026-07-28`
 
 Objetivo:
 
-- simplificar criacao, entrada e acompanhamento de Mesas sem mudar regras atuais
+- simplificar entrada e acompanhamento de Mesas; criação fica no admin nesta fase
 
 Tarefas:
 
 - organizar lista de Mesas com estado, participantes, custo e periodo
-- transformar criacao de Mesa em fluxo guiado
 - destacar convite/link/codigo quando aplicavel
 - no detalhe da Mesa, separar `Ranking`, `Participantes`, `Regras` e `Historico`
-- manter regras atuais de PRO, custo de entrada e janelas de ranking
 
-Nota 2026-06-20:
+Nota 2026-07-28:
 
-- passada responsiva consolidada nas telas principais do jogador e admin sem alterar regra de negocio
-- Dashboard virou tela de decisao rapida e moveu Ranking para rota propria `/ranking`
-- menu inferior mobile preserva `Home`, `Palpites`, `Ranking`, `Bar` e `Perfil`
-- Bar, Mesas, Meus palpites, Palpites e Admin Usuarios mantem dados/cálculos existentes com melhor separacao visual
-- termos tecnicos visiveis foram reduzidos nas superficies principais; estados seguem traduzidos para portugues quando exibidos ao usuario
+- Mesa não depende mais de rodada vinculada para criação/inscrição
+- somente admin cria Mesas (`Admin → Mesas`); jogador PRO apenas entra
+- backlog futuro: regras diferenciadas para usuário PRO criar Mesas (fora do escopo atual)
 
 Critérios de aceite:
 
-- usuario entende como criar ou entrar em uma Mesa
-- regra de elegibilidade e cobranca continua igual
+- usuario entende como entrar em uma Mesa (convite/lista)
+- criacao fica restrita ao admin nesta fase
 - detalhe da Mesa nao concentra informacao demais em uma unica dobra
+
+### 33b. Reativar criacao de Mesa para usuario PRO com regras proprias
+
+Tipo:
+
+- Produto / Backend / Frontend
+
+Status sugerido:
+
+- `Backlog — nao iniciar agora`
+
+Objetivo:
+
+- no futuro, permitir que usuario PRO crie Mesas com regras diferentes das do admin
+  (limites, taxas, elegibilidade, janelas etc. a definir)
+
+Tarefas:
+
+- definir regras de negocio PRO vs admin para criacao
+- reabrir endpoint/UI de criacao para PRO com validacoes especificas
+- alinhar copy de assinatura/upsell quando a feature voltar
+
+Critérios de aceite:
+
+- PRO cria Mesa apenas sob as regras novas documentadas
+- admin continua podendo criar Mesas operacionais
+- regressao de entrada/convite/ranking coberta por testes
 
 ### 34. Revisar Perfil, assinatura e conta
 

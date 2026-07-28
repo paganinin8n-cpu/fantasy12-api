@@ -33,6 +33,7 @@ import adminLogsRoutes from './routes/admin-logs.routes'
 import adminOperationalRoutes from './routes/admin-operational.routes'
 import teamRoutes from './routes/team.routes'
 import artRoutes from './routes/art.routes'
+import adminBolaoRoutes from './routes/admin-bolao.routes'
 
 /**
  * ⚙️ INTERNAL
@@ -201,6 +202,7 @@ app.use('/api', adminLogsRoutes)
 app.use('/api', adminOperationalRoutes)
 app.use('/', teamRoutes)
 app.use('/', artRoutes)
+app.use('/', adminBolaoRoutes)
 
 /* ======================================================
    ❤️ HEALTH

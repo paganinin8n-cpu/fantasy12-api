@@ -30,13 +30,6 @@ export class ReviewBolaoRequestService {
           createdByUserId: true,
           startDate: true,
           entryEndDate: true,
-          rounds: {
-            orderBy: { round: { number: 'asc' } },
-            take: 1,
-            select: {
-              round: { select: { closeAt: true, status: true } },
-            },
-          },
         },
       });
 
@@ -56,9 +49,9 @@ export class ReviewBolaoRequestService {
         throw new Error('Esta Mesa não está aberta para revisão de participantes');
       }
 
-      const firstRound = status === 'APPROVED'
-        ? BolaoRegistrationWindowService.assertOpen(bolao)
-        : null;
+      if (status === 'APPROVED') {
+        BolaoRegistrationWindowService.assertOpen(bolao);
+      }
 
       const participant = await tx.rankingParticipant.findUnique({
         where: { id: participantId },
@@ -121,7 +114,7 @@ export class ReviewBolaoRequestService {
         await RankingWindowScoreService.getScoreTotalBefore(
           tx,
           participant.userId,
-          firstRound!.closeAt
+          BolaoRegistrationWindowService.baselineAt(bolao)
         );
 
       const approved = await tx.rankingParticipant.update({

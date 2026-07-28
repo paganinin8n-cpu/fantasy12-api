@@ -11,12 +11,10 @@ import { UseBolaoInviteController } from '../controllers/bolao/use-bolao-invite.
 import { ListUserBoloesController } from '../controllers/bolao/list-user-boloes.controller';
 import { ListAvailableBoloesController } from '../controllers/bolao/list-available-boloes.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { CreateBolaoController } from '../controllers/bolao/create-bolao.controller';
 import { validateRequest } from '../middleware/validate-request.middleware';
 import { RankingIdParamsSchema } from '../validators/common.validator';
 import {
   CreateBolaoInviteSchema,
-  CreateBolaoSchema,
   InviteCodeParamsSchema,
   RankingParticipantParamsSchema,
   ReviewBolaoRequestSchema,
@@ -37,7 +35,8 @@ router.get('/rankings/weekly', WeeklyRankingController.handle);
 //
 router.get('/boloes/me', authMiddleware, ListUserBoloesController.handle);
 router.get('/boloes/available', authMiddleware, ListAvailableBoloesController.handle);
-router.post('/boloes', authMiddleware, validateRequest(CreateBolaoSchema), CreateBolaoController.handle);
+// Criação de Mesa é exclusiva do admin: POST /api/admin/boloes
+
 
 //
 // 🔹 Ranking genérico por ID (SEMPRE POR ÚLTIMO)

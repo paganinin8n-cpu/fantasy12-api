@@ -151,60 +151,54 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
   )
 })
 
-test('criador paga a entrada atomicamente e inaugura o caixa da Mesa', async t => {
+test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
-  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
-    prisma.round.findFirst = originalRoundFindFirst
   })
-  prisma.user.findUnique = async () => mockProUser()
-  prisma.round.findFirst = async () => ({
-    id: 'round-1',
-    status: 'OPEN',
-    closeAt: new Date('2026-08-02T12:00:00Z'),
-  })
+  prisma.user.findUnique = async () => ({ id: 'creator-1' })
 
   let rankingData
-  let participantData
-  let debitData
-  let ledgerData
+  let walletTouched = false
   prisma.$transaction = async callback => callback({
     ranking: {
       create: async ({ data }) => {
         rankingData = data
         return { ...data }
       },
-      update: async ({ data }) => ({
-        id: 'mesa-1', name: 'Mesa Financeira', status: 'DRAFT', entryFee: 10,
-        maxParticipants: 50, startDate: createInput().startDate,
-        endDate: createInput().endDate, ...data,
-      }),
     },
-    rankingRound: { create: async () => ({}) },
-    rankingParticipant: { create: async ({ data }) => { participantData = data; return data } },
-    user: { findUnique: async () => ({ scoreTotal: 0 }) },
-    userScoreHistory: { findFirst: async () => null },
+    rankingParticipant: {
+      create: async () => {
+        throw new Error('nao deve auto-inscrever o admin')
+      },
+    },
     wallet: {
-      findUnique: async () => ({ id: 'wallet-1', balance: 25 }),
-      updateMany: async ({ data }) => { debitData = data; return { count: 1 } },
+      findUnique: async () => {
+        walletTouched = true
+        return { id: 'wallet-1', balance: 25 }
+      },
+      updateMany: async () => {
+        walletTouched = true
+        return { count: 1 }
+      },
     },
-    walletLedger: { create: async ({ data }) => { ledgerData = data; return data } },
+    walletLedger: {
+      create: async () => {
+        walletTouched = true
+        return {}
+      },
+    },
     auditLog: { create: async () => ({}) },
   })
 
   await CreateBolaoService.execute(createInput())
 
   assert.deepEqual(rankingData.prizeDistribution, VALID_PRIZES)
-  assert.deepEqual(debitData, { balance: { decrement: 10 } })
-  assert.equal(ledgerData.type, 'DEBIT')
-  assert.equal(ledgerData.amount, 10)
-  assert.equal(ledgerData.idempotencyKey, `bolao:entry:${rankingData.id}:creator-1`)
-  assert.equal(participantData.entryFeePaid, 10)
-  assert.ok(participantData.entryPaidAt instanceof Date)
-  assert.equal(rankingData.grossCollected, 10)
+  assert.equal(rankingData.grossCollected, 0)
+  assert.equal(rankingData.currentParticipants, 0)
+  assert.equal(walletTouched, false)
 })
 
 test('entrada na Mesa é imediata e depende somente do saldo de fichas', async t => {
@@ -229,7 +223,6 @@ test('entrada na Mesa é imediata e depende somente do saldo de fichas', async t
         currentParticipants: 1, createdByUserId: 'creator-1',
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
-        rounds: [{ round: { closeAt: new Date('2099-08-03T12:00:00Z'), status: 'OPEN' } }],
       }),
       update: async ({ data }) => {
         rankingUpdates.push(data)
@@ -286,7 +279,6 @@ test('entrada sem fichas não cria participante nem altera o caixa da Mesa', asy
         currentParticipants: 1, createdByUserId: 'creator-1',
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
-        rounds: [{ round: { closeAt: new Date('2099-08-03T12:00:00Z'), status: 'OPEN' } }],
       }),
       update: async () => { rankingChanged = true },
     },
@@ -323,7 +315,6 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
       findUnique: async () => ({
         id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
-        rounds: [{ round: { closeAt: new Date('2026-08-02'), status: 'OPEN' } }],
       }),
       update: async ({ data }) => {
         rankingUpdates.push(data)
@@ -374,7 +365,6 @@ test('aprovação sem saldo não altera participante nem caixa', async t => {
       findUnique: async () => ({
         id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
-        rounds: [{ round: { closeAt: new Date('2026-08-02'), status: 'OPEN' } }],
       }),
       update: async () => { rankingChanged = true },
     },
