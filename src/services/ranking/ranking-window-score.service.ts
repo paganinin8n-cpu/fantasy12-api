@@ -115,9 +115,12 @@ export class RankingWindowScoreService {
         row.userId === participant.userId
       )
       const rankingEnded = ranking.endDate != null && now > ranking.endDate
+      // Após o fim da janela, preferir histórico até endDate.
+      // Nunca cair só em scoreInitial (isso forçava score 0 e zerava a Mesa).
+      const liveTotal = participant.user?.scoreTotal ?? 0
       const scoreTotalCurrent = rankingEnded
-        ? latestHistory?.scoreTotal ?? participant.scoreInitial
-        : participant.user.scoreTotal
+        ? latestHistory?.scoreTotal ?? liveTotal
+        : liveTotal
       const score = this.calculateScoreFromBaseline(
         scoreTotalCurrent,
         participant.scoreInitial

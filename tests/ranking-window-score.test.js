@@ -85,3 +85,34 @@ test('fechamento atrasado usa o ultimo acumulado ate o fim da competicao', async
   assert.equal(rows[0].scoreTotalCurrent, 18)
   assert.equal(rows[0].score, 8)
 })
+
+test('fechamento sem histórico não zera a Mesa — usa scoreTotal atual do usuário', async () => {
+  const participant = {
+    id: 'participant-1',
+    userId: 'user-1',
+    score: 42,
+    scoreInitial: 10,
+    position: 1,
+    approvedAt: new Date('2026-07-01T00:00:00Z'),
+    createdAt: new Date('2026-07-01T00:00:00Z'),
+    user: { scoreTotal: 52 },
+  }
+  const db = {
+    rankingParticipant: { findMany: async () => [participant] },
+    userScoreHistory: { findMany: async () => [] },
+  }
+
+  const rows = await RankingWindowScoreService.buildRows(
+    db,
+    {
+      id: 'mesa-ended',
+      startDate: new Date('2026-07-01T00:00:00Z'),
+      endDate: new Date('2026-07-20T23:59:59Z'),
+    },
+    new Date('2026-07-27T12:00:00Z')
+  )
+
+  assert.equal(rows[0].scoreTotalCurrent, 52)
+  assert.equal(rows[0].score, 42)
+})
+

@@ -52,7 +52,9 @@
     "db:backup": "node scripts/backup-postgres.js",
     "db:backup:verify": "node scripts/verify-postgres-backup.js",
     "db:restore": "node scripts/restore-postgres.js",
-    "mesa:integrity:diagnose": "npm run build && node scripts/diagnose-mesa-integrity.js"
+    "mesa:integrity:diagnose": "npm run build && node scripts/diagnose-mesa-integrity.js",
+    "mesa:scores:repair:dry": "npm run build && node scripts/repair-closed-bolao-scores.js",
+    "mesa:scores:repair:apply": "npm run build && node scripts/repair-closed-bolao-scores.js --apply"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

@@ -19,8 +19,16 @@ export class RecalculateRankingService {
         },
       })
 
+      const now = new Date()
+
       for (const ranking of rankings) {
-        const rows = await RankingWindowScoreService.buildRows(tx, ranking)
+        // Mesas/rankings já expirados são finalizados pelo job de close —
+        // recalcular depois do endDate zerava scores quando faltava histórico.
+        if (ranking.endDate != null && ranking.endDate <= now) {
+          continue
+        }
+
+        const rows = await RankingWindowScoreService.buildRows(tx, ranking, now)
 
         for (const row of rows) {
           const changed =
