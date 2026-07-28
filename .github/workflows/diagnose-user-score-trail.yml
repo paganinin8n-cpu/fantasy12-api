@@ -1,0 +1,109 @@
+name: Diagnose user score trail
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_id:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Inspect user score trail
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          USER_ID: ${{ inputs.user_id }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          envs: USER_ID
+          command_timeout: 3m
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -e USER_ID="$USER_ID" -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { RankingWindowScoreService } = require('/app/dist/services/ranking/ranking-window-score.service')
+            async function main() {
+              const userId = process.env.USER_ID
+              const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { id: true, name: true, nickname: true, email: true, scoreTotal: true, createdAt: true },
+              })
+              if (!user) { console.log(JSON.stringify({ error: 'user_not_found', userId })); return }
+              const histories = await prisma.userScoreHistory.findMany({
+                where: { userId },
+                select: {
+                  scoreRound: true, scoreTotal: true, createdAt: true,
+                  round: { select: { number: true, status: true, openAt: true, closeAt: true } },
+                },
+                orderBy: [{ round: { closeAt: 'asc' } }, { createdAt: 'asc' }],
+              })
+              const participations = await prisma.rankingParticipant.findMany({
+                where: { userId, ranking: { type: 'BOLAO' } },
+                select: {
+                  score: true, scoreInitial: true, position: true, status: true, approvedAt: true,
+                  ranking: { select: { id: true, name: true, status: true, startDate: true, endDate: true } },
+                },
+                orderBy: { createdAt: 'asc' },
+              })
+              const details = []
+              for (const p of participations) {
+                const mesa = p.ranking
+                const rows = await RankingWindowScoreService.buildRows(prisma, mesa, new Date())
+                const endRows = await RankingWindowScoreService.buildRows(
+                  prisma,
+                  mesa,
+                  mesa.endDate ? new Date(mesa.endDate.getTime() + 1) : new Date()
+                )
+                const live = rows.find(r => r.userId === userId)
+                const atEnd = endRows.find(r => r.userId === userId)
+                const inWindow = histories.filter(h =>
+                  (!mesa.startDate || h.round.closeAt >= mesa.startDate) &&
+                  (!mesa.endDate || h.round.closeAt <= mesa.endDate)
+                )
+                details.push({
+                  mesa: mesa.name,
+                  mesaId: mesa.id,
+                  mesaStatus: mesa.status,
+                  window: { start: mesa.startDate, end: mesa.endDate },
+                  storedScore: p.score,
+                  scoreInitial: p.scoreInitial,
+                  position: p.position,
+                  status: p.status,
+                  approvedAt: p.approvedAt,
+                  recomputedLive: live?.score ?? null,
+                  recomputedAtEnd: atEnd?.score ?? null,
+                  formulaLive: `${user.scoreTotal} - ${p.scoreInitial} = ${user.scoreTotal - p.scoreInitial}`,
+                  historiesInWindow: inWindow.map(h => ({
+                    round: h.round.number, closeAt: h.round.closeAt, scoreRound: h.scoreRound, scoreTotal: h.scoreTotal,
+                  })),
+                })
+              }
+              console.log(JSON.stringify({
+                user,
+                scoreTrail: histories.map((h, i) => ({
+                  seq: i + 1,
+                  round: h.round.number,
+                  status: h.round.status,
+                  openAt: h.round.openAt,
+                  closeAt: h.round.closeAt,
+                  scoreRound: h.scoreRound,
+                  scoreTotalAfterRound: h.scoreTotal,
+                  historyCreatedAt: h.createdAt,
+                })),
+                mesaParticipations: details,
+              }, null, 2))
+            }
+            main().catch(e => { console.error(e); process.exitCode = 1 }).finally(() => prisma.$disconnect())
+            NODE
