@@ -1,0 +1,107 @@
+name: Diagnose Milagre score history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose Milagre history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Inspect history and audits for Milagre
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+
+            async function main() {
+              const mesaId = 'b77cc0cc-28b9-45a9-8ff3-77c731047e64'
+              const mesa = await prisma.ranking.findUnique({
+                where: { id: mesaId },
+                select: {
+                  id: true, name: true, status: true,
+                  startDate: true, endDate: true, settledAt: true,
+                  participants: {
+                    where: { status: 'APPROVED' },
+                    select: {
+                      id: true, userId: true, score: true, scoreInitial: true, position: true,
+                      createdAt: true, approvedAt: true,
+                      user: { select: { nickname: true, name: true, scoreTotal: true } },
+                    },
+                  },
+                },
+              })
+
+              const userIds = mesa.participants.map(p => p.userId)
+              const histories = await prisma.userScoreHistory.findMany({
+                where: {
+                  userId: { in: userIds },
+                  round: {
+                    closeAt: {
+                      gte: new Date('2026-07-18T00:00:00.000Z'),
+                      lte: new Date('2026-07-28T00:00:00.000Z'),
+                    },
+                  },
+                },
+                select: {
+                  userId: true, scoreRound: true, scoreTotal: true, createdAt: true,
+                  round: { select: { id: true, number: true, status: true, closeAt: true } },
+                },
+                orderBy: [{ round: { closeAt: 'asc' } }, { createdAt: 'asc' }],
+              })
+
+              const audits = await prisma.auditLog.findMany({
+                where: {
+                  OR: [
+                    { entityId: mesaId },
+                    { entityId: { in: mesa.participants.map(p => p.id) } },
+                    {
+                      action: { in: [
+                        'RANKING_PARTICIPANT_SCORE_RECALCULATED',
+                        'RANKING_CLOSED',
+                        'RANKING_PARTICIPANT_SCORE_REPAIRED',
+                      ] },
+                      metadata: { path: ['rankingId'], equals: mesaId },
+                    },
+                  ],
+                },
+                select: {
+                  action: true, entity: true, entityId: true, userId: true,
+                  createdAt: true, metadata: true,
+                },
+                orderBy: { createdAt: 'asc' },
+                take: 100,
+              })
+
+              const rounds = await prisma.round.findMany({
+                where: {
+                  closeAt: {
+                    gte: new Date('2026-07-18T00:00:00.000Z'),
+                    lte: new Date('2026-07-28T00:00:00.000Z'),
+                  },
+                },
+                select: { id: true, number: true, status: true, openAt: true, closeAt: true },
+                orderBy: { number: 'asc' },
+              })
+
+              console.log(JSON.stringify({ mesa, rounds, histories, audits }, null, 2))
+            }
+
+            main()
+              .catch(err => { console.error(err); process.exitCode = 1 })
+              .finally(() => prisma.$disconnect())
+            NODE
