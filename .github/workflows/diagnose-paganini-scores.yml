@@ -1,0 +1,227 @@
+name: Diagnose Paganini scores
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Full score trail for Paganini
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Inspect Paganini history and all mesas
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          command_timeout: 3m
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { RankingWindowScoreService } = require('/app/dist/services/ranking/ranking-window-score.service')
+
+            async function main() {
+              const now = new Date()
+              const paganini = await prisma.user.findFirst({
+                where: {
+                  OR: [
+                    { id: '5568f530-f65a-43e2-97a2-cc36afa23f50' },
+                    { nickname: { equals: 'Paganini', mode: 'insensitive' } },
+                    { name: { contains: 'Paganini', mode: 'insensitive' } },
+                  ],
+                },
+                select: {
+                  id: true,
+                  name: true,
+                  nickname: true,
+                  email: true,
+                  scoreTotal: true,
+                  createdAt: true,
+                },
+              })
+              if (!paganini) {
+                console.log(JSON.stringify({ error: 'user_not_found' }, null, 2))
+                return
+              }
+
+              const histories = await prisma.userScoreHistory.findMany({
+                where: { userId: paganini.id },
+                select: {
+                  id: true,
+                  scoreRound: true,
+                  scoreTotal: true,
+                  createdAt: true,
+                  round: {
+                    select: {
+                      id: true,
+                      number: true,
+                      status: true,
+                      openAt: true,
+                      closeAt: true,
+                    },
+                  },
+                },
+                orderBy: [{ round: { closeAt: 'asc' } }, { createdAt: 'asc' }],
+              })
+
+              const rounds = await prisma.round.findMany({
+                orderBy: { number: 'asc' },
+                select: {
+                  id: true,
+                  number: true,
+                  status: true,
+                  openAt: true,
+                  closeAt: true,
+                },
+              })
+
+              const allMesas = await prisma.ranking.findMany({
+                where: { type: 'BOLAO' },
+                select: {
+                  id: true,
+                  name: true,
+                  status: true,
+                  startDate: true,
+                  entryEndDate: true,
+                  endDate: true,
+                  settledAt: true,
+                  createdAt: true,
+                  createdByUserId: true,
+                  currentParticipants: true,
+                  participants: {
+                    select: {
+                      id: true,
+                      userId: true,
+                      status: true,
+                      score: true,
+                      scoreInitial: true,
+                      position: true,
+                      approvedAt: true,
+                      createdAt: true,
+                      user: {
+                        select: {
+                          id: true,
+                          nickname: true,
+                          name: true,
+                          scoreTotal: true,
+                        },
+                      },
+                    },
+                    orderBy: [{ position: 'asc' }, { score: 'desc' }, { createdAt: 'asc' }],
+                  },
+                },
+                orderBy: { createdAt: 'asc' },
+              })
+
+              const mesaReports = []
+              for (const mesa of allMesas) {
+                const asOfLive = now
+                const asOfEnd = mesa.endDate
+                  ? new Date(mesa.endDate.getTime() + 1)
+                  : now
+                const liveRows = await RankingWindowScoreService.buildRows(prisma, mesa, asOfLive)
+                const endRows = await RankingWindowScoreService.buildRows(prisma, mesa, asOfEnd)
+                const byLive = new Map(liveRows.map(r => [r.userId, r]))
+                const byEnd = new Map(endRows.map(r => [r.userId, r]))
+
+                const paganiniPart = mesa.participants.find(p => p.userId === paganini.id)
+                const historiesInWindow = histories.filter(h => {
+                  const closeAt = h.round.closeAt
+                  if (!closeAt) return false
+                  const afterStart = !mesa.startDate || closeAt >= mesa.startDate
+                  const beforeEnd = !mesa.endDate || closeAt <= mesa.endDate
+                  return afterStart && beforeEnd
+                })
+
+                mesaReports.push({
+                  id: mesa.id,
+                  name: mesa.name,
+                  status: mesa.status,
+                  startDate: mesa.startDate,
+                  endDate: mesa.endDate,
+                  entryEndDate: mesa.entryEndDate,
+                  settledAt: mesa.settledAt,
+                  createdAt: mesa.createdAt,
+                  currentParticipants: mesa.currentParticipants,
+                  rankingEnded: mesa.endDate != null && now > mesa.endDate,
+                  paganini: paganiniPart
+                    ? {
+                        status: paganiniPart.status,
+                        storedScore: paganiniPart.score,
+                        scoreInitial: paganiniPart.scoreInitial,
+                        position: paganiniPart.position,
+                        approvedAt: paganiniPart.approvedAt,
+                        formulaLive: `${paganini.scoreTotal} - ${paganiniPart.scoreInitial} = ${paganini.scoreTotal - paganiniPart.scoreInitial}`,
+                        recomputedLive: byLive.get(paganini.id) || null,
+                        recomputedAtEnd: byEnd.get(paganini.id) || null,
+                        historiesInWindow: historiesInWindow.map(h => ({
+                          round: h.round.number,
+                          status: h.round.status,
+                          closeAt: h.round.closeAt,
+                          scoreRound: h.scoreRound,
+                          scoreTotal: h.scoreTotal,
+                        })),
+                      }
+                    : null,
+                  participants: mesa.participants.map(p => {
+                    const live = byLive.get(p.userId)
+                    const end = byEnd.get(p.userId)
+                    return {
+                      name: p.user.nickname || p.user.name,
+                      userId: p.userId,
+                      status: p.status,
+                      storedScore: p.score,
+                      scoreInitial: p.scoreInitial,
+                      position: p.position,
+                      userScoreTotalNow: p.user.scoreTotal,
+                      formulaLive: `${p.user.scoreTotal} - ${p.scoreInitial} = ${p.user.scoreTotal - p.scoreInitial}`,
+                      recomputedLiveScore: live?.score ?? null,
+                      recomputedAtEndScore: end?.score ?? null,
+                      deltaLiveVsStored: live ? live.score - p.score : null,
+                    }
+                  }),
+                })
+              }
+
+              console.log(
+                JSON.stringify(
+                  {
+                    now,
+                    paganini,
+                    rounds,
+                    scoreTrail: histories.map((h, index) => ({
+                      seq: index + 1,
+                      round: h.round.number,
+                      roundStatus: h.round.status,
+                      openAt: h.round.openAt,
+                      closeAt: h.round.closeAt,
+                      scoreRound: h.scoreRound,
+                      scoreTotalAfterRound: h.scoreTotal,
+                      historyCreatedAt: h.createdAt,
+                    })),
+                    mesasCount: allMesas.length,
+                    mesas: mesaReports,
+                  },
+                  null,
+                  2
+                )
+              )
+            }
+
+            main()
+              .catch(err => {
+                console.error(err)
+                process.exitCode = 1
+              })
+              .finally(() => prisma.$disconnect())
+            NODE
