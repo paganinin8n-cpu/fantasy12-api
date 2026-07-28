@@ -24,9 +24,11 @@ const REGISTRATION_NOT_STARTED = 'As inscrições para esta competição ainda n
 test('criacao da Mesa vincula a primeira rodada da janela', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
+  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
+    prisma.round.findFirst = originalRoundFindFirst
   })
 
   prisma.user.findUnique = async () => ({
@@ -36,6 +38,12 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
       plan: 'MONTHLY',
       endAt: new Date('2027-01-01T00:00:00Z'),
     },
+  })
+
+  prisma.round.findFirst = async () => ({
+    id: 'round-10',
+    status: 'OPEN',
+    closeAt: new Date('2026-08-05T12:00:00Z'),
   })
 
   let linkedRound = null
@@ -60,13 +68,6 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
         startDate: new Date('2026-08-01T00:00:00Z'),
         entryEndDate: new Date('2026-08-04T12:00:00Z'),
         endDate: new Date('2026-08-31T23:59:59Z'),
-      }),
-    },
-    round: {
-      findFirst: async () => ({
-        id: 'round-10',
-        status: 'OPEN',
-        closeAt: new Date('2026-08-05T12:00:00Z'),
       }),
     },
     rankingRound: {
@@ -109,9 +110,11 @@ test('criacao da Mesa vincula a primeira rodada da janela', async t => {
 test('bloqueia criacao de Mesa quando a primeira rodada ja fechou', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
+  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
+    prisma.round.findFirst = originalRoundFindFirst
   })
 
   prisma.user.findUnique = async () => ({
@@ -120,17 +123,12 @@ test('bloqueia criacao de Mesa quando a primeira rodada ja fechou', async t => {
       status: 'ACTIVE', plan: 'MONTHLY', endAt: new Date('2027-01-01T00:00:00Z'),
     },
   })
-  prisma.$transaction = async callback => callback({
-    ranking: {
-      create: async ({ data }) => ({ ...data }),
-      update: async () => { throw new Error('nao deve atualizar Mesa fechada') },
-    },
-    round: {
-      findFirst: async () => ({
-        id: 'round-closed', status: 'CLOSED', closeAt: new Date('2026-07-01T12:00:00Z'),
-      }),
-    },
+  prisma.round.findFirst = async () => ({
+    id: 'round-closed', status: 'CLOSED', closeAt: new Date('2026-07-01T12:00:00Z'),
   })
+  prisma.$transaction = async () => {
+    throw new Error('nao deve abrir transaction com rodada fechada')
+  }
 
   await assert.rejects(
     CreateBolaoService.execute({

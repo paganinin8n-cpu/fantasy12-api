@@ -154,11 +154,18 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
 test('criador paga a entrada atomicamente e inaugura o caixa da Mesa', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
+  const originalRoundFindFirst = prisma.round.findFirst
   t.after(() => {
     prisma.user.findUnique = originalFindUnique
     prisma.$transaction = originalTransaction
+    prisma.round.findFirst = originalRoundFindFirst
   })
   prisma.user.findUnique = async () => mockProUser()
+  prisma.round.findFirst = async () => ({
+    id: 'round-1',
+    status: 'OPEN',
+    closeAt: new Date('2026-08-02T12:00:00Z'),
+  })
 
   let rankingData
   let participantData
@@ -176,7 +183,6 @@ test('criador paga a entrada atomicamente e inaugura o caixa da Mesa', async t =
         endDate: createInput().endDate, ...data,
       }),
     },
-    round: { findFirst: async () => ({ id: 'round-1', closeAt: new Date('2026-08-02') }) },
     rankingRound: { create: async () => ({}) },
     rankingParticipant: { create: async ({ data }) => { participantData = data; return data } },
     user: { findUnique: async () => ({ scoreTotal: 0 }) },
