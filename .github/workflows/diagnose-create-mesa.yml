@@ -1,0 +1,64 @@
+name: Diagnose create mesa timeout
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Check API logs and create-mesa preconditions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Inspect logs and round/lock signals
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          command_timeout: 2m
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            WORKER_CONTAINER="$(docker ps --filter 'name=f12-prd_worker' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+
+            echo "=== API recent errors/timeouts ==="
+            docker logs --since 6h "$API_CONTAINER" 2>&1 | grep -Eiv 'health|GET /health' | grep -Ei 'bolao|mesa|timeout|lock|deadlock|ECONN|unhandled|error|POST /api/boloes' | tail -80 || true
+
+            if [ -n "$WORKER_CONTAINER" ]; then
+              echo "=== WORKER recent recalculate/close ==="
+              docker logs --since 6h "$WORKER_CONTAINER" 2>&1 | grep -Ei 'recalculate|close|ranking|bolao|lock|timeout|error' | tail -80 || true
+            else
+              echo "Worker container not found"
+            fi
+
+            echo "=== DB preconditions for create ==="
+            docker exec -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            async function main() {
+              const now = new Date()
+              const openRounds = await prisma.round.findMany({
+                where: { status: { in: ['OPEN', 'CLOSED', 'SCORED'] } },
+                orderBy: { number: 'desc' },
+                take: 8,
+                select: { id: true, number: true, status: true, openAt: true, closeAt: true },
+              })
+              const activeBoloes = await prisma.ranking.count({
+                where: { type: 'BOLAO', status: { in: ['ACTIVE', 'DRAFT'] } },
+              })
+              const recentCreates = await prisma.auditLog.findMany({
+                where: { action: 'BOLAO_CREATED', createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+                select: { createdAt: true, userId: true, entityId: true, metadata: true },
+              })
+              console.log(JSON.stringify({ now, activeBoloes, openRounds, recentCreates }, null, 2))
+            }
+            main().catch(e => { console.error(e); process.exitCode = 1 }).finally(() => prisma.$disconnect())
+            NODE
