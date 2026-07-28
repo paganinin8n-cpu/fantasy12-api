@@ -5,11 +5,18 @@ import { AppError } from '../../errors/AppError'
 interface UpdateTeamInput {
   id: string
   name?: string
-  shortName?: string
-  country?: string
+  shortName?: string | null
+  country?: string | null
   type?: TeamType
-  logoUrl?: string
+  logoUrl?: string | null
   active?: boolean
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export class UpdateTeamService {
@@ -21,10 +28,16 @@ export class UpdateTeamService {
       where: { id: input.id },
       data: {
         ...(input.name !== undefined && { name: input.name.trim() }),
-        ...(input.shortName !== undefined && { shortName: input.shortName.trim() }),
-        ...(input.country !== undefined && { country: input.country.trim() }),
+        ...(input.shortName !== undefined && {
+          shortName: normalizeOptionalText(input.shortName),
+        }),
+        ...(input.country !== undefined && {
+          country: normalizeOptionalText(input.country),
+        }),
         ...(input.type !== undefined && { type: input.type }),
-        ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl.trim() }),
+        ...(input.logoUrl !== undefined && {
+          logoUrl: normalizeOptionalText(input.logoUrl),
+        }),
         ...(input.active !== undefined && { active: input.active }),
       },
     })
