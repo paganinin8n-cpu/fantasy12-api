@@ -88,6 +88,54 @@ export class CreateBolaoService {
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    // Preferir rodada ainda aberta no período; senão qualquer rodada (para mensagem clara).
+    const firstRound =
+      (await prisma.round.findFirst({
+        where: {
+          status: 'OPEN',
+          closeAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
+        select: { id: true, status: true, closeAt: true },
+      })) ??
+      (await prisma.round.findFirst({
+        where: {
+          closeAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
+        select: { id: true, status: true, closeAt: true },
+      }))
+
+    if (!firstRound?.closeAt) {
+      throw AppError.badRequest(
+        'Não há rodada no período escolhido. Ajuste as datas da Mesa para cobrir uma rodada aberta.',
+        'mesa_period_without_round'
+      )
+    }
+
+    const firstRoundCloseAt = firstRound.closeAt
+
+    try {
+      BolaoRegistrationWindowService.assertNotClosed({
+        startDate,
+        entryEndDate,
+        rounds: [{ round: firstRound }],
+      })
+    } catch (error) {
+      throw AppError.badRequest(
+        error instanceof Error
+          ? error.message
+          : 'As inscrições para esta competição foram encerradas.',
+        'mesa_registration_closed'
+      )
+    }
+
     const result = await prisma.$transaction(async tx => {
       const bolao = await tx.ranking.create({
         data: {
@@ -109,27 +157,6 @@ export class CreateBolaoService {
         },
       });
 
-      const firstRound = await tx.round.findFirst({
-        where: {
-          closeAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        orderBy: [{ closeAt: 'asc' }, { number: 'asc' }],
-        select: { id: true, status: true, closeAt: true },
-      });
-
-      if (!firstRound?.closeAt) {
-        throw new Error('Não existe rodada válida dentro do período da Mesa');
-      }
-
-      BolaoRegistrationWindowService.assertNotClosed({
-        startDate,
-        entryEndDate,
-        rounds: [{ round: firstRound }],
-      });
-
       await tx.rankingRound.create({
         data: {
           rankingId: bolao.id,
@@ -141,7 +168,7 @@ export class CreateBolaoService {
         (await RankingWindowScoreService.getScoreTotalBefore(
           tx,
           createdByUserId,
-          firstRound.closeAt
+          firstRoundCloseAt
         )) ?? 0;
 
       await BolaoEntryPaymentService.debit(tx, {

@@ -126,6 +126,11 @@ export function getRedisSessionStore(
     enableReadyCheck: true,
     lazyConnect: true,
     maxRetriesPerRequest: 1,
+    // Sem fila offline: se o Redis cair/auth falhar, a request falha rápido
+    // em vez de ficar pendurada até o timeout do browser.
+    enableOfflineQueue: false,
+    connectTimeout: 5_000,
+    commandTimeout: 5_000,
   })
   client.on('error', error => {
     logger.error(

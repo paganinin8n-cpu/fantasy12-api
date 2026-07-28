@@ -4,30 +4,31 @@ import { RankingWindowScoreService } from './ranking-window-score.service'
 export class RecalculateRankingService {
 
   static async execute(): Promise<void> {
-    await prisma.$transaction(async tx => {
-      const rankings = await tx.ranking.findMany({
-        where: {
-          OR: [
-            { status: 'ACTIVE', startDate: { not: null } },
-            { type: 'BOLAO', status: 'DRAFT' },
-          ],
-        },
-        select: {
-          id: true,
-          startDate: true,
-          endDate: true,
-        },
-      })
+    const rankings = await prisma.ranking.findMany({
+      where: {
+        OR: [
+          { status: 'ACTIVE', startDate: { not: null } },
+          { type: 'BOLAO', status: 'DRAFT' },
+        ],
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+      },
+    })
 
-      const now = new Date()
+    const now = new Date()
 
-      for (const ranking of rankings) {
-        // Mesas/rankings já expirados são finalizados pelo job de close —
-        // recalcular depois do endDate zerava scores quando faltava histórico.
-        if (ranking.endDate != null && ranking.endDate <= now) {
-          continue
-        }
+    for (const ranking of rankings) {
+      // Mesas/rankings já expirados são finalizados pelo job de close —
+      // recalcular depois do endDate zerava scores quando faltava histórico.
+      if (ranking.endDate != null && ranking.endDate <= now) {
+        continue
+      }
 
+      // Uma transaction por ranking evita lock longo que trava criar/entrar em Mesa.
+      await prisma.$transaction(async tx => {
         const rows = await RankingWindowScoreService.buildRows(tx, ranking, now)
 
         for (const row of rows) {
@@ -64,8 +65,8 @@ export class RecalculateRankingService {
             })
           }
         }
-      }
-    })
+      })
+    }
   }
 
 }
