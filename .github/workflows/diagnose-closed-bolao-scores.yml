@@ -1,0 +1,91 @@
+name: Diagnose closed mesa scores
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose CLOSED mesa scores
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Inspect CLOSED mesa participant scores
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            docker exec -i "$API_CONTAINER" node <<'NODE'
+            const { prisma } = require('/app/dist/lib/prisma')
+            const { RankingWindowScoreService } = require('/app/dist/services/ranking/ranking-window-score.service')
+
+            async function main() {
+              const mesas = await prisma.ranking.findMany({
+                where: { type: 'BOLAO', status: 'CLOSED' },
+                select: {
+                  id: true,
+                  name: true,
+                  startDate: true,
+                  endDate: true,
+                  settledAt: true,
+                  participants: {
+                    where: { status: 'APPROVED' },
+                    select: {
+                      id: true,
+                      userId: true,
+                      score: true,
+                      scoreInitial: true,
+                      position: true,
+                      user: { select: { nickname: true, name: true, scoreTotal: true } },
+                    },
+                    orderBy: [{ position: 'asc' }, { score: 'desc' }],
+                  },
+                },
+                orderBy: { endDate: 'desc' },
+                take: 20,
+              })
+
+              const report = []
+              for (const mesa of mesas) {
+                const asOf = mesa.endDate ? new Date(mesa.endDate.getTime() + 1) : new Date()
+                const rows = await RankingWindowScoreService.buildRows(prisma, mesa, asOf)
+                const byUser = new Map(rows.map(r => [r.userId, r]))
+                report.push({
+                  id: mesa.id,
+                  name: mesa.name,
+                  startDate: mesa.startDate,
+                  endDate: mesa.endDate,
+                  settledAt: mesa.settledAt,
+                  participants: mesa.participants.map(p => {
+                    const recomputed = byUser.get(p.userId)
+                    return {
+                      name: p.user.nickname || p.user.name,
+                      storedScore: p.score,
+                      scoreInitial: p.scoreInitial,
+                      position: p.position,
+                      userScoreTotal: p.user.scoreTotal,
+                      recomputedScore: recomputed?.score ?? null,
+                      recomputedTotal: recomputed?.scoreTotalCurrent ?? null,
+                      delta: recomputed ? recomputed.score - p.score : null,
+                    }
+                  }),
+                })
+              }
+
+              console.log(JSON.stringify({ closedMesas: mesas.length, report }, null, 2))
+            }
+
+            main()
+              .catch(err => { console.error(err); process.exitCode = 1 })
+              .finally(() => prisma.$disconnect())
+            NODE
