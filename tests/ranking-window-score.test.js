@@ -19,6 +19,52 @@ test('preserva score negativo da Mesa quando o total atual fica abaixo do snapsh
   )
 })
 
+test('regra Marcelo: baseline negativo é subtraído do STA atual', () => {
+  assert.equal(
+    RankingWindowScoreService.calculateScoreFromBaseline(1, -6),
+    7
+  )
+})
+
+test('regra Marcelo: Mesa iniciada após STA positivo preserva rodada negativa', () => {
+  assert.equal(
+    RankingWindowScoreService.calculateScoreFromBaseline(-2, 4),
+    -6
+  )
+})
+
+test('captura o STA da última rodada anterior ao início da Mesa', async () => {
+  const db = {
+    userScoreHistory: {
+      findFirst: async () => ({ scoreTotal: -6 }),
+    },
+  }
+
+  const scoreInitial = await RankingWindowScoreService.getScoreTotalBefore(
+    db,
+    'user-1',
+    new Date('2026-07-07T00:00:00Z')
+  )
+
+  assert.equal(scoreInitial, -6)
+})
+
+test('usa baseline zero quando não existe rodada anterior', async () => {
+  const db = {
+    userScoreHistory: {
+      findFirst: async () => null,
+    },
+  }
+
+  const scoreInitial = await RankingWindowScoreService.getScoreTotalBefore(
+    db,
+    'user-new',
+    new Date('2026-07-01T00:00:00Z')
+  )
+
+  assert.equal(scoreInitial, 0)
+})
+
 test('Mesa calcula o acumulado pelo total atual menos o snapshot inicial', async () => {
   const participant = {
     id: 'participant-1',
@@ -86,7 +132,7 @@ test('fechamento atrasado usa o ultimo acumulado ate o fim da competicao', async
   assert.equal(rows[0].score, 8)
 })
 
-test('fechamento sem histórico não zera a Mesa — usa scoreTotal atual do usuário', async () => {
+test('fechamento sem histórico não incorpora score global posterior ao fim', async () => {
   const participant = {
     id: 'participant-1',
     userId: 'user-1',
@@ -112,7 +158,6 @@ test('fechamento sem histórico não zera a Mesa — usa scoreTotal atual do usu
     new Date('2026-07-27T12:00:00Z')
   )
 
-  assert.equal(rows[0].scoreTotalCurrent, 52)
-  assert.equal(rows[0].score, 42)
+  assert.equal(rows[0].scoreTotalCurrent, 10)
+  assert.equal(rows[0].score, 0)
 })
-

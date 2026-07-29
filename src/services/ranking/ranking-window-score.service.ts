@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 
 type RankingScoreClient = Pick<
   Prisma.TransactionClient,
-  'rankingParticipant' | 'userScoreHistory' | 'user'
+  'rankingParticipant' | 'userScoreHistory'
 >
 
 type RankingWindow = {
@@ -43,12 +43,10 @@ export class RankingWindowScoreService {
     })
     if (history) return history.scoreTotal
 
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { scoreTotal: true },
-    })
-
-    return user?.scoreTotal ?? 0
+    // Sem rodada anterior, o acumulado inicial oficial é zero.
+    // Usar o scoreTotal vivo aqui faria uma rodada posterior ao início
+    // contaminar o baseline da Mesa.
+    return 0
   }
 
   static async buildRows(
@@ -115,11 +113,12 @@ export class RankingWindowScoreService {
         row.userId === participant.userId
       )
       const rankingEnded = ranking.endDate != null && now > ranking.endDate
-      // Após o fim da janela, preferir histórico até endDate.
-      // Nunca cair só em scoreInitial (isso forçava score 0 e zerava a Mesa).
+      // Após o fim da janela, usar somente o acumulado histórico até endDate.
+      // Se não há histórico algum, não houve pontuação a incorporar à Mesa:
+      // o total no fechamento permanece igual ao baseline.
       const liveTotal = participant.user?.scoreTotal ?? 0
       const scoreTotalCurrent = rankingEnded
-        ? latestHistory?.scoreTotal ?? liveTotal
+        ? latestHistory?.scoreTotal ?? participant.scoreInitial
         : liveTotal
       const score = this.calculateScoreFromBaseline(
         scoreTotalCurrent,
