@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { hasActiveProSubscription } from '../../domain/subscription'
+import { RankingTiebreakService } from './ranking-tiebreak.service'
 
 export type PeriodRankingScope = 'general' | 'pro'
 
@@ -10,6 +11,7 @@ export type PeriodRankingRow = {
   scoreRound: number
   totalDoubles: number
   totalSuperDoubles: number
+  userCreatedAt: Date
   isPro: boolean
   position: number
 }
@@ -44,6 +46,7 @@ export class BuildPeriodRankingFromHistoryService {
         user: {
           select: {
             name: true,
+            createdAt: true,
             subscription: {
               select: { status: true, plan: true, endAt: true },
             },
@@ -52,6 +55,37 @@ export class BuildPeriodRankingFromHistoryService {
       },
     })
 
+    const userIds = [...new Set(history.map(item => item.userId))]
+    const baselineHistory = userIds.length === 0
+      ? []
+      : await prisma.userScoreHistory.findMany({
+          where: {
+            userId: { in: userIds },
+            round: {
+              status: 'SCORED',
+              closeAt: { lt: start },
+            },
+          },
+          orderBy: [
+            { round: { number: 'desc' } },
+            { createdAt: 'desc' },
+          ],
+          select: {
+            userId: true,
+            totalDoubles: true,
+            totalSuperDoubles: true,
+          },
+        })
+    const baselineByUser = new Map<string, {
+      totalDoubles: number
+      totalSuperDoubles: number
+    }>()
+    for (const item of baselineHistory) {
+      if (!baselineByUser.has(item.userId)) {
+        baselineByUser.set(item.userId, item)
+      }
+    }
+
     const byUser = new Map<string, Omit<PeriodRankingRow, 'position'>>()
     for (const item of history) {
       const isPro = hasActiveProSubscription(item.user.subscription)
@@ -59,13 +93,18 @@ export class BuildPeriodRankingFromHistoryService {
 
       const existing = byUser.get(item.userId)
       if (!existing) {
+        const hits = RankingTiebreakService.calculateWindowHits(
+          item,
+          baselineByUser.get(item.userId)
+        )
         byUser.set(item.userId, {
           userId: item.userId,
           userName: item.user.name,
           scoreTotal: item.scoreRound,
           scoreRound: item.scoreRound,
-          totalDoubles: item.totalDoubles,
-          totalSuperDoubles: item.totalSuperDoubles,
+          totalDoubles: hits.doubleHits,
+          totalSuperDoubles: hits.superDoubleHits,
+          userCreatedAt: item.user.createdAt,
           isPro,
         })
       } else {
@@ -73,29 +112,15 @@ export class BuildPeriodRankingFromHistoryService {
       }
     }
 
-    const rows = Array.from(byUser.values()).sort((a, b) => {
-      if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal
-      if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound
-      if (b.totalDoubles !== a.totalDoubles) return b.totalDoubles - a.totalDoubles
-      if (b.totalSuperDoubles !== a.totalSuperDoubles) {
-        return b.totalSuperDoubles - a.totalSuperDoubles
-      }
-      return a.userId.localeCompare(b.userId)
-    })
-
-    let position = 1
-    return rows.map((row, index) => {
-      const previous = rows[index - 1]
-      if (
-        previous &&
-        (row.scoreTotal !== previous.scoreTotal ||
-          row.scoreRound !== previous.scoreRound ||
-          row.totalDoubles !== previous.totalDoubles ||
-          row.totalSuperDoubles !== previous.totalSuperDoubles)
-      ) {
-        position = index + 1
-      }
-      return { ...row, position }
-    })
+    return RankingTiebreakService.rank(
+      Array.from(byUser.values()),
+      row => ({
+        userId: row.userId,
+        scoreRanking: row.scoreTotal,
+        superDoubleHits: row.totalSuperDoubles,
+        doubleHits: row.totalDoubles,
+        userCreatedAt: row.userCreatedAt,
+      })
+    )
   }
 }

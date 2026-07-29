@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { RankingTiebreakService } from './ranking-tiebreak.service'
 
 type RankingScoreClient = Pick<
   Prisma.TransactionClient,
@@ -19,6 +20,9 @@ export type RankingWindowRow = {
   position: number
   scoreInitial: number
   scoreTotalCurrent: number
+  superDoubleHits: number
+  doubleHits: number
+  userCreatedAt: Date
   previousScore: number
   previousPosition: number | null
 }
@@ -65,7 +69,10 @@ export class RankingWindowScoreService {
         approvedAt: true,
         createdAt: true,
         user: {
-          select: { scoreTotal: true },
+          select: {
+            scoreTotal: true,
+            createdAt: true,
+          },
         },
       },
       orderBy: {
@@ -93,6 +100,8 @@ export class RankingWindowScoreService {
         userId: true,
         scoreTotal: true,
         scoreRound: true,
+        totalDoubles: true,
+        totalSuperDoubles: true,
         createdAt: true,
         round: {
           select: { closeAt: true },
@@ -104,14 +113,17 @@ export class RankingWindowScoreService {
       ],
     })
 
-    const participantOrder = new Map(
-      participants.map((participant, index) => [participant.userId, index])
-    )
-
     const rows = participants.map(participant => {
       const latestHistory = historyRows.find(row =>
         row.userId === participant.userId
       )
+      const baselineHistory = ranking.startDate
+        ? historyRows.find(row =>
+            row.userId === participant.userId &&
+            row.round.closeAt != null &&
+            row.round.closeAt < ranking.startDate!
+          )
+        : null
       const rankingEnded = ranking.endDate != null && now > ranking.endDate
       // Após o fim da janela, usar somente o acumulado histórico até endDate.
       // Se não há histórico algum, não houve pontuação a incorporar à Mesa:
@@ -129,6 +141,10 @@ export class RankingWindowScoreService {
         (!ranking.startDate || latestHistory.round.closeAt >= ranking.startDate)
           ? latestHistory.scoreRound
           : 0
+      const hits = RankingTiebreakService.calculateWindowHits(
+        latestHistory,
+        baselineHistory
+      )
 
       return {
         participantId: participant.id,
@@ -138,36 +154,19 @@ export class RankingWindowScoreService {
         position: 0,
         scoreInitial: participant.scoreInitial,
         scoreTotalCurrent,
+        ...hits,
+        userCreatedAt: participant.user.createdAt,
         previousScore: participant.score,
         previousPosition: participant.position,
       }
     })
 
-    rows.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound
-      return (participantOrder.get(a.userId) ?? 0) - (participantOrder.get(b.userId) ?? 0)
-    })
-
-    let currentPosition = 1
-    let lastScore: number | null = null
-    let lastScoreRound: number | null = null
-
-    return rows.map((row, index) => {
-      if (
-        lastScore !== null &&
-        (row.score !== lastScore || row.scoreRound !== lastScoreRound)
-      ) {
-        currentPosition = index + 1
-      }
-
-      lastScore = row.score
-      lastScoreRound = row.scoreRound
-
-      return {
-        ...row,
-        position: currentPosition,
-      }
-    })
+    return RankingTiebreakService.rank(rows, row => ({
+      userId: row.userId,
+      scoreRanking: row.score,
+      superDoubleHits: row.superDoubleHits,
+      doubleHits: row.doubleHits,
+      userCreatedAt: row.userCreatedAt,
+    }))
   }
 }

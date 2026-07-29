@@ -126,11 +126,14 @@ function mockHistory(t) {
   t.after(restore)
 
   prisma.rankingSnapshot.findMany = async () => []
-  prisma.userScoreHistory.findMany = async () => [
-    history('user-1', 3, 2, 1, 'Um'),
-    history('user-1', -1, 1, 1, 'Um'),
-    history('user-2', 2, 0, 0, 'Dois'),
-  ]
+  prisma.userScoreHistory.findMany = async ({ where }) =>
+    where.round?.closeAt?.gte
+      ? [
+          history('user-1', 3, 2, 1, 'Um'),
+          history('user-1', -1, 1, 1, 'Um'),
+          history('user-2', 2, 0, 0, 'Dois'),
+        ]
+      : []
   return restore
 }
 
