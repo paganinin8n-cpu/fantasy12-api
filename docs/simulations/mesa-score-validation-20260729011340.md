@@ -64,7 +64,7 @@
 
 | Mesa | User | Initial | Current | Expected | Engine | Stored | View | Pass |
 |---|---|---:|---:|---:|---:|---:|---:|:---:|
-| undefined | alpha | 0 | -9 | -9 | -9 | -9 | -9 | OK |
-| undefined | beta | -6 | 6 | 12 | 12 | 12 | 12 | OK |
-| undefined | alpha | -1 | -10 | -9 | -9 | -9 | -9 | OK |
-| undefined | beta | 1 | 17 | 16 | 16 | 16 | 16 | OK |
+| mesaA | alpha | 0 | -9 | -9 | -9 | -9 | -9 | OK |
+| mesaA | beta | -6 | 6 | 12 | 12 | 12 | 12 | OK |
+| mesaB | alpha | -1 | -10 | -9 | -9 | -9 | -9 | OK |
+| mesaB | beta | 1 | 17 | 16 | 16 | 16 | 16 | OK |

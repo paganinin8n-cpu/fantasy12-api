@@ -436,7 +436,8 @@
         "viewMatchesExpected": true,
         "scoreInitialMatches": true
       },
-      "passed": true
+      "passed": true,
+      "mesa": "mesaA"
     },
     {
       "mesaId": "7d35d8be-9e6f-4cba-9943-a43f9e4ec886",
@@ -502,7 +503,8 @@
         "viewMatchesExpected": true,
         "scoreInitialMatches": true
       },
-      "passed": true
+      "passed": true,
+      "mesa": "mesaA"
     },
     {
       "mesaId": "2d89b47b-f6f6-4582-837d-f184c9eb0f69",
@@ -568,7 +570,8 @@
         "viewMatchesExpected": true,
         "scoreInitialMatches": true
       },
-      "passed": true
+      "passed": true,
+      "mesa": "mesaB"
     },
     {
       "mesaId": "2d89b47b-f6f6-4582-837d-f184c9eb0f69",
@@ -634,7 +637,8 @@
         "viewMatchesExpected": true,
         "scoreInitialMatches": true
       },
-      "passed": true
+      "passed": true,
+      "mesa": "mesaB"
     }
   ],
   "verdict": {

@@ -459,7 +459,7 @@ async function main() {
       if (!passed) allPassed = false
 
       report.validations.push({
-        mesa: ctx.key,
+        mesa: ctx.mesaReport.key,
         mesaId: ctx.mesa.id,
         role,
         userId,
