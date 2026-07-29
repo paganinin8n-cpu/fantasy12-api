@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { RankingTiebreakService } from './ranking-tiebreak.service'
 
 type SnapshotRow = {
   userId: string
@@ -6,6 +7,7 @@ type SnapshotRow = {
   scoreRound: number
   totalDoubles: number
   totalSuperDoubles: number
+  userCreatedAt: Date
 }
 
 export class SnapshotRankingService {
@@ -82,6 +84,9 @@ export class SnapshotRankingService {
           scoreRound: true,
           totalDoubles: true,
           totalSuperDoubles: true,
+          user: {
+            select: { createdAt: true },
+          },
         },
         orderBy: [
           { round: { number: 'desc' } },
@@ -122,6 +127,7 @@ export class SnapshotRankingService {
           scoreRound: roundScoreMap.get(item.userId) ?? 0,
           totalDoubles: item.totalDoubles,
           totalSuperDoubles: item.totalSuperDoubles,
+          userCreatedAt: item.user.createdAt,
         })
       }
       const rows = Array.from(latestByUser.values())
@@ -129,56 +135,25 @@ export class SnapshotRankingService {
       /**
        * 7️⃣ ordenação oficial
        */
-      rows.sort((a, b) => {
-        if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal
-        if (b.scoreRound !== a.scoreRound) return b.scoreRound - a.scoreRound
-        if (b.totalDoubles !== a.totalDoubles) return b.totalDoubles - a.totalDoubles
-        if (b.totalSuperDoubles !== a.totalSuperDoubles) return b.totalSuperDoubles - a.totalSuperDoubles
-        return a.userId.localeCompare(b.userId)
-      })
+      const rankedRows = RankingTiebreakService.rank(rows, row => ({
+        userId: row.userId,
+        scoreRanking: row.scoreTotal,
+        superDoubleHits: row.totalSuperDoubles,
+        doubleHits: row.totalDoubles,
+        userCreatedAt: row.userCreatedAt,
+      }))
 
-      /**
-       * 8️⃣ calcular posições com empate
-       */
-      let currentPosition = 1
-      let lastScoreTotal: number | null = null
-      let lastScoreRound: number | null = null
-      let lastTotalDoubles: number | null = null
-      let lastTotalSuperDoubles: number | null = null
-      let index = 0
-
-      const snapshots = rows.map(row => {
-        index++
-
-        if (
-          lastScoreTotal !== null &&
-          (
-            row.scoreTotal !== lastScoreTotal ||
-            row.scoreRound !== lastScoreRound ||
-            row.totalDoubles !== lastTotalDoubles ||
-            row.totalSuperDoubles !== lastTotalSuperDoubles
-          )
-        ) {
-          currentPosition = index
-        }
-
-        lastScoreTotal = row.scoreTotal
-        lastScoreRound = row.scoreRound
-        lastTotalDoubles = row.totalDoubles
-        lastTotalSuperDoubles = row.totalSuperDoubles
-
-        return {
+      const snapshots = rankedRows.map(row => ({
           roundId,
           userId: row.userId,
           scoreTotal: row.scoreTotal,
           scoreRound: row.scoreRound,
           totalDoubles: row.totalDoubles,
           totalSuperDoubles: row.totalSuperDoubles,
-          position: currentPosition,
+          position: row.position,
           snapshotType: 'GLOBAL',
           periodRef
-        }
-      })
+      }))
 
       /**
        * 9️⃣ persistência

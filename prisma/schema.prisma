@@ -382,6 +382,10 @@ model RankingParticipant {
   rejectedAt       DateTime?
   entryFeePaid     Int       @default(0)
   entryPaidAt      DateTime?
+  tiebreakSuperDoubleHits Int      @default(0)
+  tiebreakDoubleHits      Int      @default(0)
+  tiebreakUserCreatedAt   DateTime?
+  tiebreakRuleVersion     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

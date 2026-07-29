@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { RankingWindowScoreService } from './ranking-window-score.service';
 import { SettleBolaoService } from '../bolao/settle-bolao.service';
 import { MesaIntegrityError, MesaIntegrityService } from '../bolao/mesa-integrity.service';
+import { RANKING_TIEBREAK_RULE_VERSION } from './ranking-tiebreak.service';
 
 export class CloseRankingService {
   async execute(rankingId: string, options: { force?: boolean } = {}) {
@@ -65,6 +66,10 @@ export class CloseRankingService {
           data: {
             score: row.score,
             position: row.position,
+            tiebreakSuperDoubleHits: row.superDoubleHits,
+            tiebreakDoubleHits: row.doubleHits,
+            tiebreakUserCreatedAt: row.userCreatedAt,
+            tiebreakRuleVersion: RANKING_TIEBREAK_RULE_VERSION,
           },
         });
 
@@ -84,6 +89,10 @@ export class CloseRankingService {
                 scoreInitial: row.scoreInitial,
                 scoreTotalCurrent: row.scoreTotalCurrent,
                 formula: 'scoreTotalCurrent - scoreInitial',
+                superDoubleHits: row.superDoubleHits,
+                doubleHits: row.doubleHits,
+                userCreatedAt: row.userCreatedAt.toISOString(),
+                tiebreakRuleVersion: RANKING_TIEBREAK_RULE_VERSION,
               },
             },
           });
@@ -112,6 +121,7 @@ export class CloseRankingService {
           metadata: {
             rows: rows.length,
             formula: 'scoreTotalCurrent - scoreInitial',
+            tiebreakRuleVersion: RANKING_TIEBREAK_RULE_VERSION,
           },
         },
       });

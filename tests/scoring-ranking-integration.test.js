@@ -244,6 +244,7 @@ test('snapshot usa o acumulado mais recente e nao o maior pico historico', async
           scoreRound: -5,
           totalDoubles: 1,
           totalSuperDoubles: 0,
+          user: { createdAt: new Date('2026-01-01T00:00:00Z') },
         }]
       },
     },

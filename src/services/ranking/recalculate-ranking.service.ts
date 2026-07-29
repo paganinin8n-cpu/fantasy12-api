@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { RankingWindowScoreService } from './ranking-window-score.service'
+import { RANKING_TIEBREAK_RULE_VERSION } from './ranking-tiebreak.service'
 
 export class RecalculateRankingService {
 
@@ -41,6 +42,10 @@ export class RecalculateRankingService {
             data: {
               score: row.score,
               position: row.position,
+              tiebreakSuperDoubleHits: row.superDoubleHits,
+              tiebreakDoubleHits: row.doubleHits,
+              tiebreakUserCreatedAt: row.userCreatedAt,
+              tiebreakRuleVersion: RANKING_TIEBREAK_RULE_VERSION,
             },
           })
 
@@ -60,6 +65,10 @@ export class RecalculateRankingService {
                   scoreInitial: row.scoreInitial,
                   scoreTotalCurrent: row.scoreTotalCurrent,
                   formula: 'scoreTotalCurrent - scoreInitial',
+                  superDoubleHits: row.superDoubleHits,
+                  doubleHits: row.doubleHits,
+                  userCreatedAt: row.userCreatedAt.toISOString(),
+                  tiebreakRuleVersion: RANKING_TIEBREAK_RULE_VERSION,
                 },
               },
             })

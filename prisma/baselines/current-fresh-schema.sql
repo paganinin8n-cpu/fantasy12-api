@@ -200,6 +200,10 @@ CREATE TABLE "ranking_participants" (
     "rejectedAt" TIMESTAMP(3),
     "entryFeePaid" INTEGER NOT NULL DEFAULT 0,
     "entryPaidAt" TIMESTAMP(3),
+    "tiebreakSuperDoubleHits" INTEGER NOT NULL DEFAULT 0,
+    "tiebreakDoubleHits" INTEGER NOT NULL DEFAULT 0,
+    "tiebreakUserCreatedAt" TIMESTAMP(3),
+    "tiebreakRuleVersion" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
