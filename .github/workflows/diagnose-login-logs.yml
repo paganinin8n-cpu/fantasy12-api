@@ -1,0 +1,33 @@
+name: Diagnose login logs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Pull recent API logs around login/session/redis
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            test -n "$API_CONTAINER"
+            echo "=== CONTAINER ==="
+            docker inspect --format '{{.Name}} started={{.State.StartedAt}} status={{.State.Status}}' "$API_CONTAINER"
+            echo "=== REDIS PING FROM API ==="
+            docker exec "$API_CONTAINER" node -e "const IORedis=require('ioredis'); const u=process.env.REDIS_URL; if(!u){console.log('no REDIS_URL'); process.exit(1)} const c=new IORedis(u,{maxRetriesPerRequest:1,connectTimeout:5000,commandTimeout:5000}); c.ping().then(r=>{console.log('ping',r); return c.quit()}).catch(e=>{console.error('ping_fail',e.message); process.exit(1)})"
+            echo "=== RECENT LOGS (filtered) ==="
+            docker logs --since 6h "$API_CONTAINER" 2>&1 | grep -E 'unhandled error|/api/auth/login|Redis session|Stream isn|enableOfflineQueue|ECONNREFUSED|NOAUTH|session' | tail -n 80 || true
+            echo "=== LAST 40 RAW LINES ==="
+            docker logs --tail 40 "$API_CONTAINER" 2>&1 || true
