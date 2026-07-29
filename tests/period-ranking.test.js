@@ -42,6 +42,35 @@ test('ranking semestral soma scoreRound do periodo sem periodRef mensal', async 
   assert.equal(ranking[0].scoreRound, 3)
 })
 
+test('ranking por período usa Super Duplas antes de Duplas e conta mais antiga', async t => {
+  const originalHistory = prisma.userScoreHistory.findMany
+  t.after(() => {
+    prisma.userScoreHistory.findMany = originalHistory
+  })
+
+  prisma.userScoreHistory.findMany = async ({ where }) => {
+    if (where.round?.closeAt?.gte) {
+      return [
+        history('user-double', 5, 8, 1, 'Duplas', '2025-01-01T00:00:00Z'),
+        history('user-super-new', 5, 0, 2, 'Super nova', '2026-02-01T00:00:00Z'),
+        history('user-super-old', 5, 0, 2, 'Super antiga', '2024-01-01T00:00:00Z'),
+      ]
+    }
+    return []
+  }
+
+  const ranking = await GetWeeklyRankingService.execute('2026-28')
+
+  assert.deepEqual(
+    ranking.map(row => ({ userId: row.userId, position: row.position })),
+    [
+      { userId: 'user-super-old', position: 1 },
+      { userId: 'user-super-new', position: 2 },
+      { userId: 'user-double', position: 3 },
+    ]
+  )
+})
+
 test('ranking mensal exibe delta canonico da coorte persistida', async t => {
   const originalFindRanking = prisma.ranking.findFirst
   const originalEnsure = EnsureMonthlyRankingsService.execute
@@ -105,7 +134,14 @@ function mockHistory(t) {
   return restore
 }
 
-function history(userId, scoreRound, totalDoubles, totalSuperDoubles, name) {
+function history(
+  userId,
+  scoreRound,
+  totalDoubles,
+  totalSuperDoubles,
+  name,
+  userCreatedAt = '2025-01-01T00:00:00Z'
+) {
   return {
     userId,
     scoreRound,
@@ -114,6 +150,7 @@ function history(userId, scoreRound, totalDoubles, totalSuperDoubles, name) {
     createdAt: new Date('2026-07-09T12:00:00Z'),
     user: {
       name,
+      createdAt: new Date(userCreatedAt),
       subscription: null,
     },
   }

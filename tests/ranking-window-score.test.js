@@ -161,3 +161,88 @@ test('fechamento sem histórico não incorpora score global posterior ao fim', a
   assert.equal(rows[0].scoreTotalCurrent, 10)
   assert.equal(rows[0].score, 0)
 })
+
+test('Mesa desempata por Super Duplas, Duplas e antiguidade da conta', async () => {
+  const participants = [
+    {
+      id: 'participant-new',
+      userId: 'user-new',
+      score: 0,
+      scoreInitial: 0,
+      position: null,
+      approvedAt: new Date('2026-07-01T00:00:00Z'),
+      createdAt: new Date('2026-07-01T00:00:00Z'),
+      user: {
+        scoreTotal: 10,
+        createdAt: new Date('2026-02-01T00:00:00Z'),
+      },
+    },
+    {
+      id: 'participant-old',
+      userId: 'user-old',
+      score: 0,
+      scoreInitial: 0,
+      position: null,
+      approvedAt: new Date('2026-07-01T00:00:00Z'),
+      createdAt: new Date('2026-07-02T00:00:00Z'),
+      user: {
+        scoreTotal: 10,
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+      },
+    },
+    {
+      id: 'participant-super',
+      userId: 'user-super',
+      score: 0,
+      scoreInitial: 0,
+      position: null,
+      approvedAt: new Date('2026-07-01T00:00:00Z'),
+      createdAt: new Date('2026-07-03T00:00:00Z'),
+      user: {
+        scoreTotal: 10,
+        createdAt: new Date('2026-03-01T00:00:00Z'),
+      },
+    },
+  ]
+  const histories = [
+    historyWithHits('user-new', 10, 1, 2, '2026-07-10T12:00:00Z'),
+    historyWithHits('user-old', 10, 1, 2, '2026-07-10T12:00:00Z'),
+    historyWithHits('user-super', 10, 2, 0, '2026-07-10T12:00:00Z'),
+  ]
+  const db = {
+    rankingParticipant: { findMany: async () => participants },
+    userScoreHistory: { findMany: async () => histories },
+  }
+
+  const rows = await RankingWindowScoreService.buildRows(db, {
+    id: 'mesa-tiebreak',
+    startDate: new Date('2026-07-01T00:00:00Z'),
+    endDate: new Date('2026-07-31T23:59:59Z'),
+  })
+
+  assert.deepEqual(
+    rows.map(item => ({
+      userId: item.userId,
+      superDoubleHits: item.superDoubleHits,
+      doubleHits: item.doubleHits,
+      position: item.position,
+    })),
+    [
+      { userId: 'user-super', superDoubleHits: 2, doubleHits: 0, position: 1 },
+      { userId: 'user-old', superDoubleHits: 1, doubleHits: 2, position: 2 },
+      { userId: 'user-new', superDoubleHits: 1, doubleHits: 2, position: 3 },
+    ]
+  )
+})
+
+function historyWithHits(userId, scoreTotal, totalSuperDoubles, totalDoubles, closeAt) {
+  return {
+    userId,
+    scoreRound: scoreTotal,
+    scoreTotal,
+    totalSuperDoubles,
+    totalDoubles,
+    createdAt: new Date(closeAt),
+    round: { closeAt: new Date(closeAt) },
+  }
+}
