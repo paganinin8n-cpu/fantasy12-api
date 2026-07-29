@@ -1,0 +1,52 @@
+name: Validate mesa score scenario
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type VALIDATE to create scenario and return report
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Run mesa score validation on server
+    if: inputs.confirmation == 'VALIDATE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Run validator in active API container
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          command_timeout: 10m
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            REPORT=/tmp/f12-mesa-score-validation.json
+
+            if [ -z "$API_CONTAINER" ]; then
+              echo "Active Fantasy12 API container not found" >&2
+              exit 1
+            fi
+
+            if ! docker exec "$API_CONTAINER" test -f /app/scripts/validate-mesa-score-scenario.js; then
+              echo "validate-mesa-score-scenario.js missing in container — deploy API first" >&2
+              exit 1
+            fi
+
+            docker exec "$API_CONTAINER" node /app/scripts/validate-mesa-score-scenario.js > "$REPORT"
+            test -s "$REPORT"
+            STATUS=0
+            docker exec -i "$API_CONTAINER" node -e 'let s=""; process.stdin.on("data",c=>s+=c).on("end",()=>{const r=JSON.parse(s); if(r.status!=="ok"&&r.status!=="failed") process.exit(1); console.log(JSON.stringify({status:r.status,scenarioId:r.scenarioId,verdict:r.verdict},null,2)); if(r.status!=="ok") process.exit(2)})' < "$REPORT" || STATUS=$?
+            printf 'REPORT_BASE64=' && gzip -c "$REPORT" | base64 | tr -d '\n'
+            printf '\n'
+            exit "$STATUS"
