@@ -1,0 +1,648 @@
+{
+  "status": "ok",
+  "scenarioId": "20260729011340",
+  "seed": 729011340,
+  "formula": "scoreMesa = scoreTotalCurrent(até endDate) - scoreInitial(antes de startDate)",
+  "timezone": "UTC persistido; BRT = America/Sao_Paulo",
+  "generatedAt": "2026-07-29T01:13:40.621Z",
+  "schedule": {
+    "usersCreated": {
+      "utc": "2026-07-01T10:00:00.000Z",
+      "saoPaulo": "01/07/2026, 07:00:00"
+    },
+    "r1Close": {
+      "utc": "2026-07-02T12:00:00.000Z",
+      "saoPaulo": "02/07/2026, 09:00:00"
+    },
+    "mesaAStart": {
+      "utc": "2026-07-03T00:00:00.000Z",
+      "saoPaulo": "02/07/2026, 21:00:00"
+    },
+    "r2Close": {
+      "utc": "2026-07-04T12:00:00.000Z",
+      "saoPaulo": "04/07/2026, 09:00:00"
+    },
+    "mesaBStart": {
+      "utc": "2026-07-05T00:00:00.000Z",
+      "saoPaulo": "04/07/2026, 21:00:00"
+    },
+    "r3Close": {
+      "utc": "2026-07-06T12:00:00.000Z",
+      "saoPaulo": "06/07/2026, 09:00:00"
+    },
+    "mesaAEnd": {
+      "utc": "2026-07-07T00:00:00.000Z",
+      "saoPaulo": "06/07/2026, 21:00:00"
+    },
+    "r4Close": {
+      "utc": "2026-07-08T12:00:00.000Z",
+      "saoPaulo": "08/07/2026, 09:00:00"
+    },
+    "mesaBEnd": {
+      "utc": "2026-07-09T00:00:00.000Z",
+      "saoPaulo": "08/07/2026, 21:00:00"
+    }
+  },
+  "users": {
+    "alpha": {
+      "id": "c677bfd3-1372-4818-80ab-76fb0b17b9b3",
+      "name": "[SCORETEST 20260729011340] Alpha PRO",
+      "email": "scoretest-20260729011340-alpha@simulation.fantasy12.test",
+      "plan": "PRO_MONTHLY"
+    },
+    "beta": {
+      "id": "11eca094-813e-4551-8a69-26472270b9d5",
+      "name": "[SCORETEST 20260729011340] Beta PRO",
+      "email": "scoretest-20260729011340-beta@simulation.fantasy12.test",
+      "plan": "PRO_MONTHLY"
+    }
+  },
+  "rounds": [
+    {
+      "id": "7f5f8644-2363-4294-95a1-753ea99b6fcd",
+      "number": 4,
+      "label": "R1_OUTSIDE",
+      "openedAt": {
+        "utc": "2026-07-01T12:00:00.000Z",
+        "saoPaulo": "01/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-02T12:00:00.000Z",
+        "saoPaulo": "02/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "alpha": {
+          "prediction": "X,2,1,2,X,2,X,X,1,X,1,1",
+          "multipliers": [
+            1,
+            4,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "scoreRound": 0,
+          "hits": 4,
+          "misses": 8,
+          "doubleHits": 0,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 1
+        },
+        "beta": {
+          "prediction": "1,1,1,X,2,1,X,2,2,2,2,X",
+          "multipliers": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            4,
+            2,
+            1,
+            4,
+            1
+          ],
+          "scoreRound": -6,
+          "hits": 4,
+          "misses": 8,
+          "doubleHits": 0,
+          "doubleMisses": 1,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 2
+        }
+      }
+    },
+    {
+      "id": "7b8b3e82-98e5-49aa-b03c-419f74dcec8b",
+      "number": 5,
+      "label": "R2_IN_A",
+      "openedAt": {
+        "utc": "2026-07-03T12:00:00.000Z",
+        "saoPaulo": "03/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-04T12:00:00.000Z",
+        "saoPaulo": "04/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "alpha": {
+          "prediction": "X,X,X,X,X,2,1,X,X,X,X,1",
+          "multipliers": [
+            1,
+            1,
+            2,
+            1,
+            4,
+            1,
+            4,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "scoreRound": -1,
+          "hits": 2,
+          "misses": 10,
+          "doubleHits": 0,
+          "doubleMisses": 1,
+          "superDoubleHits": 1,
+          "superDoubleMisses": 1
+        },
+        "beta": {
+          "prediction": "1,1,X,1,1,2,X,X,X,1,2,1",
+          "multipliers": [
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "scoreRound": 7,
+          "hits": 6,
+          "misses": 6,
+          "doubleHits": 1,
+          "doubleMisses": 0,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0
+        }
+      }
+    },
+    {
+      "id": "5c4b8b1d-46ed-4a40-b77f-7d468751bab9",
+      "number": 6,
+      "label": "R3_IN_A_AND_B",
+      "openedAt": {
+        "utc": "2026-07-05T12:00:00.000Z",
+        "saoPaulo": "05/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-06T12:00:00.000Z",
+        "saoPaulo": "06/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "alpha": {
+          "prediction": "2,X,2,X,X,2,1,2,2,X,1,2",
+          "multipliers": [
+            4,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            4,
+            1,
+            1
+          ],
+          "scoreRound": -8,
+          "hits": 2,
+          "misses": 10,
+          "doubleHits": 0,
+          "doubleMisses": 1,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 2
+        },
+        "beta": {
+          "prediction": "X,X,X,1,1,1,2,X,2,1,2,1",
+          "multipliers": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            2,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "scoreRound": 5,
+          "hits": 5,
+          "misses": 7,
+          "doubleHits": 2,
+          "doubleMisses": 1,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0
+        }
+      }
+    },
+    {
+      "id": "afd2e052-7f06-4e28-9beb-894dd9428688",
+      "number": 7,
+      "label": "R4_IN_B_ONLY",
+      "openedAt": {
+        "utc": "2026-07-07T12:00:00.000Z",
+        "saoPaulo": "07/07/2026, 09:00:00"
+      },
+      "closedAt": {
+        "utc": "2026-07-08T12:00:00.000Z",
+        "saoPaulo": "08/07/2026, 09:00:00"
+      },
+      "result": "1,1,1,1,1,1,1,1,1,1,1,1",
+      "tickets": {
+        "alpha": {
+          "prediction": "X,2,2,X,X,X,1,2,2,X,2,X",
+          "multipliers": [
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "scoreRound": -1,
+          "hits": 1,
+          "misses": 11,
+          "doubleHits": 0,
+          "doubleMisses": 1,
+          "superDoubleHits": 0,
+          "superDoubleMisses": 0
+        },
+        "beta": {
+          "prediction": "1,2,1,X,1,1,X,1,1,2,2,1",
+          "multipliers": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            4
+          ],
+          "scoreRound": 11,
+          "hits": 7,
+          "misses": 5,
+          "doubleHits": 1,
+          "doubleMisses": 0,
+          "superDoubleHits": 1,
+          "superDoubleMisses": 0
+        }
+      }
+    }
+  ],
+  "mesas": [
+    {
+      "key": "mesaA",
+      "id": "7d35d8be-9e6f-4cba-9943-a43f9e4ec886",
+      "name": "[SCORETEST 20260729011340] Mesa A (R2+R3)",
+      "roundsCovered": [
+        "R2",
+        "R3"
+      ],
+      "startDate": {
+        "utc": "2026-07-03T00:00:00.000Z",
+        "saoPaulo": "02/07/2026, 21:00:00"
+      },
+      "endDate": {
+        "utc": "2026-07-07T00:00:00.000Z",
+        "saoPaulo": "06/07/2026, 21:00:00"
+      },
+      "admissions": {
+        "alpha": {
+          "scoreInitial": 0,
+          "rule": "scoreInitial = scoreTotal antes de startDate (closeAt < startDate)"
+        },
+        "beta": {
+          "scoreInitial": -6,
+          "rule": "scoreInitial = scoreTotal antes de startDate (closeAt < startDate)"
+        }
+      }
+    },
+    {
+      "key": "mesaB",
+      "id": "2d89b47b-f6f6-4582-837d-f184c9eb0f69",
+      "name": "[SCORETEST 20260729011340] Mesa B (R3+R4)",
+      "roundsCovered": [
+        "R3",
+        "R4"
+      ],
+      "startDate": {
+        "utc": "2026-07-05T00:00:00.000Z",
+        "saoPaulo": "04/07/2026, 21:00:00"
+      },
+      "endDate": {
+        "utc": "2026-07-09T00:00:00.000Z",
+        "saoPaulo": "08/07/2026, 21:00:00"
+      },
+      "admissions": {
+        "alpha": {
+          "scoreInitial": -1,
+          "rule": "scoreInitial = scoreTotal antes de startDate (closeAt < startDate)"
+        },
+        "beta": {
+          "scoreInitial": 1,
+          "rule": "scoreInitial = scoreTotal antes de startDate (closeAt < startDate)"
+        }
+      }
+    }
+  ],
+  "validations": [
+    {
+      "mesaId": "7d35d8be-9e6f-4cba-9943-a43f9e4ec886",
+      "role": "alpha",
+      "userId": "c677bfd3-1372-4818-80ab-76fb0b17b9b3",
+      "roundsCovered": [
+        "R2",
+        "R3"
+      ],
+      "expected": {
+        "scoreInitial": 0,
+        "scoreTotalCurrent": -9,
+        "expected": -9,
+        "lastRoundInWindow": {
+          "number": 6,
+          "closeAt": {
+            "utc": "2026-07-06T12:00:00.000Z",
+            "saoPaulo": "06/07/2026, 09:00:00"
+          },
+          "scoreRound": -8
+        },
+        "historiesInWindow": [
+          {
+            "round": 5,
+            "closeAt": {
+              "utc": "2026-07-04T12:00:00.000Z",
+              "saoPaulo": "04/07/2026, 09:00:00"
+            },
+            "scoreRound": -1,
+            "scoreTotal": -1
+          },
+          {
+            "round": 6,
+            "closeAt": {
+              "utc": "2026-07-06T12:00:00.000Z",
+              "saoPaulo": "06/07/2026, 09:00:00"
+            },
+            "scoreRound": -8,
+            "scoreTotal": -9
+          }
+        ]
+      },
+      "engine": {
+        "score": -9,
+        "scoreInitial": 0,
+        "scoreTotalCurrent": -9,
+        "scoreRound": -8,
+        "position": 2
+      },
+      "stored": {
+        "score": -9,
+        "scoreInitial": 0,
+        "position": 2
+      },
+      "rankingView": {
+        "score": -9,
+        "scoreInitial": 0,
+        "position": 2
+      },
+      "checks": {
+        "engineMatchesExpected": true,
+        "storedMatchesExpected": true,
+        "viewMatchesExpected": true,
+        "scoreInitialMatches": true
+      },
+      "passed": true
+    },
+    {
+      "mesaId": "7d35d8be-9e6f-4cba-9943-a43f9e4ec886",
+      "role": "beta",
+      "userId": "11eca094-813e-4551-8a69-26472270b9d5",
+      "roundsCovered": [
+        "R2",
+        "R3"
+      ],
+      "expected": {
+        "scoreInitial": -6,
+        "scoreTotalCurrent": 6,
+        "expected": 12,
+        "lastRoundInWindow": {
+          "number": 6,
+          "closeAt": {
+            "utc": "2026-07-06T12:00:00.000Z",
+            "saoPaulo": "06/07/2026, 09:00:00"
+          },
+          "scoreRound": 5
+        },
+        "historiesInWindow": [
+          {
+            "round": 5,
+            "closeAt": {
+              "utc": "2026-07-04T12:00:00.000Z",
+              "saoPaulo": "04/07/2026, 09:00:00"
+            },
+            "scoreRound": 7,
+            "scoreTotal": 1
+          },
+          {
+            "round": 6,
+            "closeAt": {
+              "utc": "2026-07-06T12:00:00.000Z",
+              "saoPaulo": "06/07/2026, 09:00:00"
+            },
+            "scoreRound": 5,
+            "scoreTotal": 6
+          }
+        ]
+      },
+      "engine": {
+        "score": 12,
+        "scoreInitial": -6,
+        "scoreTotalCurrent": 6,
+        "scoreRound": 5,
+        "position": 1
+      },
+      "stored": {
+        "score": 12,
+        "scoreInitial": -6,
+        "position": 1
+      },
+      "rankingView": {
+        "score": 12,
+        "scoreInitial": -6,
+        "position": 1
+      },
+      "checks": {
+        "engineMatchesExpected": true,
+        "storedMatchesExpected": true,
+        "viewMatchesExpected": true,
+        "scoreInitialMatches": true
+      },
+      "passed": true
+    },
+    {
+      "mesaId": "2d89b47b-f6f6-4582-837d-f184c9eb0f69",
+      "role": "alpha",
+      "userId": "c677bfd3-1372-4818-80ab-76fb0b17b9b3",
+      "roundsCovered": [
+        "R3",
+        "R4"
+      ],
+      "expected": {
+        "scoreInitial": -1,
+        "scoreTotalCurrent": -10,
+        "expected": -9,
+        "lastRoundInWindow": {
+          "number": 7,
+          "closeAt": {
+            "utc": "2026-07-08T12:00:00.000Z",
+            "saoPaulo": "08/07/2026, 09:00:00"
+          },
+          "scoreRound": -1
+        },
+        "historiesInWindow": [
+          {
+            "round": 6,
+            "closeAt": {
+              "utc": "2026-07-06T12:00:00.000Z",
+              "saoPaulo": "06/07/2026, 09:00:00"
+            },
+            "scoreRound": -8,
+            "scoreTotal": -9
+          },
+          {
+            "round": 7,
+            "closeAt": {
+              "utc": "2026-07-08T12:00:00.000Z",
+              "saoPaulo": "08/07/2026, 09:00:00"
+            },
+            "scoreRound": -1,
+            "scoreTotal": -10
+          }
+        ]
+      },
+      "engine": {
+        "score": -9,
+        "scoreInitial": -1,
+        "scoreTotalCurrent": -10,
+        "scoreRound": -1,
+        "position": 2
+      },
+      "stored": {
+        "score": -9,
+        "scoreInitial": -1,
+        "position": 2
+      },
+      "rankingView": {
+        "score": -9,
+        "scoreInitial": -1,
+        "position": 2
+      },
+      "checks": {
+        "engineMatchesExpected": true,
+        "storedMatchesExpected": true,
+        "viewMatchesExpected": true,
+        "scoreInitialMatches": true
+      },
+      "passed": true
+    },
+    {
+      "mesaId": "2d89b47b-f6f6-4582-837d-f184c9eb0f69",
+      "role": "beta",
+      "userId": "11eca094-813e-4551-8a69-26472270b9d5",
+      "roundsCovered": [
+        "R3",
+        "R4"
+      ],
+      "expected": {
+        "scoreInitial": 1,
+        "scoreTotalCurrent": 17,
+        "expected": 16,
+        "lastRoundInWindow": {
+          "number": 7,
+          "closeAt": {
+            "utc": "2026-07-08T12:00:00.000Z",
+            "saoPaulo": "08/07/2026, 09:00:00"
+          },
+          "scoreRound": 11
+        },
+        "historiesInWindow": [
+          {
+            "round": 6,
+            "closeAt": {
+              "utc": "2026-07-06T12:00:00.000Z",
+              "saoPaulo": "06/07/2026, 09:00:00"
+            },
+            "scoreRound": 5,
+            "scoreTotal": 6
+          },
+          {
+            "round": 7,
+            "closeAt": {
+              "utc": "2026-07-08T12:00:00.000Z",
+              "saoPaulo": "08/07/2026, 09:00:00"
+            },
+            "scoreRound": 11,
+            "scoreTotal": 17
+          }
+        ]
+      },
+      "engine": {
+        "score": 16,
+        "scoreInitial": 1,
+        "scoreTotalCurrent": 17,
+        "scoreRound": 11,
+        "position": 1
+      },
+      "stored": {
+        "score": 16,
+        "scoreInitial": 1,
+        "position": 1
+      },
+      "rankingView": {
+        "score": 16,
+        "scoreInitial": 1,
+        "position": 1
+      },
+      "checks": {
+        "engineMatchesExpected": true,
+        "storedMatchesExpected": true,
+        "viewMatchesExpected": true,
+        "scoreInitialMatches": true
+      },
+      "passed": true
+    }
+  ],
+  "verdict": {
+    "passed": true,
+    "summary": "Score de mesa consistente: esperado = engine = stored = ranking view",
+    "totalChecks": 4,
+    "failedChecks": 0
+  },
+  "completedAt": "2026-07-29T01:13:42.110Z",
+  "markdown": "# Validação de score de Mesa — 20260729011340\n\n- **Status:** ok\n- **Seed:** `729011340`\n- **Gerado em:** 2026-07-29T01:13:40.621Z\n- **Fórmula:** `scoreMesa = scoreTotalCurrent(até endDate) - scoreInitial(antes de startDate)`\n\n## Veredito\n\n**PASSOU** — Score de mesa consistente: esperado = engine = stored = ranking view\n\n## Usuários\n\n- **alpha**: [SCORETEST 20260729011340] Alpha PRO (`scoretest-20260729011340-alpha@simulation.fantasy12.test`) — c677bfd3-1372-4818-80ab-76fb0b17b9b3\n- **beta**: [SCORETEST 20260729011340] Beta PRO (`scoretest-20260729011340-beta@simulation.fantasy12.test`) — 11eca094-813e-4551-8a69-26472270b9d5\n\n## Timeline\n\n- **usersCreated**: 01/07/2026, 07:00:00 (UTC 2026-07-01T10:00:00.000Z)\n- **r1Close**: 02/07/2026, 09:00:00 (UTC 2026-07-02T12:00:00.000Z)\n- **mesaAStart**: 02/07/2026, 21:00:00 (UTC 2026-07-03T00:00:00.000Z)\n- **r2Close**: 04/07/2026, 09:00:00 (UTC 2026-07-04T12:00:00.000Z)\n- **mesaBStart**: 04/07/2026, 21:00:00 (UTC 2026-07-05T00:00:00.000Z)\n- **r3Close**: 06/07/2026, 09:00:00 (UTC 2026-07-06T12:00:00.000Z)\n- **mesaAEnd**: 06/07/2026, 21:00:00 (UTC 2026-07-07T00:00:00.000Z)\n- **r4Close**: 08/07/2026, 09:00:00 (UTC 2026-07-08T12:00:00.000Z)\n- **mesaBEnd**: 08/07/2026, 21:00:00 (UTC 2026-07-09T00:00:00.000Z)\n\n## Rodadas\n\n### R1_OUTSIDE (#4) — close 02/07/2026, 09:00:00\n- alpha: scoreRound=0 (hits=4, misses=8, 2x hit/miss=0/0, 4x hit/miss=0/1)\n- beta: scoreRound=-6 (hits=4, misses=8, 2x hit/miss=0/1, 4x hit/miss=0/2)\n\n### R2_IN_A (#5) — close 04/07/2026, 09:00:00\n- alpha: scoreRound=-1 (hits=2, misses=10, 2x hit/miss=0/1, 4x hit/miss=1/1)\n- beta: scoreRound=7 (hits=6, misses=6, 2x hit/miss=1/0, 4x hit/miss=0/0)\n\n### R3_IN_A_AND_B (#6) — close 06/07/2026, 09:00:00\n- alpha: scoreRound=-8 (hits=2, misses=10, 2x hit/miss=0/1, 4x hit/miss=0/2)\n- beta: scoreRound=5 (hits=5, misses=7, 2x hit/miss=2/1, 4x hit/miss=0/0)\n\n### R4_IN_B_ONLY (#7) — close 08/07/2026, 09:00:00\n- alpha: scoreRound=-1 (hits=1, misses=11, 2x hit/miss=0/1, 4x hit/miss=0/0)\n- beta: scoreRound=11 (hits=7, misses=5, 2x hit/miss=1/0, 4x hit/miss=1/0)\n\n## Mesas\n\n### mesaA — [SCORETEST 20260729011340] Mesa A (R2+R3)\n- id: `7d35d8be-9e6f-4cba-9943-a43f9e4ec886`\n- janela: 02/07/2026, 21:00:00 → 06/07/2026, 21:00:00\n- cobre: R2, R3\n- alpha scoreInitial=0\n- beta scoreInitial=-6\n\n### mesaB — [SCORETEST 20260729011340] Mesa B (R3+R4)\n- id: `2d89b47b-f6f6-4582-837d-f184c9eb0f69`\n- janela: 04/07/2026, 21:00:00 → 08/07/2026, 21:00:00\n- cobre: R3, R4\n- alpha scoreInitial=-1\n- beta scoreInitial=1\n\n## Validações\n\n| Mesa | User | Initial | Current | Expected | Engine | Stored | View | Pass |\n|---|---|---:|---:|---:|---:|---:|---:|:---:|\n| undefined | alpha | 0 | -9 | -9 | -9 | -9 | -9 | OK |\n| undefined | beta | -6 | 6 | 12 | 12 | 12 | 12 | OK |\n| undefined | alpha | -1 | -10 | -9 | -9 | -9 | -9 | OK |\n| undefined | beta | 1 | 17 | 16 | 16 | 16 | 16 | OK |\n"
+}
