@@ -5,6 +5,9 @@ const {
   RANKING_TIEBREAK_RULE_VERSION,
   RankingTiebreakService,
 } = require('../dist/services/ranking/ranking-tiebreak.service')
+const {
+  RankingCoreService,
+} = require('../dist/services/ranking/ranking-core.service')
 
 function row({
   userId,
@@ -83,5 +86,31 @@ test('sem histórico anterior, o baseline de acertos é zero', () => {
       superDoubleHits: 2,
       doubleHits: 4,
     }
+  )
+})
+
+test('RankingCore delega para a mesma regra oficial', () => {
+  const ranked = RankingCoreService.buildRanking([
+    {
+      userId: 'last-round',
+      scoreTotal: 10,
+      scoreRound: 99,
+      totalSuperDoubles: 0,
+      totalDoubles: 10,
+      userCreatedAt: new Date('2025-01-01T00:00:00Z'),
+    },
+    {
+      userId: 'super-double',
+      scoreTotal: 10,
+      scoreRound: 0,
+      totalSuperDoubles: 1,
+      totalDoubles: 0,
+      userCreatedAt: new Date('2026-01-01T00:00:00Z'),
+    },
+  ])
+
+  assert.deepEqual(
+    ranked.map(item => item.userId),
+    ['super-double', 'last-round']
   )
 })

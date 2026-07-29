@@ -115,3 +115,25 @@ test('banco possui defesa final para impedir duas rodadas OPEN', () => {
   const sql = fs.readFileSync(migration, 'utf8')
   assert.match(sql, /CREATE UNIQUE INDEX[\s\S]+WHERE "status" = 'OPEN'/i)
 })
+
+test('fechamento de ranking persiste auditoria versionada do desempate oficial', () => {
+  const migration = path.join(
+    __dirname, '..', 'prisma', 'migrations',
+    '20260729162000_add_ranking_tiebreak_audit', 'migration.sql'
+  )
+  assert.equal(fs.existsSync(migration), true)
+
+  const sql = fs.readFileSync(migration, 'utf8')
+  assert.match(sql, /tiebreakSuperDoubleHits/)
+  assert.match(sql, /tiebreakDoubleHits/)
+  assert.match(sql, /tiebreakUserCreatedAt/)
+  assert.match(sql, /tiebreakRuleVersion/)
+
+  const closeRankingSource = fs.readFileSync(path.join(
+    __dirname, '..', 'src', 'services', 'ranking', 'close-ranking.service.ts'
+  ), 'utf8')
+  assert.match(closeRankingSource, /RANKING_TIEBREAK_RULE_VERSION/)
+  assert.match(closeRankingSource, /tiebreakSuperDoubleHits:\s*row\.superDoubleHits/)
+  assert.match(closeRankingSource, /tiebreakDoubleHits:\s*row\.doubleHits/)
+  assert.match(closeRankingSource, /tiebreakUserCreatedAt:\s*row\.userCreatedAt/)
+})
