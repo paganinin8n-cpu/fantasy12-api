@@ -59,7 +59,22 @@ export function errorHandler(
     }
   }
 
-  // 4) Fallback: erro inesperado
+  // 4) Redis session store ainda não pronto / conexão caída
+  if (
+    typeof err.message === 'string' &&
+    err.message.includes('enableOfflineQueue options is false')
+  ) {
+    ;(req as any).log?.error(
+      { err, method: req.method, url: req.originalUrl },
+      'redis session store unavailable'
+    )
+    return res.status(503).json({
+      error: 'service_unavailable',
+      message: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+    })
+  }
+
+  // 5) Fallback: erro inesperado
   ;(req as any).log?.error(
     { err, method: req.method, url: req.originalUrl },
     'unhandled error'

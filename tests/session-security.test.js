@@ -208,6 +208,19 @@ test('login no longer creates or returns an unused JWT', () => {
   assert.doesNotMatch(source, /generateToken|token,/) 
 })
 
+test('API boots only after Redis session store is ready', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../src/index.ts'),
+    'utf8'
+  )
+
+  assert.match(source, /ensureRedisSessionStoreReady/)
+  assert.match(
+    source,
+    /await ensureRedisSessionStoreReady\(\)[\s\S]+app\.listen/
+  )
+})
+
 test('password change destroys the current session so response touch cannot recreate it', () => {
   const source = fs.readFileSync(
     path.resolve(__dirname, '../src/controllers/me.controller.ts'),

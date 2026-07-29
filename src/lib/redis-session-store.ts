@@ -115,6 +115,7 @@ export class RedisSessionStore extends Store {
 }
 
 let sharedStore: RedisSessionStore | null = null
+let sharedClient: IORedis | null = null
 
 export function getRedisSessionStore(
   redisUrl: string,
@@ -124,10 +125,11 @@ export function getRedisSessionStore(
 
   const client = new IORedis(redisUrl, {
     enableReadyCheck: true,
+    // Conecta sob demanda no boot via ensureRedisSessionStoreReady().
+    // Mantém enableOfflineQueue=false para falhar rápido se o Redis cair
+    // depois de pronto — sem isso o login fica pendurado no browser.
     lazyConnect: true,
     maxRetriesPerRequest: 1,
-    // Sem fila offline: se o Redis cair/auth falhar, a request falha rápido
-    // em vez de ficar pendurada até o timeout do browser.
     enableOfflineQueue: false,
     connectTimeout: 5_000,
     commandTimeout: 5_000,
@@ -139,8 +141,59 @@ export function getRedisSessionStore(
     )
   })
 
+  sharedClient = client
   sharedStore = new RedisSessionStore(client, { idleTtlSeconds })
   return sharedStore
+}
+
+/**
+ * Garante que o client de sessão está ready antes de aceitar tráfego.
+ * Sem isso, o primeiro login após o boot falha com:
+ * "Stream isn't writeable and enableOfflineQueue options is false".
+ */
+export async function ensureRedisSessionStoreReady(
+  timeoutMs = 10_000
+): Promise<void> {
+  if (!sharedClient) {
+    throw new Error('Redis session store not initialized')
+  }
+
+  if (sharedClient.status === 'ready') return
+
+  if (sharedClient.status === 'wait' || sharedClient.status === 'end') {
+    await sharedClient.connect()
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup()
+      reject(new Error('Redis session store connect timeout'))
+    }, timeoutMs)
+
+    const onReady = () => {
+      cleanup()
+      resolve()
+    }
+    const onError = (error: Error) => {
+      cleanup()
+      reject(error)
+    }
+    const cleanup = () => {
+      clearTimeout(timeout)
+      sharedClient?.off('ready', onReady)
+      sharedClient?.off('error', onError)
+    }
+
+    sharedClient!.once('ready', onReady)
+    sharedClient!.once('error', onError)
+  })
+}
+
+export async function pingRedisSessionStore(): Promise<boolean> {
+  if (!sharedClient || sharedClient.status !== 'ready') return false
+  const result = await sharedClient.ping()
+  return result === 'PONG'
 }
 
 export async function revokeUserSessions(userId: string): Promise<void> {

@@ -49,7 +49,11 @@ import { requestLogger } from './middleware/request-logger.middleware'
 import { createCsrfProtection } from './middleware/csrf-protection.middleware'
 import { logger } from './lib/logger'
 import { releaseVersion } from './lib/release-version'
-import { getRedisSessionStore } from './lib/redis-session-store'
+import {
+  ensureRedisSessionStoreReady,
+  getRedisSessionStore,
+  pingRedisSessionStore,
+} from './lib/redis-session-store'
 import {
   createSessionLifetimeMiddleware,
   loadSessionSecurityConfig,
@@ -211,17 +215,30 @@ app.get('/health', async (_req, res) => {
   try {
     const { prisma } = await import('./lib/prisma')
     await prisma.$queryRaw`SELECT 1`
+    const redisOk = await pingRedisSessionStore()
 
-    res.json({
+    if (!redisOk) {
+      return res.status(503).json({
+        api: 'ok',
+        db: 'ok',
+        redis: 'error',
+        version: releaseVersion,
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    return res.json({
       api: 'ok',
       db: 'ok',
+      redis: 'ok',
       version: releaseVersion,
       timestamp: new Date().toISOString(),
     })
   } catch {
-    res.status(503).json({
+    return res.status(503).json({
       api: 'ok',
       db: 'error',
+      redis: 'unknown',
       version: releaseVersion,
       timestamp: new Date().toISOString(),
     })
@@ -247,6 +264,14 @@ app.use(errorHandler)
 
 const PORT = Number(process.env.PORT ?? 3001)
 
-app.listen(PORT, '0.0.0.0', () => {
-  logger.info({ port: PORT }, 'Fantasy12 API rodando')
+async function start() {
+  await ensureRedisSessionStoreReady()
+  app.listen(PORT, '0.0.0.0', () => {
+    logger.info({ port: PORT }, 'Fantasy12 API rodando')
+  })
+}
+
+start().catch(error => {
+  logger.error({ err: error }, 'Falha ao iniciar Fantasy12 API')
+  process.exit(1)
 })
