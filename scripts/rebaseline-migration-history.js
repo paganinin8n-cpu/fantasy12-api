@@ -275,6 +275,7 @@ async function execute() {
           baselineMigration: manifest.baselineMigration,
           baselineChecksum: checksum,
           applicationSchemaFingerprint: schemaFingerprintBefore,
+          applicationSchemaSnapshot: schemaBefore,
           migrationRows: [],
         })
         return {
@@ -299,6 +300,7 @@ async function execute() {
           baselineMigration: manifest.baselineMigration,
           baselineChecksum: checksum,
           applicationSchemaFingerprint: schemaFingerprintBefore,
+          applicationSchemaSnapshot: schemaBefore,
           migrationRows,
         })
         return {
@@ -313,23 +315,24 @@ async function execute() {
       const historyState = assertRecognizedHistory(migrationRows, manifest)
 
       assertRequiredStructure(schemaBefore)
+      writeBackup(backupPath, {
+        createdAt: new Date().toISOString(),
+        baselineMigration: manifest.baselineMigration,
+        baselineChecksum: checksum,
+        applicationSchemaFingerprint: schemaFingerprintBefore,
+        applicationSchemaSnapshot: schemaBefore,
+        migrationRows,
+      })
+
       if (
         !historyState.alreadyConsolidated &&
         schemaFingerprintBefore !==
           manifest.expectedApplicationSchemaFingerprint
       ) {
         throw new Error(
-          `Application schema does not match the validated baseline: expected ${manifest.expectedApplicationSchemaFingerprint}, received ${schemaFingerprintBefore}`
+          `Application schema does not match the validated baseline: expected ${manifest.expectedApplicationSchemaFingerprint}, received ${schemaFingerprintBefore}\nAPPLICATION_SCHEMA_SNAPSHOT=${JSON.stringify(schemaBefore)}`
         )
       }
-
-      writeBackup(backupPath, {
-        createdAt: new Date().toISOString(),
-        baselineMigration: manifest.baselineMigration,
-        baselineChecksum: checksum,
-        applicationSchemaFingerprint: schemaFingerprintBefore,
-        migrationRows,
-      })
 
       if (historyState.alreadyConsolidated) {
         return {
