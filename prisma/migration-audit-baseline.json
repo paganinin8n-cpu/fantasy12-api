@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "findingsCount": 45,
-  "fingerprint": "d8cef07d2b781e5f837e57384c9dd2bdaefe7d8cb2f7bab756f1eeb031ed5120",
-  "note": "Legacy findings accepted for MVP V1. Any change requires explicit review."
+  "findingsCount": 0,
+  "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "note": "Baseline consolidada V2. Qualquer novo achado exige revisão explícita."
 }

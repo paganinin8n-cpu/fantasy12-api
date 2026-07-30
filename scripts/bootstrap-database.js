@@ -1,24 +1,10 @@
 #!/usr/bin/env node
 
 const { execFileSync } = require('node:child_process')
-const fs = require('node:fs')
 const path = require('node:path')
 const { prisma } = require('../dist/lib/prisma')
 
 const PROJECT_ROOT = path.resolve(__dirname, '..')
-const MIGRATIONS_DIR = path.join(PROJECT_ROOT, 'prisma', 'migrations')
-const SINGLE_OPEN_ROUND_CONSTRAINT = path.join(
-  PROJECT_ROOT, 'prisma', 'constraints', 'single-open-round.sql'
-)
-const NON_NEGATIVE_BALANCES_CONSTRAINT = path.join(
-  PROJECT_ROOT, 'prisma', 'constraints', 'non-negative-balances.sql'
-)
-const CANONICAL_USER_IDENTITY_CONSTRAINT = path.join(
-  PROJECT_ROOT, 'prisma', 'constraints', 'canonical-user-identity.sql'
-)
-const BOLAO_INVITE_INTEGRITY_CONSTRAINT = path.join(
-  PROJECT_ROOT, 'prisma', 'constraints', 'bolao-invite-integrity.sql'
-)
 
 function run(command, args) {
   execFileSync(command, args, {
@@ -40,33 +26,9 @@ async function getPublicTables() {
   return rows.map((row) => row.tablename)
 }
 
-function getMigrationNames() {
-  return fs
-    .readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort()
-}
-
-function markMigrationsApplied() {
-  const migrations = getMigrationNames()
-
-  if (migrations.length === 0) {
-    console.log('No Prisma migrations found to mark as applied.')
-    return
-  }
-
-  console.log('Marking historical Prisma migrations as applied...')
-
-  for (const migration of migrations) {
-    run('npx', ['prisma', 'migrate', 'resolve', '--applied', migration])
-  }
-}
-
 async function main() {
   const allowExisting = process.argv.includes('--allow-existing')
   const skipSeed = process.argv.includes('--skip-seed')
-  const skipMigrationResolve = process.argv.includes('--skip-migration-resolve')
 
   console.log('Inspecting database state...')
   const tables = await getPublicTables()
@@ -84,34 +46,8 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('Running prisma db push...')
-  run('npx', ['prisma', 'db', 'push', '--skip-generate'])
-
-  console.log('Applying database-only operational constraints...')
-  run('npx', [
-    'prisma', 'db', 'execute',
-    '--file', SINGLE_OPEN_ROUND_CONSTRAINT,
-    '--schema', 'prisma/schema.prisma',
-  ])
-  run('npx', [
-    'prisma', 'db', 'execute',
-    '--file', NON_NEGATIVE_BALANCES_CONSTRAINT,
-    '--schema', 'prisma/schema.prisma',
-  ])
-  run('npx', [
-    'prisma', 'db', 'execute',
-    '--file', CANONICAL_USER_IDENTITY_CONSTRAINT,
-    '--schema', 'prisma/schema.prisma',
-  ])
-  run('npx', [
-    'prisma', 'db', 'execute',
-    '--file', BOLAO_INVITE_INTEGRITY_CONSTRAINT,
-    '--schema', 'prisma/schema.prisma',
-  ])
-
-  if (!skipMigrationResolve) {
-    markMigrationsApplied()
-  }
+  console.log('Applying the consolidated Prisma migration baseline...')
+  run('npx', ['prisma', 'migrate', 'deploy'])
 
   if (!skipSeed) {
     console.log('Seeding admin permissions...')

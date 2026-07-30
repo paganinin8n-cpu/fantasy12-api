@@ -1,155 +1,75 @@
-# Audit Da Trilha De Migrations
+# Auditoria da trilha de migrations
 
-## Status Atual
+## Estado atual
 
-A trilha histórica de migrations do `fantasy12-api` **não sobe um banco vazio sozinha**.
+A trilha ativa do `fantasy12-api` começa em uma baseline consolidada:
 
-Hoje, o caminho operacional seguro e:
-
-- banco vazio: `npm run prisma:bootstrap:fresh`
-- banco existente: `npm run prisma:migrate:deploy`
-
-No fluxo de banco vazio, o bootstrap aplica o schema atual com `prisma db push` e depois marca as migrations historicas como aplicadas. Isso evita que ambientes fresh tentem executar a cadeia antiga, que foi escrita para um banco pre-existente.
-
-## Evidências Objetivas
-
-### 1. `20260119_baseline_v1` é um baseline vazio
-
-Arquivo:
-
-- `/Users/roberson/dev/personal/fantasy12-api/prisma/migrations/20260119_baseline_v1/migration.sql`
-
-Conteúdo:
-
-```sql
--- Baseline migration
--- Existing production database
--- No changes applied
+```text
+20260730000000_fantasy12_baseline_v2
 ```
 
-Ou seja: a própria primeira migration assume um banco pré-existente.
+Ela cria o schema completo do zero e inclui invariantes que não são
+representáveis no `schema.prisma`, como:
 
-### 2. `20260120_bolao_invites` referencia tabelas ainda inexistentes
+- índice parcial que permite somente uma rodada `OPEN`;
+- constraints de saldos e benefícios não negativos;
+- email canônico;
+- integridade dos limites de convites de Bolão.
 
-Arquivo:
-
-- `/Users/roberson/dev/personal/fantasy12-api/prisma/migrations/20260120_bolao_invites/migration.sql`
-
-Problema:
-
-- cria `bolao_invites`
-- cria FK para `rankings`
-- cria FK para `users`
-
-Trecho crítico:
-
-```sql
-ALTER TABLE "bolao_invites"
-ADD CONSTRAINT "bolao_invites_rankingId_fkey"
-FOREIGN KEY ("rankingId")
-REFERENCES "rankings"("id")
-ON DELETE CASCADE;
-```
-
-Em banco vazio, `rankings` ainda não foi criada pela cadeia histórica anterior. Esse foi exatamente o erro de produção que vimos:
-
-- `P3009`
-- `ERROR: relation "rankings" does not exist`
-
-### 3. `20260120_monetizacao_core` depende de `users` e `rounds`
-
-Arquivo:
-
-- `/Users/roberson/dev/personal/fantasy12-api/prisma/migrations/20260120_monetizacao_core/migration.sql`
-
-Problema:
-
-- cria `subscriptions`, `wallets`, `wallet_ledger`, `round_benefits`
-- cria FKs para `users`
-- cria FK para `rounds`
-
-Trechos críticos:
-
-```sql
-REFERENCES "users"("id")
-```
-
-```sql
-REFERENCES "rounds"("id")
-```
-
-Isso confirma que a migration pressupõe entidades centrais já existentes.
-
-### 4. `20260122_v1_5_subscription_recorrente` está em UTF-16LE
-
-Arquivo:
-
-- `/Users/roberson/dev/personal/fantasy12-api/prisma/migrations/20260122_v1_5_subscription_recorrente/migration.sql`
-
-Sinais observados:
-
-- arquivo contém bytes nulos
-- leitura correta acontece em `utf16le`
-
-Isso aumenta risco operacional para diff, revisão humana e tooling.
-
-### 5. A baseline canônica do schema atual é maior do que a história migratória efetiva
-
-Geramos o schema fresh diretamente do Prisma em:
-
-- `/Users/roberson/dev/personal/fantasy12-api/prisma/baselines/current-fresh-schema.sql`
-
-Esse SQL inclui desde o zero:
-
-- enums como `PaymentProvider`
-- tabelas como `users`, `rounds`, `rankings`, `subscriptions`, `payments`
-- todas as FKs finais esperadas
-
-Isso comprova que o estado final do schema existe e é consistente, mas a cadeia histórica não chega nele a partir de banco vazio sem apoio externo.
-
-## Comando Oficial De Baseline Fresh
-
-Para regenerar a baseline canônica:
+Por isso, bancos vazios e bancos existentes usam a mesma operação:
 
 ```sh
-npm run prisma:baseline:fresh:generate
-```
-
-## Decisão Operacional Atual
-
-### Banco novo
-
-Usar:
-
-```sh
-npm run prisma:bootstrap:fresh
-```
-
-Esse comando:
-
-- bloqueia banco nao vazio por padrao
-- aplica o schema atual
-- registra a trilha historica em `_prisma_migrations`
-- executa seeds minimas
-
-### Banco existente com histórico Prisma
-
-Usar:
-
-```sh
-npm run prisma:migrate:status
 npm run prisma:migrate:deploy
 ```
 
-Se houver migration quebrada, diagnosticar e resolver explicitamente antes do deploy.
+## Histórico anterior
 
-## Próximo Passo Estrutural Recomendado
+As 35 migrations anteriores foram removidas da pasta ativa porque começavam
+com uma baseline vazia e pressupunham tabelas preexistentes. O histórico
+permanece recuperável no Git e no manifesto:
 
-Decisao tomada em 2026-06-06:
+```text
+prisma/migration-baseline-cutover-v2.json
+```
 
-- manter `db push + migrate resolve --applied + seeds` como bootstrap oficial para ambiente novo
-- manter a cadeia historica congelada como legado auditado
-- criar novas migrations normalmente daqui para frente
-- validar o contrato com `npm run prisma:migration:policy:check`
+A base existente recebeu apenas uma troca controlada dos registros de
+`_prisma_migrations`. Nenhum SQL da baseline consolidada foi executado sobre
+as tabelas existentes.
 
-A cadeia historica continua nao sendo uma fonte unica confiavel para subir banco vazio, mas isso deixa de ser ambiguidade operacional: banco vazio nao usa essa cadeia para construir schema.
+## Proteções do corte
+
+O script `scripts/rebaseline-migration-history.js`:
+
+1. exige autorização explícita com o nome exato da baseline;
+2. aceita somente o histórico legado previsto no manifesto;
+3. valida tabelas, constraints e índices operacionais;
+4. bloqueia `_prisma_migrations`;
+5. grava um backup JSON do histórico;
+6. registra a baseline e remove os registros legados na mesma transação;
+7. compara o fingerprint estrutural antes e depois;
+8. aborta a transação se qualquer estrutura da aplicação mudar.
+
+O script é idempotente. Depois do corte, execuções futuras apenas confirmam
+que a baseline já está consolidada.
+
+## Baseline canônica do schema atual
+
+O SQL gerado diretamente do Prisma continua versionado em:
+
+```text
+prisma/baselines/current-fresh-schema.sql
+```
+
+Ele representa o schema Prisma atual. A migration inicial consolidada é
+imutável depois de aplicada; mudanças futuras devem ser novas migrations.
+
+## Verificações
+
+```sh
+npm run prisma:migrate:audit:chain:baseline
+npm run prisma:baseline:fresh:verify
+npm run prisma:migration:policy:check
+npm run prisma:schema:release:check
+```
+
+O resultado esperado para a auditoria da cadeia é zero erros e zero avisos.

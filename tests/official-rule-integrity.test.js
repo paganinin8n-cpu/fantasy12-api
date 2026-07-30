@@ -107,9 +107,10 @@ test('diagnóstico de Mesa identifica configuração financeira e pagamentos leg
 })
 
 test('banco possui defesa final para impedir duas rodadas OPEN', () => {
+  const baseline = require('../prisma/migration-baseline-cutover-v2.json')
   const migration = path.join(
     __dirname, '..', 'prisma', 'migrations',
-    '20260716010000_enforce_single_open_round', 'migration.sql'
+    baseline.baselineMigration, 'migration.sql'
   )
   assert.equal(fs.existsSync(migration), true)
   const sql = fs.readFileSync(migration, 'utf8')
@@ -117,9 +118,10 @@ test('banco possui defesa final para impedir duas rodadas OPEN', () => {
 })
 
 test('fechamento de ranking persiste auditoria versionada do desempate oficial', () => {
+  const baseline = require('../prisma/migration-baseline-cutover-v2.json')
   const migration = path.join(
     __dirname, '..', 'prisma', 'migrations',
-    '20260729162000_add_ranking_tiebreak_audit', 'migration.sql'
+    baseline.baselineMigration, 'migration.sql'
   )
   assert.equal(fs.existsSync(migration), true)
 

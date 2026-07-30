@@ -1,3 +1,0 @@
--- Baseline migration
--- Existing production database
--- No changes applied

@@ -1,8 +1,0 @@
--- v1.5 - assinatura recorrente (Mercado Pago)
--- migration incremental, segura e idempotente
-
-
-ALTER TABLE "subscriptions"
-ADD COLUMN IF NOT EXISTS "provider" "PaymentProvider",
-ADD COLUMN IF NOT EXISTS "externalSubscriptionId" TEXT,
-ADD COLUMN IF NOT EXISTS "externalCustomerId" TEXT;

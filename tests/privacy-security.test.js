@@ -135,16 +135,13 @@ test('rota de PII exige permissão dedicada e auditoria', () => {
   assert.doesNotMatch(adminAllowed, /USER_PII_READ/)
 })
 
-test('migration legada e serviços usam minimização do payload', () => {
-  const migration = fs.readFileSync(
-    path.resolve(
-      __dirname,
-      '../prisma/migrations/20260725180000_minimize_payment_webhook_payloads/migration.sql'
-    ),
-    'utf8'
+test('histórico registra migração de minimização e serviços usam payload reduzido', () => {
+  const baseline = require('../prisma/migration-baseline-cutover-v2.json')
+  assert.ok(
+    baseline.legacyMigrations.includes(
+      '20260725180000_minimize_payment_webhook_payloads'
+    )
   )
-  assert.match(migration, /JSONB_BUILD_OBJECT/)
-  assert.doesNotMatch(migration, /payer_email|identification|card/)
 
   for (const file of [
     'process-mercado-pago-webhook.service.ts',

@@ -50,16 +50,21 @@ test('schemas sensíveis rejeitam tipo incorreto, overflow, enum inválido e cam
   }).success, false)
 })
 
-test('migração de identidade aborta colisões antes do backfill e protege unicidade canônica', () => {
+test('baseline consolidada protege unicidade de identidade canônica', () => {
+  const baseline = require('../prisma/migration-baseline-cutover-v2.json')
   const migration = fs.readFileSync(
     path.resolve(
       __dirname,
-      '../prisma/migrations/20260725120000_canonical_user_identity/migration.sql'
+      `../prisma/migrations/${baseline.baselineMigration}/migration.sql`
     ),
     'utf8'
   )
-  assert.match(migration, /canonical email collision detected/)
-  assert.match(migration, /CREATE UNIQUE INDEX "users_email_canonical_key"/)
+  assert.ok(
+    baseline.legacyMigrations.includes(
+      '20260725120000_canonical_user_identity'
+    )
+  )
+  assert.match(migration, /CREATE UNIQUE INDEX[\s\S]+"users_email_canonical_key"/)
   assert.match(migration, /CHECK \("email" = LOWER\(BTRIM\("email"\)\)\)/)
 })
 

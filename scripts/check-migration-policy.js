@@ -6,6 +6,16 @@ const packagePath = path.join(repoRoot, 'package.json')
 const baselinePath = path.join(repoRoot, 'prisma', 'baselines', 'current-fresh-schema.sql')
 const bootstrapPath = path.join(repoRoot, 'scripts', 'bootstrap-database.js')
 const migrationDocsPath = path.join(repoRoot, 'docs', 'database-bootstrap.md')
+const cutoverManifestPath = path.join(
+  repoRoot,
+  'prisma',
+  'migration-baseline-cutover-v2.json'
+)
+const cutoverScriptPath = path.join(
+  repoRoot,
+  'scripts',
+  'rebaseline-migration-history.js'
+)
 const singleOpenConstraintPath = path.join(
   repoRoot, 'prisma', 'constraints', 'single-open-round.sql'
 )
@@ -35,6 +45,15 @@ function main() {
   const bootstrap = read(bootstrapPath)
   const docs = read(migrationDocsPath)
   const normalizedDocs = docs.toLowerCase()
+  const cutoverManifest = JSON.parse(read(cutoverManifestPath))
+  const consolidatedBaselinePath = path.join(
+    repoRoot,
+    'prisma',
+    'migrations',
+    cutoverManifest.baselineMigration,
+    'migration.sql'
+  )
+  const consolidatedBaseline = read(consolidatedBaselinePath)
 
   assert(fs.existsSync(baselinePath), 'fresh baseline SQL is missing')
   assert(
@@ -62,27 +81,50 @@ function main() {
     'fresh bootstrap must block non-empty databases by default'
   )
   assert(
-    bootstrap.includes('migrate') &&
-      bootstrap.includes('resolve') &&
-      bootstrap.includes('--applied'),
-    'fresh bootstrap must mark historical migrations as applied'
+    bootstrap.includes("'prisma', 'migrate', 'deploy'"),
+    'fresh bootstrap must apply the consolidated migration chain'
   )
   assert(
-    bootstrap.includes('--skip-migration-resolve'),
-    'fresh bootstrap must expose an explicit escape hatch for migration resolve'
+    !bootstrap.includes("'prisma', 'db', 'push'") &&
+      !bootstrap.includes("'prisma', 'migrate', 'resolve'"),
+    'fresh bootstrap must not bypass the consolidated migration chain'
   )
   assert(
-    bootstrap.includes('single-open-round.sql') &&
-      bootstrap.includes('non-negative-balances.sql') &&
-      bootstrap.includes('canonical-user-identity.sql') &&
-      bootstrap.includes('bolao-invite-integrity.sql') &&
-      bootstrap.includes("'prisma', 'db', 'execute'"),
-    'fresh bootstrap must apply database-only operational constraints'
+    fs.existsSync(cutoverScriptPath),
+    'controlled migration history cutover script is missing'
+  )
+  assert(
+    pkg.scripts['prisma:migrate:baseline:cutover']?.includes(
+      'scripts/rebaseline-migration-history.js'
+    ),
+    'controlled migration history cutover command is missing'
+  )
+  assert(
+    consolidatedBaseline.includes('CREATE TABLE "users"') &&
+      consolidatedBaseline.includes('CREATE TABLE "rounds"') &&
+      consolidatedBaseline.includes('CREATE TABLE "rankings"') &&
+      consolidatedBaseline.includes('rounds_single_open_idx') &&
+      consolidatedBaseline.includes('wallets_balance_non_negative') &&
+      consolidatedBaseline.includes('users_email_is_canonical') &&
+      consolidatedBaseline.includes(
+        'bolao_invites_usage_within_limit'
+      ),
+    'consolidated baseline must include schema and database-only invariants'
+  )
+  assert(
+    cutoverManifest.legacyMigrations.every(
+      migration =>
+        !fs.existsSync(
+          path.join(repoRoot, 'prisma', 'migrations', migration)
+        )
+    ),
+    'legacy migrations must not remain in the active migration directory'
   )
   assert(
     normalizedDocs.includes('banco vazio') &&
-      normalizedDocs.includes('marca as migrations historicas como aplicadas'),
-    'database bootstrap docs must describe the fresh database migration policy'
+      normalizedDocs.includes('baseline consolidada') &&
+      normalizedDocs.includes('prisma migrate deploy'),
+    'database bootstrap docs must describe the consolidated baseline policy'
   )
 
   if (!process.exitCode) {

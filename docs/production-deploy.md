@@ -6,11 +6,10 @@ Padronizar o deploy da API no EasyPanel sem depender de migrations automáticas 
 
 ## Situação atual
 
-O banco de produção já apresentou erro de migration falha:
-
-- `20260120_bolao_invites`
-
-Quando isso acontece, `prisma migrate deploy` bloqueia o boot da API com erro `P3009`.
+A trilha histórica foi consolidada na baseline
+`20260730000000_fantasy12_baseline_v2`. O banco existente mantém sua
+estrutura e seus dados; somente o histórico técnico de
+`_prisma_migrations` foi substituído de forma controlada.
 
 ## Decisão operacional
 
@@ -23,7 +22,7 @@ Em vez disso:
 
 ## Estratégia oficial de banco
 
-Hoje o projeto tem dois cenários diferentes:
+Todos os ambientes usam a cadeia normal do Prisma.
 
 ### 1. Ambiente novo, banco vazio
 
@@ -33,30 +32,20 @@ Fluxo oficial:
 npm run prisma:bootstrap:fresh
 ```
 
-Esse comando:
-
-- valida se o banco esta realmente vazio
-- aplica `prisma db push`
-- marca a trilha historica de migrations como aplicada
-- roda `seed:admin-permissions`
-- roda `seed:app`
-
-Isso evita depender da trilha historica de migrations, que ainda nao sobe um banco novo de ponta a ponta com segurança.
-Depois desse bootstrap, migrations futuras podem ser aplicadas com `npm run prisma:migrate:deploy`.
+Esse comando valida que o banco está vazio, aplica `prisma migrate deploy`
+e executa os seeds administrativos e da aplicação.
 
 ### 2. Ambiente existente
 
 Fluxo oficial:
 
-- subir a API com `RUN_DB_MIGRATIONS=false`
-- diagnosticar o estado da trilha existente
-- resolver migrations quebradas
-- só então rodar `prisma migrate deploy`
+- subir a API com `RUN_DB_MIGRATIONS=false`;
+- executar o preflight;
+- aplicar `prisma migrate deploy`;
+- confirmar `prisma migrate status`;
+- publicar a nova imagem.
 
-Em resumo:
-
-- banco novo: `db push + migrate resolve --applied + seeds`
-- banco existente: `migrate resolve/deploy`
+Em resumo, banco novo e banco existente evoluem por `migrate deploy`.
 
 ## Variáveis recomendadas no EasyPanel
 
@@ -102,52 +91,14 @@ possuem timeout ocioso renovável e expiração absoluta. O login não emite JWT
 npm run prisma:migrate:status
 ```
 
-### Diagnosticar automaticamente a migration quebrada
-
-```sh
-npm run prisma:migrate:diagnose:bolao
-```
-
-Esse comando verifica:
-
-- se a tabela `_prisma_migrations` existe
-- se a migration `20260120_bolao_invites` consta como falha
-- se a tabela `bolao_invites` já existe
-
-Com base nisso, ele sugere se o caminho correto é `rolled-back` ou `applied`.
-
-### Resolver a migration problemática como rollback
-
-Use se a tabela/alteração da migration falha nao existir no banco.
-
-```sh
-npm run prisma:migrate:resolve:bolao:rolled-back
-```
-
-### Resolver a migration problemática como applied
-
-Use se a estrutura da migration já existir no banco.
-
-```sh
-npm run prisma:migrate:resolve:bolao:applied
-```
-
-### Aplicar migrations após resolver o estado
+### Aplicar migrations
 
 ```sh
 npm run prisma:migrate:deploy
 ```
 
-## Como decidir entre `rolled-back` e `applied`
-
-### Use `rolled-back` quando
-
-- a migration falhou e a estrutura dela nao existe no banco
-
-### Use `applied` quando
-
-- a estrutura já existe no banco
-- a migration só ficou marcada como falha em `_prisma_migrations`
+O diagnóstico específico da antiga migration `20260120_bolao_invites` foi
+removido depois da consolidação da baseline.
 
 ## Fluxo recomendado
 
@@ -163,10 +114,9 @@ npm run prisma:migrate:deploy
 
 1. API sobe com `RUN_DB_MIGRATIONS=false`
 2. se houve mudança recente de schema, valide antes com `npm run prisma:schema:release:check`
-2. você roda `npm run prisma:migrate:diagnose:bolao`
-3. você resolve o estado das migrations pelo console
-4. roda `npm run prisma:migrate:deploy`
-5. se tudo estiver consistente, opcionalmente muda `RUN_DB_MIGRATIONS=true` nos próximos deploys
+3. confirme `npm run prisma:migrate:status`
+4. rode `npm run prisma:migrate:deploy`
+5. valide novamente o status e `/health`
 
 ## Checklist curto para release de schema
 

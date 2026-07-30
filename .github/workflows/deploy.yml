@@ -166,6 +166,9 @@ jobs:
             set -eu
             CODE_DIR="${{ env.EASYPANEL_CODE_DIR }}"
             API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            STAGED_PRISMA="/tmp/fantasy12-prisma-${{ github.sha }}-${{ github.run_attempt }}"
+            MIGRATION_BACKUP="/tmp/fantasy12-migration-history-v1-${{ github.run_id }}-${{ github.run_attempt }}.json"
+            BASELINE_MIGRATION="20260730000000_fantasy12_baseline_v2"
 
             if [ -z "$API_CONTAINER" ]; then
               echo "Active Fantasy12 API container not found" >&2
@@ -174,10 +177,26 @@ jobs:
 
             docker cp "$CODE_DIR/scripts/preflight-production-deploy.js" "$API_CONTAINER:/app/scripts/preflight-production-deploy.js"
             docker exec "$API_CONTAINER" node /app/scripts/preflight-production-deploy.js
-            docker cp "$CODE_DIR/prisma/schema.prisma" "$API_CONTAINER:/app/prisma/schema.prisma"
-            docker cp "$CODE_DIR/prisma/migrations/." "$API_CONTAINER:/app/prisma/migrations/"
-            docker exec "$API_CONTAINER" ./node_modules/.bin/prisma migrate deploy
-            docker exec "$API_CONTAINER" ./node_modules/.bin/prisma migrate status
+            docker exec "$API_CONTAINER" mkdir -p "$STAGED_PRISMA"
+            docker cp "$CODE_DIR/prisma/." "$API_CONTAINER:$STAGED_PRISMA/"
+            docker cp "$CODE_DIR/scripts/rebaseline-migration-history.js" "$API_CONTAINER:/app/scripts/rebaseline-migration-history.js"
+            docker exec \
+              -e "ALLOW_MIGRATION_BASELINE_CUTOVER=$BASELINE_MIGRATION" \
+              -e "MIGRATION_BASELINE_DIR=$STAGED_PRISMA/migrations" \
+              -e "MIGRATION_BASELINE_MANIFEST=$STAGED_PRISMA/migration-baseline-cutover-v2.json" \
+              -e "MIGRATION_HISTORY_BACKUP_PATH=$MIGRATION_BACKUP" \
+              "$API_CONTAINER" \
+              node /app/scripts/rebaseline-migration-history.js
+            mkdir -p /var/backups/fantasy12/migration-history
+            docker cp \
+              "$API_CONTAINER:$MIGRATION_BACKUP" \
+              "/var/backups/fantasy12/migration-history/"
+            docker exec "$API_CONTAINER" \
+              ./node_modules/.bin/prisma migrate deploy \
+              --schema "$STAGED_PRISMA/schema.prisma"
+            docker exec "$API_CONTAINER" \
+              ./node_modules/.bin/prisma migrate status \
+              --schema "$STAGED_PRISMA/schema.prisma"
 
       - name: Trigger EasyPanel deploy
         env:

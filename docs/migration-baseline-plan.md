@@ -1,106 +1,67 @@
-# Plano Para Baseline Definitiva
+# Plano da baseline consolidada
 
 ## Objetivo
 
-Definir a decisao operacional para a linha de corte das migrations do Fantasy12.
+Manter uma única origem confiável para criar um banco Fantasy12 do zero e
+continuar evoluindo bancos existentes com o fluxo padrão do Prisma.
 
-O estado antigo era:
+## Baseline
 
-- banco vazio -> `db push + seeds`
-- banco existente -> `migrate deploy`
+A linha de corte oficial é:
 
-O estado atual fica:
+```text
+20260730000000_fantasy12_baseline_v2
+```
 
-- banco vazio -> `db push + registro da trilha historica como aplicada + seeds`
-- banco existente -> `migrate deploy`
-- migrations futuras -> criadas normalmente e aplicadas por `migrate deploy`
+Ela contém:
 
-## Situação Atual
+- o schema Prisma completo na data do corte;
+- índices e constraints operacionais fora do Prisma;
+- nenhuma carga de dados ou seed.
 
-Hoje temos:
+## Histórico legado
 
-- bootstrap seguro para banco vazio
-- baseline canônica em `prisma/baselines/current-fresh-schema.sql`
-- verificação automatizada da baseline com `npm run prisma:baseline:fresh:verify`
-- auditoria da cadeia histórica em `docs/migration-chain-audit.md`
-- checagem automatizada da politica com `npm run prisma:migration:policy:check`
+As 35 migrations anteriores permanecem recuperáveis no Git e estão
+enumeradas em `prisma/migration-baseline-cutover-v2.json`. Elas não ficam
+mais na pasta ativa `prisma/migrations`.
 
-Isso resolve a operacao sem tentar reescrever migrations que ja foram usadas por producao.
+No banco existente, o corte:
 
-## Estratégia Definida
+1. validou todo o histórico esperado;
+2. registrou a baseline como aplicada;
+3. removeu os registros legados de `_prisma_migrations`;
+4. preservou um backup JSON;
+5. confirmou que o fingerprint estrutural não mudou.
 
-### 1. Congelar a cadeia histórica como legado
+## Política daqui para frente
 
-Não tentar “consertar” a história antiga migration por migration.
+- A baseline V2 é imutável.
+- Toda mudança de schema gera uma migration incremental nova.
+- Backfills permanecem separados de DDL quando aplicável.
+- Banco vazio e banco existente usam `prisma migrate deploy`.
+- `prisma/baselines/current-fresh-schema.sql` acompanha o schema atual para
+  verificação, mas não substitui nem reescreve a migration inicial.
 
-Motivos:
+## Comandos oficiais
 
-- risco alto de quebrar bancos já existentes
-- migrations antigas assumem produção legada
-- há arquivos com encoding inconsistente
-
-### 2. Usar o schema atual como ponto de corte operacional
-
-O ponto de corte nao sera uma migration Prisma nova inserida no meio da cadeia antiga. O ponto de corte sera:
-
-- `prisma/schema.prisma`
-- `prisma/baselines/current-fresh-schema.sql`
-- `scripts/bootstrap-database.js`
-
-O bootstrap cria o schema final com `prisma db push` e depois registra todas as migrations historicas como aplicadas com `prisma migrate resolve --applied`.
-
-### 3. Definir política operacional
-
-Depois do bootstrap:
-
-- ambientes novos podem receber migrations futuras via `prisma migrate deploy`
-- bancos antigos continuam seguindo `migrate deploy`
-- a cadeia antiga permanece auditada e documentada, mas nao e usada para montar banco vazio
-
-### 4. Normalizar qualidade daqui para frente
-
-Para migrations novas:
-
-- criar migration incremental normal
-- manter SQL em UTF-8
-- separar DDL de backfills
-- validar com `npm run prisma:schema:release:check`
-- aplicar em banco existente com `npm run prisma:migrate:deploy`
-
-### 5. Validar em ambiente efêmero
-
-Rodar o bootstrap em banco realmente vazio e validar:
-
-- schema final
-- seeds mínimas
-- login
-- rodada
-- ticket
-- admin
-- assinatura
-
-## Critério de Saída
-
-Os itens de backlog 3 e 4 ficam concluidos quando estes pontos forem verdadeiros:
-
-1. um banco vazio sobe do zero pelo comando oficial;
-2. o schema final bate com o `schema.prisma`;
-3. migrations historicas nao rodam em banco fresh;
-4. o banco fresh fica apto a receber migrations futuras por `migrate deploy`;
-5. a producao atual nao precisa de intervencao destrutiva para continuar evoluindo.
-
-## Decisão Final
-
-O comando oficial para banco vazio e:
+Banco vazio com seeds:
 
 ```sh
 npm run prisma:bootstrap:fresh
 ```
 
-O comando oficial de release de schema e:
+Release incremental:
 
 ```sh
 npm run prisma:schema:release:check
+npm run prisma:migrate:deploy
 ```
 
-Esse desenho fecha a ambiguidade entre `db push`, migrations e seeds sem introduzir risco desnecessario em producao.
+## Critérios de saída
+
+- Um PostgreSQL vazio sobe somente com a cadeia ativa.
+- A auditoria reporta zero erros e zero avisos.
+- As constraints fora do Prisma existem no banco fresh.
+- `prisma migrate status` não mostra divergência.
+- O corte da base existente não altera tabelas, índices ou constraints da
+  aplicação.

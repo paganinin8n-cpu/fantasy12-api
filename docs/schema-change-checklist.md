@@ -59,21 +59,21 @@ Para banco realmente vazio, o fluxo oficial continua sendo:
 npm run prisma:bootstrap:fresh
 ```
 
-Esse fluxo aplica o schema atual e registra as migrations historicas como aplicadas. Depois disso, o ambiente novo passa a aceitar migrations futuras via `npm run prisma:migrate:deploy`.
+Esse fluxo aplica a baseline consolidada e todas as migrations incrementais
+por `prisma migrate deploy`. Depois disso, o ambiente novo segue a mesma
+cadeia usada pelos ambientes existentes.
 
 ## Ambientes existentes
 
 Para bancos já existentes:
 
-- diagnosticar o estado da trilha
-- resolver migrations quebradas, se necessário
+- confirmar `prisma migrate status`
 - aplicar `prisma migrate deploy`
 
 Comandos usuais:
 
 ```sh
 npm run prisma:migrate:status
-npm run prisma:migrate:diagnose:bolao
 npm run prisma:migrate:deploy
 ```
 
