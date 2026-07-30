@@ -46,6 +46,7 @@
     "ranking:monthly:backfill": "npm run build && node scripts/backfill-monthly-ranking-state.js",
     "score:recompute-scored-rounds": "npm run build && node scripts/recompute-scored-rounds.js",
     "simulate:competition": "npm run build && node scripts/simulate-competition.js",
+    "simulate:six-month-competition": "npm run build && node scripts/simulate-six-month-competition.js",
     "simulate:mesa-score-validation": "npm run build && node scripts/validate-mesa-score-scenario.js",
     "benefits:regrant-open-round": "node scripts/regrant-open-round-benefits.js",
     "db:backup": "node scripts/backup-postgres.js",
