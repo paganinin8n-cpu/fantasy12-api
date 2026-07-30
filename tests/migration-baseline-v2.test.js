@@ -94,6 +94,9 @@ test('deploy faz cutover antes de executar migrations na pasta isolada', () => {
   assert.ok(cutoverIndex < deployIndex)
   assert.match(workflow, /STAGED_PRISMA="\/tmp\/fantasy12-prisma-/)
   assert.match(workflow, /MIGRATION_HISTORY_BACKUP_PATH/)
+  assert.match(workflow, /CUTOVER_STATUS=\$\?/)
+  assert.match(workflow, /Migration cutover diagnostic backup:/)
+  assert.match(workflow, /docker exec "\$API_CONTAINER" cat "\$MIGRATION_BACKUP"/)
 })
 
 test('bootstrap fresh usa migrate deploy e não reescreve histórico', () => {

@@ -180,6 +180,7 @@ jobs:
             docker exec "$API_CONTAINER" mkdir -p "$STAGED_PRISMA"
             docker cp "$CODE_DIR/prisma/." "$API_CONTAINER:$STAGED_PRISMA/"
             docker cp "$CODE_DIR/scripts/rebaseline-migration-history.js" "$API_CONTAINER:/app/scripts/rebaseline-migration-history.js"
+            set +e
             docker exec \
               -e "ALLOW_MIGRATION_BASELINE_CUTOVER=$BASELINE_MIGRATION" \
               -e "MIGRATION_BASELINE_DIR=$STAGED_PRISMA/migrations" \
@@ -187,10 +188,22 @@ jobs:
               -e "MIGRATION_HISTORY_BACKUP_PATH=$MIGRATION_BACKUP" \
               "$API_CONTAINER" \
               node /app/scripts/rebaseline-migration-history.js
+            CUTOVER_STATUS=$?
+            set -e
+
             mkdir -p /var/backups/fantasy12/migration-history
-            docker cp \
-              "$API_CONTAINER:$MIGRATION_BACKUP" \
-              "/var/backups/fantasy12/migration-history/"
+            if docker exec "$API_CONTAINER" test -s "$MIGRATION_BACKUP"; then
+              docker cp \
+                "$API_CONTAINER:$MIGRATION_BACKUP" \
+                "/var/backups/fantasy12/migration-history/"
+            fi
+
+            if [ "$CUTOVER_STATUS" -ne 0 ]; then
+              echo "Migration cutover diagnostic backup:"
+              docker exec "$API_CONTAINER" cat "$MIGRATION_BACKUP" || true
+              exit "$CUTOVER_STATUS"
+            fi
+
             docker exec "$API_CONTAINER" \
               ./node_modules/.bin/prisma migrate deploy \
               --schema "$STAGED_PRISMA/schema.prisma"
