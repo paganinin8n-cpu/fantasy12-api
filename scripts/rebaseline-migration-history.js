@@ -37,6 +37,22 @@ function readConfiguration() {
     throw new Error('Invalid expected application schema fingerprint')
   }
   if (
+    !Array.isArray(
+      manifest.acceptedExistingApplicationSchemaFingerprints
+    ) ||
+    new Set(
+      manifest.acceptedExistingApplicationSchemaFingerprints
+    ).size !==
+      manifest.acceptedExistingApplicationSchemaFingerprints.length ||
+    manifest.acceptedExistingApplicationSchemaFingerprints.some(
+      value => !/^[a-f0-9]{64}$/.test(value)
+    )
+  ) {
+    throw new Error(
+      'Invalid accepted existing application schema fingerprints'
+    )
+  }
+  if (
     !Array.isArray(manifest.legacyMigrations) ||
     manifest.legacyMigrations.length === 0 ||
     new Set(manifest.legacyMigrations).size !==
@@ -327,7 +343,10 @@ async function execute() {
       if (
         !historyState.alreadyConsolidated &&
         schemaFingerprintBefore !==
-          manifest.expectedApplicationSchemaFingerprint
+          manifest.expectedApplicationSchemaFingerprint &&
+        !manifest.acceptedExistingApplicationSchemaFingerprints.includes(
+          schemaFingerprintBefore
+        )
       ) {
         throw new Error(
           `Application schema does not match the validated baseline: expected ${manifest.expectedApplicationSchemaFingerprint}, received ${schemaFingerprintBefore}\nAPPLICATION_SCHEMA_SNAPSHOT=${JSON.stringify(schemaBefore)}`

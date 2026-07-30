@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "baselineMigration": "20260730000000_fantasy12_baseline_v2",
   "expectedApplicationSchemaFingerprint": "18a647fa4b13ae0d1f62ac07c42357f107212d5f3607a2844bbd8022fdfe44c1",
+  "acceptedExistingApplicationSchemaFingerprints": [
+    "0fc83249e039b517692137d7ad5194699bffb141336ac48da0eced6ffc6f2909"
+  ],
   "legacyMigrations": [
     "20260119_baseline_v1",
     "20260120_bolao_invites",

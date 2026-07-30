@@ -44,6 +44,10 @@ test('manifesto preserva a lista completa e remove o legado da pasta ativa', () 
     manifest.expectedApplicationSchemaFingerprint,
     /^[a-f0-9]{64}$/
   )
+  assert.deepEqual(
+    manifest.acceptedExistingApplicationSchemaFingerprints,
+    ['0fc83249e039b517692137d7ad5194699bffb141336ac48da0eced6ffc6f2909']
+  )
   assert.equal(manifest.legacyMigrations.length, 35)
   assert.equal(new Set(manifest.legacyMigrations).size, 35)
 
@@ -68,6 +72,7 @@ test('cutover protege histórico e prova que o schema funcional não mudou', () 
   )
   assert.match(script, /applicationSchemaFingerprint/)
   assert.match(script, /expectedApplicationSchemaFingerprint/)
+  assert.match(script, /acceptedExistingApplicationSchemaFingerprints/)
   assert.match(script, /Application schema changed during migration history cutover/)
   assert.match(script, /databaseState: 'fresh'/)
   assert.match(
