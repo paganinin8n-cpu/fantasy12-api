@@ -5,6 +5,7 @@ import { validateRequest } from '../middleware/validate-request.middleware'
 import {
   UpdateProfileSchema,
   ChangePasswordSchema,
+  UpdateUserPreferencesSchema,
 } from '../validators/me.validator'
 
 const router = Router()
@@ -16,6 +17,13 @@ router.patch(
   authMiddleware,
   validateRequest(UpdateProfileSchema),
   MeController.update
+)
+
+router.patch(
+  '/me/preferences',
+  authMiddleware,
+  validateRequest(UpdateUserPreferencesSchema),
+  MeController.updatePreferences
 )
 
 router.post(

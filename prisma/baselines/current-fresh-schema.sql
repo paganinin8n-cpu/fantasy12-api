@@ -57,6 +57,7 @@ CREATE TABLE "users" (
     "phone" TEXT,
     "birthDate" DATE,
     "scoreTotal" INTEGER NOT NULL DEFAULT 0,
+    "proUpsellDisabled" BOOLEAN NOT NULL DEFAULT false,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
     "lockedUntil" TIMESTAMP(3),
     "sessionVersion" INTEGER NOT NULL DEFAULT 0,

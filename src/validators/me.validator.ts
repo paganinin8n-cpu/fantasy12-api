@@ -21,5 +21,12 @@ export const ChangePasswordSchema = z
     newPassword: NewPasswordSchema,
   }).strict()
 
+export const UpdateUserPreferencesSchema = z
+  .object({
+    proUpsellDisabled: z.boolean(),
+  })
+  .strict()
+
 export type UpdateProfileDTO = z.infer<typeof UpdateProfileSchema>
 export type ChangePasswordDTO = z.infer<typeof ChangePasswordSchema>
+export type UpdateUserPreferencesDTO = z.infer<typeof UpdateUserPreferencesSchema>

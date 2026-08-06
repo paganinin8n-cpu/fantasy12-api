@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import { UserProfileService } from '../services/user-profile.service'
 import { UpdateProfileService } from '../services/user/update-profile.service'
 import { ChangePasswordService } from '../services/user/change-password.service'
+import { UpdateUserPreferencesService } from '../services/user/update-user-preferences.service'
 import { AppError } from '../errors/AppError'
 import { clearSessionCookie } from '../lib/session-security'
 
@@ -47,6 +48,23 @@ export class MeController {
       })
       clearSessionCookie(res)
       return res.status(200).json({ ok: true })
+    } catch (err) {
+      return next(err)
+    }
+  }
+
+  static async updatePreferences(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      if (!req.user) throw AppError.unauthorized()
+      const preferences = await UpdateUserPreferencesService.execute({
+        userId: req.user.id,
+        proUpsellDisabled: req.body.proUpsellDisabled,
+      })
+      return res.json(preferences)
     } catch (err) {
       return next(err)
     }
