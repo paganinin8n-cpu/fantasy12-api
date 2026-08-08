@@ -21,7 +21,14 @@ test('baseline V2 é a primeira migration ativa e cria o schema completo', () =>
     .map(entry => entry.name)
     .sort()
 
-  assert.deepEqual(activeMigrations, [manifest.baselineMigration])
+  assert.equal(activeMigrations[0], manifest.baselineMigration)
+  assert.ok(
+    activeMigrations.slice(1).every(migration => migration > manifest.baselineMigration),
+    'migrations posteriores devem permanecer depois da baseline consolidada'
+  )
+  assert.ok(
+    activeMigrations.includes('20260806010000_add_user_pro_upsell_preference')
+  )
 
   const sql = fs.readFileSync(baselinePath, 'utf8')
   for (const fragment of [

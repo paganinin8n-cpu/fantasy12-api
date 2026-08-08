@@ -45,6 +45,11 @@ export const logger = pino({
       'REDIS_URL',
       'redisUrl',
       '*.redisUrl',
+      // ioredis inclui a senha em err.command.args quando AUTH falha.
+      'err.command.args',
+      'err.command.password',
+      'err.options.password',
+      'err.cause.command.args',
     ],
     censor: '[redacted]',
   },
