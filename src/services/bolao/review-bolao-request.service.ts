@@ -100,7 +100,7 @@ export class ReviewBolaoRequestService {
       }
 
       if (participant.entryPaidAt) {
-        throw new Error('A entrada desta participação já foi debitada');
+        throw new Error('O acesso desta participação já foi debitado');
       }
 
       await BolaoEntryPaymentService.debit(tx, {

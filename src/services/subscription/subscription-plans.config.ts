@@ -31,7 +31,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com fichas',
+      'Compra de Duplas e Super Duplas com tampinhas',
       'Participe de Mesas Exclusivas',
       'Ranking PRO exclusivo',
     ],
@@ -51,7 +51,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com fichas',
+      'Compra de Duplas e Super Duplas com tampinhas',
       'Mesas Exclusivas + criar mesas',
       'Ranking PRO exclusivo',
       'Economize mais de 65%',
@@ -72,7 +72,7 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com fichas',
+      'Compra de Duplas e Super Duplas com tampinhas',
       'Mesas Exclusivas + criar mesas',
       'Ranking PRO exclusivo',
     ],

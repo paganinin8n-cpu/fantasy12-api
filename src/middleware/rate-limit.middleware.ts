@@ -72,7 +72,7 @@ export const accountCreationRateLimiter = rateLimit({
 })
 
 /**
- * 🧩 Benefícios e Bar: protege compras de extras com fichas.
+ * 🧩 Benefícios e Bar: protege compras de extras com tampinhas.
  */
 export const benefitPurchaseRateLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -109,7 +109,7 @@ export const ticketRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     error: 'too_many_ticket_requests',
-    message: 'Você está enviando palpites muito rápido. Aguarde um instante.',
+    message: 'Você está enviando escolhas muito rápido. Aguarde um instante.',
   },
 })
 

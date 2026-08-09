@@ -55,7 +55,7 @@ export class MesaIntegrityService {
     if (unpaid.length > 0) {
       issues.push({
         code: 'APPROVED_ENTRY_NOT_PAID',
-        message: 'Há participantes aprovados sem comprovação integral da entrada',
+        message: 'Há participantes aprovados sem comprovação integral do acesso',
         details: { count: unpaid.length },
       })
     }
@@ -66,7 +66,7 @@ export class MesaIntegrityService {
     if (mesa.grossCollected !== expectedGross) {
       issues.push({
         code: 'GROSS_COLLECTED_MISMATCH',
-        message: 'Total arrecadado diverge das entradas comprovadamente pagas',
+        message: 'Total acumulado diverge dos acessos comprovadamente pagos',
         details: { recorded: mesa.grossCollected, expected: expectedGross },
       })
     }

@@ -62,7 +62,7 @@ router.post(
 );
 
 /**
- * Fechamento automatico da janela de palpites
+ * Fechamento automatico da janela de escolhas
  * POST /internal/jobs/close-scheduled-rounds
  */
 router.post(

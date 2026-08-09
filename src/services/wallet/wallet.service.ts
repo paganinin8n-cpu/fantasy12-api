@@ -99,7 +99,7 @@ export class WalletService {
 
     if (!wallet || wallet.balance < amount) {
       throw AppError.badRequest(
-        'Saldo de fichas insuficiente',
+        'Saldo de tampinhas insuficiente',
         'insufficient_wallet_balance',
         {
           required: amount,
@@ -115,7 +115,7 @@ export class WalletService {
 
     if (debit.count !== 1) {
       throw AppError.badRequest(
-        'Saldo de fichas insuficiente',
+        'Saldo de tampinhas insuficiente',
         'insufficient_wallet_balance',
         { required: amount, available: wallet.balance }
       )

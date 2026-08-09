@@ -35,7 +35,7 @@ function mockProUser() {
 function createInput(overrides = {}) {
   return {
     name: 'Mesa Financeira',
-    description: 'Premiação: 60/30/10 do prêmio líquido após taxa da plataforma.',
+    description: 'Recompensa: 60/30/10 da recompensa líquida após taxa da plataforma.',
     startDate: new Date('2026-08-01T00:00:00Z'),
     entryEndDate: new Date('2026-08-15T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
@@ -100,21 +100,21 @@ test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t =>
     CreateBolaoService.execute(createInput({
       entryEndDate: new Date('invalid'),
     })),
-    { message: 'Informe uma data válida para o término das entradas' }
+    { message: 'Informe uma data válida para o término dos acessos' }
   )
 
   await assert.rejects(
     CreateBolaoService.execute(createInput({
       entryEndDate: new Date('2026-08-01T00:00:00Z'),
     })),
-    { message: 'A data de término das entradas deve ser posterior à data de início' }
+    { message: 'A data de término dos acessos deve ser posterior à data de início' }
   )
 
   await assert.rejects(
     CreateBolaoService.execute(createInput({
       entryEndDate: new Date('2026-09-01T00:00:00Z'),
     })),
-    { message: 'A data de término das entradas deve ser anterior ou igual à data de fim da Mesa' }
+    { message: 'A data de término dos acessos deve ser anterior ou igual à data de fim da Mesa' }
   )
 })
 
@@ -125,7 +125,7 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
 
   await assert.rejects(
     CreateBolaoService.execute(createInput({ entryFee: 0 })),
-    { message: 'A entrada em fichas deve ser maior que zero' }
+    { message: 'O acesso em tampinhas deve ser maior que zero' }
   )
   await assert.rejects(
     CreateBolaoService.execute(createInput({ prizeDistribution: [] })),
@@ -201,7 +201,7 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   assert.equal(walletTouched, false)
 })
 
-test('entrada na Mesa é imediata e depende somente do saldo de fichas', async t => {
+test('acesso à Mesa é imediato e depende somente do saldo de tampinhas', async t => {
   const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
   t.after(() => {
@@ -296,7 +296,7 @@ test('entrada sem fichas não cria participante nem altera o caixa da Mesa', asy
 
   await assert.rejects(
     JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'user-2' }),
-    { message: 'Participante não possui fichas suficientes para entrar nesta Mesa' }
+    { message: 'Participante não possui tampinhas suficientes para acessar esta Mesa' }
   )
   assert.equal(participantChanged, false)
   assert.equal(rankingChanged, false)
@@ -385,7 +385,7 @@ test('aprovação sem saldo não altera participante nem caixa', async t => {
       rankingId: 'mesa-1', participantId: 'participant-2',
       reviewerUserId: 'creator-1', status: 'APPROVED',
     }),
-    { message: 'Participante não possui fichas suficientes para entrar nesta Mesa' }
+    { message: 'Participante não possui tampinhas suficientes para acessar esta Mesa' }
   )
   assert.equal(participantChanged, false)
   assert.equal(rankingChanged, false)

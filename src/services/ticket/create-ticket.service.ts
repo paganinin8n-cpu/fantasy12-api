@@ -39,7 +39,7 @@ export class CreateTicketService {
 
       if (!round) {
         throw AppError.badRequest(
-          'A rodada não está aberta para receber palpites.',
+          'A rodada não está aberta para receber escolhas.',
           'round_not_open'
         )
       }
@@ -49,20 +49,20 @@ export class CreateTicketService {
       if (round.status !== 'OPEN') {
         if (round.openAt && now < round.openAt) {
           throw AppError.badRequest(
-            'A rodada ainda não abriu para palpites.',
+            'A rodada ainda não abriu para escolhas.',
             'round_not_open_yet'
           )
         }
 
         throw AppError.badRequest(
-          'A rodada não está aberta para receber palpites.',
+          'A rodada não está aberta para receber escolhas.',
           'round_not_open'
         )
       }
 
       if (round.closeAt && now >= round.closeAt) {
         throw AppError.badRequest(
-          'O prazo para palpites encerrou.',
+          'O prazo para escolhas encerrou.',
           'round_predictions_closed'
         )
       }
@@ -129,7 +129,7 @@ export class CreateTicketService {
 
       if (existingTicket) {
         throw AppError.conflict(
-          'Você já enviou seus palpites para esta rodada.',
+          'Você já enviou suas escolhas para esta rodada.',
           'ticket_already_exists'
         )
       }

@@ -72,7 +72,7 @@ export class JoinBolaoService {
       }
 
       if (existingParticipant?.entryPaidAt) {
-        throw new Error('A entrada desta participação já foi debitada');
+        throw new Error('O acesso desta participação já foi debitado');
       }
 
       const baselineAt = BolaoRegistrationWindowService.baselineAt(bolao);

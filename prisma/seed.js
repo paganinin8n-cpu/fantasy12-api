@@ -54,21 +54,21 @@ async function main() {
   const packages = [
     {
       id: 'coins_100',
-      label: '100 Fichas',
+      label: '100 Tampinhas',
       coinsAmount: 100,
       bonusCoins: 0,
       amountCents: 5000,
     },
     {
       id: 'coins_250_bonus_25',
-      label: '250 Fichas',
+      label: '250 Tampinhas',
       coinsAmount: 250,
       bonusCoins: 0,
       amountCents: 12500,
     },
     {
       id: 'coins_500_bonus_75',
-      label: '500 Fichas',
+      label: '500 Tampinhas',
       coinsAmount: 500,
       bonusCoins: 0,
       amountCents: 25000,

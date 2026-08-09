@@ -66,7 +66,7 @@ export class AdminWalletCreditService {
       });
 
       if (!wallet || wallet.balance < amount) {
-        throw new Error('Saldo de fichas insuficiente');
+        throw new Error('Saldo de tampinhas insuficiente');
       }
 
       const debit = await tx.wallet.updateMany({
@@ -75,7 +75,7 @@ export class AdminWalletCreditService {
       });
 
       if (debit.count !== 1) {
-        throw new Error('Saldo de fichas insuficiente');
+        throw new Error('Saldo de tampinhas insuficiente');
       }
 
       await tx.walletLedger.create({

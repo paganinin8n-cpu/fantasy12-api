@@ -11,7 +11,7 @@ export class BolaoEntryPaymentService {
     })
 
     if (!wallet || wallet.balance < input.amount) {
-      throw new Error('Participante não possui fichas suficientes para entrar nesta Mesa')
+      throw new Error('Participante não possui tampinhas suficientes para acessar esta Mesa')
     }
 
     const debit = await tx.wallet.updateMany({
@@ -19,7 +19,7 @@ export class BolaoEntryPaymentService {
       data: { balance: { decrement: input.amount } },
     })
     if (debit.count !== 1) {
-      throw new Error('Participante não possui fichas suficientes para entrar nesta Mesa')
+      throw new Error('Participante não possui tampinhas suficientes para acessar esta Mesa')
     }
 
     await tx.walletLedger.create({
@@ -27,7 +27,7 @@ export class BolaoEntryPaymentService {
         walletId: wallet.id,
         type: 'DEBIT',
         amount: input.amount,
-        description: `Entrada na Mesa ${input.rankingId}`,
+        description: `Acesso à Mesa ${input.rankingId}`,
         idempotencyKey: `bolao:entry:${input.rankingId}:${input.userId}`,
       },
     })

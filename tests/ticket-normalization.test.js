@@ -8,7 +8,7 @@ const { CreateTicketService } = require('../dist/services/ticket/create-ticket.s
 const rawPrediction = [' x ', ...Array(11).fill(' 1 ')].join(',')
 const normalizedPrediction = ['X', ...Array(11).fill('1')].join(',')
 
-test('validador normaliza palpites com trim e uppercase', () => {
+test('validador normaliza escolhas com trim e uppercase', () => {
   const parsed = CreateTicketSchema.parse({
     roundId: '00000000-0000-4000-8000-000000000001',
     prediction: rawPrediction,
@@ -17,7 +17,7 @@ test('validador normaliza palpites com trim e uppercase', () => {
   assert.equal(parsed.prediction, normalizedPrediction)
 })
 
-test('servico persiste somente a forma canonica do palpite', async t => {
+test('servico persiste somente a forma canonica da escolha', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => { prisma.$transaction = originalTransaction })
   let persisted = null

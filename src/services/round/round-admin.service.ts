@@ -49,7 +49,7 @@ export class RoundAdminService {
     });
 
     if (ticketCount > 0) {
-      throw new Error('Não é possível inativar uma rodada que já recebeu palpites');
+      throw new Error('Não é possível inativar uma rodada que já recebeu escolhas');
     }
 
     await prisma.round.update({

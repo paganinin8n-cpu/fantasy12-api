@@ -24,7 +24,7 @@ export const CreateTicketSchema = z.object({
     )
     .refine(
       isValidTicketPrediction,
-      { message: 'cada palpite deve ser 1, X ou 2' }
+      { message: 'cada escolha deve ser 1, X ou 2' }
     ),
   multipliers: z
     .array(z.number().int().refine(n => [1, 2, 4].includes(n), {

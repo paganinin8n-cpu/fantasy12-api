@@ -101,7 +101,7 @@ export class CreatePaymentService {
         {
           id: pkg.id,
           title: pkg.label,
-          description: `${pkg.coinsAmount + pkg.bonusCoins} fichas Fantasy12`,
+          description: `${pkg.coinsAmount + pkg.bonusCoins} tampinhas Fantasy12`,
           quantity: 1,
           currency_id: 'BRL',
           unit_price: pkg.amountCents / 100,

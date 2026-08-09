@@ -55,19 +55,19 @@ export class CreateBolaoService {
     }
 
     if (!(entryEndDate instanceof Date) || Number.isNaN(entryEndDate.getTime())) {
-      throw new Error('Informe uma data válida para o término das entradas')
+      throw new Error('Informe uma data válida para o término dos acessos')
     }
 
     if (entryEndDate <= startDate) {
-      throw new Error('A data de término das entradas deve ser posterior à data de início')
+      throw new Error('A data de término dos acessos deve ser posterior à data de início')
     }
 
     if (entryEndDate > endDate) {
-      throw new Error('A data de término das entradas deve ser anterior ou igual à data de fim da Mesa')
+      throw new Error('A data de término dos acessos deve ser anterior ou igual à data de fim da Mesa')
     }
 
     if (!Number.isInteger(entryFee) || entryFee <= 0) {
-      throw new Error('A entrada em fichas deve ser maior que zero')
+      throw new Error('O acesso em tampinhas deve ser maior que zero')
     }
 
     const validatedPrizeDistribution =

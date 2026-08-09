@@ -8,7 +8,7 @@ const {
   SettleBolaoService,
 } = require('../dist/services/bolao/settle-bolao.service')
 
-test('taxa usa piso de 10% e o restante inteiro fica no prêmio', () => {
+test('taxa usa piso de 10% e o restante inteiro fica na recompensa', () => {
   assert.deepEqual(BolaoPrizeService.calculatePool(33), {
     grossCollected: 33,
     platformFee: 3,
@@ -39,7 +39,7 @@ test('empate combina as faixas ocupadas e divide o total entre empatados', () =>
   assert.equal(payouts.reduce((sum, payout) => sum + payout.amount, 0), 90)
 })
 
-test('maiores restos distribuem todas as fichas do prêmio', () => {
+test('maiores restos distribuem todas as tampinhas da recompensa', () => {
   const payouts = BolaoPrizeService.calculatePayouts({
     prizePool: 10,
     prizeDistribution: [
