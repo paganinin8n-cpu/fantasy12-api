@@ -17,10 +17,12 @@ export type InspectableMesa = {
   id: string
   description: string | null
   entryFee: number
+  accessCost?: number | null
   prizeDistribution: Prisma.JsonValue | null
   grossCollected: number
   platformFee: number
   prizePool: number
+  rewardPool?: number | null
   settledAt: Date | null
   participants: MesaParticipant[]
 }
@@ -38,6 +40,24 @@ export class MesaIntegrityError extends Error {
 export class MesaIntegrityService {
   static inspect(mesa: InspectableMesa): MesaIntegrityIssue[] {
     const issues: MesaIntegrityIssue[] = []
+    const accessCost = mesa.accessCost ?? mesa.entryFee
+    const rewardPool = mesa.rewardPool ?? mesa.prizePool
+
+    if (mesa.accessCost != null && mesa.accessCost !== mesa.entryFee) {
+      issues.push({
+        code: 'ACCESS_COST_COMPATIBILITY_MISMATCH',
+        message: 'Custo de acesso canônico diverge do campo legado',
+        details: { accessCost: mesa.accessCost, entryFee: mesa.entryFee },
+      })
+    }
+
+    if (mesa.rewardPool != null && mesa.rewardPool !== mesa.prizePool) {
+      issues.push({
+        code: 'REWARD_POOL_COMPATIBILITY_MISMATCH',
+        message: 'Total de recompensas canônico diverge do campo legado',
+        details: { rewardPool: mesa.rewardPool, prizePool: mesa.prizePool },
+      })
+    }
     if (!mesa.description?.trim()) {
       issues.push({ code: 'MISSING_PRIZE_RULES', message: 'Observações/regras da Mesa ausentes' })
     }
@@ -50,7 +70,7 @@ export class MesaIntegrityService {
 
     const approved = mesa.participants.filter(item => item.status === 'APPROVED')
     const unpaid = approved.filter(item =>
-      !item.entryPaidAt || item.entryFeePaid !== mesa.entryFee
+      !item.entryPaidAt || item.entryFeePaid !== accessCost
     )
     if (unpaid.length > 0) {
       issues.push({
@@ -61,7 +81,7 @@ export class MesaIntegrityService {
     }
 
     const expectedGross = approved
-      .filter(item => item.entryPaidAt && item.entryFeePaid === mesa.entryFee)
+      .filter(item => item.entryPaidAt && item.entryFeePaid === accessCost)
       .reduce((total, item) => total + item.entryFeePaid, 0)
     if (mesa.grossCollected !== expectedGross) {
       issues.push({
@@ -72,7 +92,7 @@ export class MesaIntegrityService {
     }
 
     const totals = BolaoPrizeService.calculatePool(mesa.grossCollected)
-    if (mesa.platformFee !== totals.platformFee || mesa.prizePool !== totals.prizePool) {
+    if (mesa.platformFee !== totals.platformFee || rewardPool !== totals.prizePool) {
       issues.push({
         code: 'PRIZE_TOTALS_MISMATCH',
         message: 'Taxa ou recompensa líquida diverge do total acumulado',
@@ -92,8 +112,8 @@ export class MesaIntegrityService {
       where: { type: 'BOLAO' },
       select: {
         id: true, name: true, status: true, endDate: true,
-        description: true, entryFee: true, prizeDistribution: true,
-        grossCollected: true, platformFee: true, prizePool: true, settledAt: true,
+        description: true, entryFee: true, accessCost: true, prizeDistribution: true,
+        grossCollected: true, platformFee: true, prizePool: true, rewardPool: true, settledAt: true,
         participants: {
           select: { status: true, entryFeePaid: true, entryPaidAt: true },
         },

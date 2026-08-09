@@ -24,8 +24,10 @@ export class CloseRankingService {
           settledAt: true,
           description: true,
           entryFee: true,
+          accessCost: true,
           platformFee: true,
           prizePool: true,
+          rewardPool: true,
           participants: {
             select: { status: true, entryFeePaid: true, entryPaidAt: true },
           },

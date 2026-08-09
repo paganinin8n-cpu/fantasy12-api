@@ -33,6 +33,7 @@ export class JoinBolaoService {
           type: true,
           status: true,
           entryFee: true,
+          accessCost: true,
           currentParticipants: true,
           createdByUserId: true,
           startDate: true,
@@ -51,6 +52,8 @@ export class JoinBolaoService {
       if (bolao.status !== 'ACTIVE') {
         throw new Error('Esta Mesa não está aberta para novos participantes');
       }
+
+      const accessCost = bolao.accessCost ?? bolao.entryFee;
 
       BolaoRegistrationWindowService.assertOpen(bolao);
 
@@ -85,7 +88,7 @@ export class JoinBolaoService {
       await BolaoEntryPaymentService.debit(tx, {
         rankingId,
         userId,
-        amount: bolao.entryFee,
+        amount: accessCost,
       });
 
       const approvedAt = new Date();
@@ -98,7 +101,7 @@ export class JoinBolaoService {
               rejectedAt: null,
               approvedAt,
               approvedByUserId: userId,
-              entryFeePaid: bolao.entryFee,
+              entryFeePaid: accessCost,
               entryPaidAt: approvedAt,
             },
           })
@@ -111,7 +114,7 @@ export class JoinBolaoService {
               status: 'APPROVED',
               approvedAt,
               approvedByUserId: userId,
-              entryFeePaid: bolao.entryFee,
+              entryFeePaid: accessCost,
               entryPaidAt: approvedAt,
             },
           });
@@ -120,7 +123,7 @@ export class JoinBolaoService {
         where: { id: rankingId },
         data: {
           currentParticipants: { increment: 1 },
-          grossCollected: { increment: bolao.entryFee },
+          grossCollected: { increment: accessCost },
         },
         select: { grossCollected: true },
       });
@@ -132,6 +135,7 @@ export class JoinBolaoService {
         data: {
           platformFee: financialTotals.platformFee,
           prizePool: financialTotals.prizePool,
+          rewardPool: financialTotals.prizePool,
         },
       });
 
@@ -147,7 +151,8 @@ export class JoinBolaoService {
             approvedAt: approvedAt.toISOString(),
             scoreInitial,
             currentParticipants: bolao.currentParticipants + 1,
-            entryFee: bolao.entryFee,
+            accessCost,
+            entryFee: accessCost,
             approvalRequired: false,
           },
         },

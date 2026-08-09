@@ -1,6 +1,8 @@
 type LegacyFinancialNames = {
   entryFee: number
   prizePool: number
+  accessCost?: number | null
+  rewardPool?: number | null
 }
 
 /**
@@ -10,8 +12,8 @@ type LegacyFinancialNames = {
 export function withMesaFinancialNames<T extends LegacyFinancialNames>(value: T) {
   return {
     ...value,
-    accessCost: value.entryFee,
-    rewardPool: value.prizePool,
+    accessCost: value.accessCost ?? value.entryFee,
+    rewardPool: value.rewardPool ?? value.prizePool,
   }
 }
 

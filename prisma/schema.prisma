@@ -340,6 +340,7 @@ model Ranking {
   periodRef    String?
 
   entryFee            Int  @default(0)
+  accessCost          Int? @default(0)
   maxParticipants     Int?
   currentParticipants Int  @default(0)
   durationDays        Int?
@@ -347,6 +348,7 @@ model Ranking {
   grossCollected      Int       @default(0)
   platformFee         Int       @default(0)
   prizePool           Int       @default(0)
+  rewardPool          Int?      @default(0)
   settledAt           DateTime?
 
   createdByUserId String?

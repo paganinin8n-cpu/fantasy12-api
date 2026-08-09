@@ -93,6 +93,7 @@ export class CreateBolaoService {
     const durationDays = Math.ceil(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     )
+    const emptyPool = BolaoPrizeService.calculatePool(0)
 
     const result = await prisma.$transaction(async tx => {
       const bolao = await tx.ranking.create({
@@ -103,11 +104,13 @@ export class CreateBolaoService {
           type: 'BOLAO',
           status: 'ACTIVE',
           entryFee: accessCost,
+          accessCost,
           maxParticipants: null,
           currentParticipants: 0,
           durationDays,
           prizeDistribution: validatedPrizeDistribution,
-          ...BolaoPrizeService.calculatePool(0),
+          ...emptyPool,
+          rewardPool: emptyPool.prizePool,
           startDate,
           entryEndDate,
           endDate,
@@ -146,6 +149,7 @@ export class CreateBolaoService {
       name: result.name,
       status: result.status,
       entryFee: result.entryFee,
+      accessCost: result.accessCost,
       maxParticipants: result.maxParticipants,
       currentParticipants: result.currentParticipants,
       startDate: result.startDate,
@@ -155,6 +159,7 @@ export class CreateBolaoService {
       grossCollected: result.grossCollected,
       platformFee: result.platformFee,
       prizePool: result.prizePool,
+      rewardPool: result.rewardPool,
       settledAt: result.settledAt,
     })
   }

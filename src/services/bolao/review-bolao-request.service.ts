@@ -26,6 +26,7 @@ export class ReviewBolaoRequestService {
           type: true,
           status: true,
           entryFee: true,
+          accessCost: true,
           currentParticipants: true,
           createdByUserId: true,
           startDate: true,
@@ -48,6 +49,8 @@ export class ReviewBolaoRequestService {
       if (bolao.status !== 'ACTIVE') {
         throw new Error('Esta Mesa não está aberta para revisão de participantes');
       }
+
+      const accessCost = bolao.accessCost ?? bolao.entryFee;
 
       if (status === 'APPROVED') {
         BolaoRegistrationWindowService.assertOpen(bolao);
@@ -106,7 +109,7 @@ export class ReviewBolaoRequestService {
       await BolaoEntryPaymentService.debit(tx, {
         rankingId,
         userId: participant.userId,
-        amount: bolao.entryFee,
+        amount: accessCost,
       });
 
       const approvedAt = new Date();
@@ -125,7 +128,7 @@ export class ReviewBolaoRequestService {
           approvedAt,
           approvedByUserId: reviewerUserId,
           rejectedAt: null,
-          entryFeePaid: bolao.entryFee,
+          entryFeePaid: accessCost,
           entryPaidAt: approvedAt,
         },
       });
@@ -134,7 +137,7 @@ export class ReviewBolaoRequestService {
         where: { id: rankingId },
         data: {
           currentParticipants: { increment: 1 },
-          grossCollected: { increment: bolao.entryFee },
+          grossCollected: { increment: accessCost },
         },
         select: { grossCollected: true },
       });
@@ -146,6 +149,7 @@ export class ReviewBolaoRequestService {
         data: {
           platformFee: financialTotals.platformFee,
           prizePool: financialTotals.prizePool,
+          rewardPool: financialTotals.prizePool,
         },
       });
 
@@ -163,7 +167,8 @@ export class ReviewBolaoRequestService {
             approvedAt: approvedAt.toISOString(),
             scoreInitial,
             currentParticipants,
-            minimumChips: bolao.entryFee,
+            accessCost,
+            minimumChips: accessCost,
           },
         },
       });

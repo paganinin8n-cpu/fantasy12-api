@@ -56,6 +56,7 @@ export class SettleBolaoService {
       data: {
         platformFee: totals.platformFee,
         prizePool: totals.prizePool,
+        rewardPool: totals.prizePool,
         settledAt,
       },
     })

@@ -54,11 +54,11 @@ test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t
 
   const result = await CreateBolaoService.execute({
     name: 'Mesa Oficial',
-    description: 'Premiação oficial 100% para o 1º colocado após a taxa.',
-    startDate: new Date('2026-08-01T00:00:00Z'),
-    entryEndDate: new Date('2026-08-04T12:00:00Z'),
-    endDate: new Date('2026-08-31T23:59:59Z'),
-    entryFee: 10,
+    description: 'Recompensa oficial 100% para o 1º colocado após a taxa.',
+    startDate: new Date('2099-08-01T00:00:00Z'),
+    entryEndDate: new Date('2099-08-04T12:00:00Z'),
+    endDate: new Date('2099-08-31T23:59:59Z'),
+    accessCost: 10,
     prizeDistribution: [{ position: 1, percentage: 100 }],
     createdByUserId: 'admin-1',
   })
@@ -69,6 +69,12 @@ test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t
   assert.equal(rankingData.maxParticipants, null)
   assert.equal(rankingData.currentParticipants, 0)
   assert.equal(rankingData.grossCollected, 0)
+  assert.equal(rankingData.accessCost, 10)
+  assert.equal(rankingData.entryFee, 10)
+  assert.equal(rankingData.rewardPool, 0)
+  assert.equal(rankingData.prizePool, 0)
+  assert.equal(result.accessCost, 10)
+  assert.equal(result.rewardPool, 0)
   assert.equal(result.currentParticipants, 0)
 })
 
