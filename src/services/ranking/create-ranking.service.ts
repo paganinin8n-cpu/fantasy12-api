@@ -18,11 +18,11 @@ export class CreateRankingService {
     // 1️⃣ Validações básicas
     if (input.type === RankingType.BOLAO) {
       if (!input.endDate) {
-        throw new Error('Ranking BOLAO exige data final');
+        throw new Error('A Mesa exige data final');
       }
 
       if (input.participantIds.length === 0) {
-        throw new Error('Ranking BOLAO exige participantes');
+        throw new Error('A Mesa exige participantes');
       }
     }
 

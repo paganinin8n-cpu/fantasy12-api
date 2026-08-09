@@ -46,7 +46,7 @@ router.get('/boloes/available', authMiddleware, ListAvailableBoloesController.ha
 router.get('/rankings/:rankingId', controller.show);
 
 //
-// 🔹 Entrada direta em bolão
+// 🔹 Acesso direto à Mesa
 //
 router.post('/rankings/:rankingId/join', authMiddleware, validateRequest(RankingIdParamsSchema, 'params'), JoinBolaoController.handle);
 router.patch(

@@ -8,7 +8,7 @@ type InviteReservation = {
  * Reserva um uso do convite com compare-and-increment no PostgreSQL.
  *
  * O UPDATE mantém limite, expiração e incremento na mesma operação atômica.
- * Quando usado dentro da transação de entrada, qualquer falha posterior faz
+ * Quando usado dentro da transação de acesso, qualquer falha posterior faz
  * rollback da reserva.
  */
 export async function reserveBolaoInviteUse(

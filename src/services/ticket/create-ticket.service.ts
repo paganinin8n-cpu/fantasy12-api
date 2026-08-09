@@ -82,7 +82,7 @@ export class CreateTicketService {
 
       if (!isValidTicketPrediction(normalizedPrediction)) {
         throw AppError.badRequest(
-          'Cada palpite deve ser 1, X ou 2.',
+          'Cada escolha deve ser 1, X ou 2.',
           'invalid_prediction'
         )
       }

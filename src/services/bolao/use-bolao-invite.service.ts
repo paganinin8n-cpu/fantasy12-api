@@ -72,7 +72,7 @@ export class UseBolaoInviteService {
         throw new Error('Invite is no longer available');
       }
 
-      // A entrada usa exatamente a mesma transação da reserva do convite.
+      // O acesso usa exatamente a mesma transação da reserva do convite.
       const joinResult = await JoinBolaoService.execute({
         rankingId: invite.rankingId,
         userId,
