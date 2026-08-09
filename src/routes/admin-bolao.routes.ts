@@ -8,10 +8,28 @@ import { AdminBolaoController } from '../controllers/bolao/admin-bolao.controlle
 const router = Router()
 
 router.get(
+  '/api/admin/mesas',
+  authMiddleware,
+  authorize('COMPETITION_READ'),
+  AdminBolaoController.list
+)
+
+router.get(
   '/api/admin/boloes',
   authMiddleware,
   authorize('COMPETITION_READ'),
   AdminBolaoController.list
+)
+
+router.post(
+  '/api/admin/mesas',
+  authMiddleware,
+  authorize('COMPETITION_WRITE', {
+    audit: true,
+    entity: 'BOLAO',
+  }),
+  validateRequest(CreateBolaoSchema),
+  AdminBolaoController.create
 )
 
 router.post(
