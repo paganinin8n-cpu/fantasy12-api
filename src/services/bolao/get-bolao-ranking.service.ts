@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { withMesaFinancialNames } from './mesa-financial-names';
 import { RankingWindowScoreService } from '../ranking/ranking-window-score.service';
 
 type ExecuteInput = {
@@ -108,7 +109,7 @@ export class GetBolaoRankingService {
           });
 
     return {
-      ranking: {
+      ranking: withMesaFinancialNames({
         id: bolao.id,
         name: bolao.name,
         description: bolao.description,
@@ -129,7 +130,7 @@ export class GetBolaoRankingService {
         participantId: viewerParticipant?.id ?? null,
         participantStatus: viewerParticipant?.status ?? null,
         ownerName: displayName(bolao.createdBy),
-      },
+      }),
       total: entries.length,
       me: entries.find(entry => entry.userId === viewerUserId) ?? null,
       entries,

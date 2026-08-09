@@ -17,7 +17,7 @@ type Payout = PrizeRow & {
 export class BolaoPrizeService {
   static validateDistribution(value: unknown): PrizeDistributionItem[] {
     if (!Array.isArray(value) || value.length === 0) {
-      throw new Error('Informe ao menos uma faixa de premiação')
+      throw new Error('Informe ao menos uma faixa de recompensa')
     }
 
     const distribution = value.map((item, index) => {
@@ -25,17 +25,17 @@ export class BolaoPrizeService {
       const percentage = Number((item as PrizeDistributionItem)?.percentage)
 
       if (!Number.isInteger(position) || position !== index + 1) {
-        throw new Error('As posições premiadas devem ser sequenciais a partir da 1ª posição')
+        throw new Error('As posições com recompensa devem ser sequenciais a partir da 1ª posição')
       }
       if (!Number.isInteger(percentage) || percentage <= 0) {
-        throw new Error('Cada percentual de premiação deve ser um número inteiro positivo')
+        throw new Error('Cada percentual de recompensa deve ser um número inteiro positivo')
       }
 
       return { position, percentage }
     })
 
     if (distribution.reduce((sum, item) => sum + item.percentage, 0) !== 100) {
-      throw new Error('Os percentuais de premiação devem somar 100%')
+      throw new Error('Os percentuais de recompensa devem somar 100%')
     }
 
     return distribution

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { authorize } from '../middleware/authorize.middleware'
 import { validateRequest } from '../middleware/validate-request.middleware'
-import { CreateBolaoSchema } from '../validators/bolao.validator'
+import { CreateMesaSchema } from '../validators/bolao.validator'
 import { AdminBolaoController } from '../controllers/bolao/admin-bolao.controller'
 
 const router = Router()
@@ -28,7 +28,7 @@ router.post(
     audit: true,
     entity: 'BOLAO',
   }),
-  validateRequest(CreateBolaoSchema),
+  validateRequest(CreateMesaSchema),
   AdminBolaoController.create
 )
 
@@ -39,7 +39,7 @@ router.post(
     audit: true,
     entity: 'BOLAO',
   }),
-  validateRequest(CreateBolaoSchema),
+  validateRequest(CreateMesaSchema),
   AdminBolaoController.create
 )
 

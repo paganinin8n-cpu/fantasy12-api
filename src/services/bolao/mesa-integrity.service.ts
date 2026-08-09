@@ -75,7 +75,7 @@ export class MesaIntegrityService {
     if (mesa.platformFee !== totals.platformFee || mesa.prizePool !== totals.prizePool) {
       issues.push({
         code: 'PRIZE_TOTALS_MISMATCH',
-        message: 'Taxa ou premiação líquida diverge do total arrecadado',
+        message: 'Taxa ou recompensa líquida diverge do total acumulado',
         details: { expectedPlatformFee: totals.platformFee, expectedPrizePool: totals.prizePool },
       })
     }

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { withMesaFinancialNames } from './mesa-financial-names';
 
 export class ListAvailableBoloesService {
   static async execute({ userId }: { userId: string }) {
@@ -31,7 +32,7 @@ export class ListAvailableBoloesService {
     return boloes.map(bolao => {
       const participant = bolao.participants[0] ?? null;
 
-      return {
+      return withMesaFinancialNames({
         id: bolao.id,
         name: bolao.name,
         description: bolao.description,
@@ -56,7 +57,7 @@ export class ListAvailableBoloesService {
           bolao.createdBy?.nickname?.trim() ||
           bolao.createdBy?.name?.trim() ||
           'Fantasy12',
-      };
+      });
     });
   }
 }

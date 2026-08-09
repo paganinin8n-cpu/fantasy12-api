@@ -7,6 +7,7 @@ import {
 } from './bolao-prize.service'
 import { normalizeMesaPrizeRules } from './mesa-prize-rules'
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service'
+import { resolveAccessCost, withMesaFinancialNames } from './mesa-financial-names'
 
 type CreateBolaoInput = {
   name: string
@@ -14,6 +15,8 @@ type CreateBolaoInput = {
   startDate: Date
   entryEndDate: Date
   endDate: Date
+  accessCost?: number
+  /** @deprecated Compatibility input. Use accessCost. */
   entryFee?: number
   prizeDistribution: PrizeDistributionItem[]
   createdByUserId: string
@@ -31,10 +34,10 @@ export class CreateBolaoService {
       startDate,
       entryEndDate,
       endDate,
-      entryFee = 0,
       prizeDistribution,
       createdByUserId,
     } = input
+    const accessCost = resolveAccessCost(input)
     const description = normalizeMesaPrizeRules(rawDescription)
 
     const user = await prisma.user.findUnique({
@@ -66,7 +69,7 @@ export class CreateBolaoService {
       throw new Error('A data de término dos acessos deve ser anterior ou igual à data de fim da Mesa')
     }
 
-    if (!Number.isInteger(entryFee) || entryFee <= 0) {
+    if (!Number.isInteger(accessCost) || accessCost <= 0) {
       throw new Error('O acesso em tampinhas deve ser maior que zero')
     }
 
@@ -99,7 +102,7 @@ export class CreateBolaoService {
           description,
           type: 'BOLAO',
           status: 'ACTIVE',
-          entryFee,
+          entryFee: accessCost,
           maxParticipants: null,
           currentParticipants: 0,
           durationDays,
@@ -121,7 +124,8 @@ export class CreateBolaoService {
           metadata: {
             name,
             description,
-            entryFee,
+            accessCost,
+            entryFee: accessCost,
             maxParticipants: null,
             durationDays,
             startDate: startDate.toISOString(),
@@ -137,7 +141,7 @@ export class CreateBolaoService {
       return bolao
     })
 
-    return {
+    return withMesaFinancialNames({
       id: result.id,
       name: result.name,
       status: result.status,
@@ -152,6 +156,6 @@ export class CreateBolaoService {
       platformFee: result.platformFee,
       prizePool: result.prizePool,
       settledAt: result.settledAt,
-    }
+    })
   }
 }

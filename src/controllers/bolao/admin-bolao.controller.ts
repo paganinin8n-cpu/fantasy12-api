@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { CreateBolaoService } from '../../services/bolao/create-bolao.service'
 import { AppError } from '../../errors/AppError'
 import { prisma } from '../../lib/prisma'
+import { withMesaFinancialNames } from '../../services/bolao/mesa-financial-names'
 
 export class AdminBolaoController {
   static async list(req: Request, res: Response, next: NextFunction) {
@@ -33,7 +34,8 @@ export class AdminBolaoController {
         },
       })
 
-      return res.json({ boloes })
+      const mesas = boloes.map(withMesaFinancialNames)
+      return res.json({ mesas, boloes: mesas })
     } catch (error) {
       return next(error)
     }
@@ -53,6 +55,7 @@ export class AdminBolaoController {
         startDate: new Date(req.body.startDate),
         entryEndDate: new Date(req.body.entryEndDate),
         endDate: new Date(req.body.endDate),
+        accessCost: req.body.accessCost,
         entryFee: req.body.entryFee,
         prizeDistribution: req.body.prizeDistribution,
         createdByUserId: userId,

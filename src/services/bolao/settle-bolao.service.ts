@@ -41,7 +41,7 @@ export class SettleBolaoService {
           walletId: wallet.id,
           type: 'CREDIT',
           amount: payout.amount,
-          description: `Premiação da Mesa ${ranking.id} — ${payout.position}ª posição`,
+          description: `Recompensa da Mesa ${ranking.id} — ${payout.position}ª posição`,
           idempotencyKey: `bolao:payout:${ranking.id}:${payout.userId}`,
         },
       })

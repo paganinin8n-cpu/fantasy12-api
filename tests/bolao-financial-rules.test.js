@@ -46,7 +46,7 @@ function createInput(overrides = {}) {
   }
 }
 
-test('Mesa exige observacoes/regras da premiacao obrigatorias', async t => {
+test('Mesa exige observacoes/regras da recompensa obrigatorias', async t => {
   const originalFindUnique = prisma.user.findUnique
   t.after(() => { prisma.user.findUnique = originalFindUnique })
   prisma.user.findUnique = async () => mockProUser()
@@ -55,7 +55,7 @@ test('Mesa exige observacoes/regras da premiacao obrigatorias', async t => {
     CreateBolaoService.execute(createInput({ description: '' })),
     (error) => {
       assert.equal(error.code, 'invalid_mesa_prize_rules')
-      assert.match(error.message, /observações\/regras da premiação/i)
+      assert.match(error.message, /observações\/regras da recompensa/i)
       return true
     }
   )
@@ -118,7 +118,7 @@ test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t =>
   )
 })
 
-test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => {
+test('Mesa exige acesso positivo e uma distribuicao que some 100%', async t => {
   const originalFindUnique = prisma.user.findUnique
   t.after(() => { prisma.user.findUnique = originalFindUnique })
   prisma.user.findUnique = async () => mockProUser()
@@ -129,7 +129,7 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
   )
   await assert.rejects(
     CreateBolaoService.execute(createInput({ prizeDistribution: [] })),
-    { message: 'Informe ao menos uma faixa de premiação' }
+    { message: 'Informe ao menos uma faixa de recompensa' }
   )
   await assert.rejects(
     CreateBolaoService.execute(createInput({
@@ -138,7 +138,7 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
         { position: 2, percentage: 20 },
       ],
     })),
-    { message: 'Os percentuais de premiação devem somar 100%' }
+    { message: 'Os percentuais de recompensa devem somar 100%' }
   )
   await assert.rejects(
     CreateBolaoService.execute(createInput({
@@ -147,7 +147,7 @@ test('Mesa exige entrada positiva e uma distribuicao que some 100%', async t => 
         { position: 3, percentage: 30 },
       ],
     })),
-    { message: 'As posições premiadas devem ser sequenciais a partir da 1ª posição' }
+    { message: 'As posições com recompensa devem ser sequenciais a partir da 1ª posição' }
   )
 })
 
@@ -193,11 +193,19 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
     auditLog: { create: async () => ({}) },
   })
 
-  await CreateBolaoService.execute(createInput())
+  const result = await CreateBolaoService.execute(createInput({
+    accessCost: 10,
+    entryFee: undefined,
+  }))
 
   assert.deepEqual(rankingData.prizeDistribution, VALID_PRIZES)
+  assert.equal(rankingData.entryFee, 10)
   assert.equal(rankingData.grossCollected, 0)
   assert.equal(rankingData.currentParticipants, 0)
+  assert.equal(result.accessCost, 10)
+  assert.equal(result.entryFee, 10)
+  assert.equal(result.rewardPool, 0)
+  assert.equal(result.prizePool, 0)
   assert.equal(walletTouched, false)
 })
 

@@ -5,15 +5,41 @@ const PrizeDistributionItemSchema = z.object({
   percentage: z.number().positive().max(100),
 }).strict()
 
-export const CreateBolaoSchema = z.object({
+const CreateMesaBaseSchema = z.object({
   name: z.string().trim().min(3).max(120),
   description: z.string().trim().min(1).max(2000),
   startDate: z.iso.datetime(),
   entryEndDate: z.iso.datetime(),
   endDate: z.iso.datetime(),
-  entryFee: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  accessCost: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  entryFee: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
   prizeDistribution: z.array(PrizeDistributionItemSchema).min(1).max(100),
 }).strict()
+
+export const CreateMesaSchema = CreateMesaBaseSchema.superRefine((input, ctx) => {
+  if (input.accessCost == null && input.entryFee == null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['accessCost'],
+      message: 'Informe o custo de acesso da Mesa',
+    })
+  }
+
+  if (
+    input.accessCost != null &&
+    input.entryFee != null &&
+    input.accessCost !== input.entryFee
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['accessCost'],
+      message: 'accessCost e entryFee devem possuir o mesmo valor durante a compatibilidade',
+    })
+  }
+})
+
+/** @deprecated Use CreateMesaSchema. */
+export const CreateBolaoSchema = CreateMesaSchema
 
 export const ReviewBolaoRequestSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),

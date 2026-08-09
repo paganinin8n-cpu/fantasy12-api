@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { RankingType } from '@prisma/client'
+import { withMesaFinancialNames } from './mesa-financial-names'
 
 /**
  * Lista todas as Mesas em que o usuário participa, junto com sua posição
@@ -40,7 +41,7 @@ export class ListUserBoloesService {
       orderBy: { createdAt: 'desc' },
     })
 
-    return participations.map(p => ({
+    return participations.map(p => withMesaFinancialNames({
       id: p.ranking.id,
       name: p.ranking.name,
       description: p.ranking.description,
