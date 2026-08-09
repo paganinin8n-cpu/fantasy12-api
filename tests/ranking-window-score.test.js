@@ -101,7 +101,7 @@ test('Mesa calcula o acumulado pelo total atual menos o snapshot inicial', async
     id: 'mesa-1',
     startDate: new Date('2026-07-01T00:00:00Z'),
     endDate: new Date('2026-07-31T23:59:59Z'),
-  })
+  }, new Date('2026-07-10T12:00:00Z'))
 
   assert.equal(rows[0].score, -4)
   assert.equal(rows[0].scoreRound, -4)
