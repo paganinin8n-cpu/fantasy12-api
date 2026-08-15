@@ -196,6 +196,9 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   const result = await CreateBolaoService.execute(createInput({
     accessCost: 10,
     entryFee: undefined,
+    startDate: new Date('2099-08-01T00:00:00Z'),
+    entryEndDate: new Date('2099-08-15T00:00:00Z'),
+    endDate: new Date('2099-08-31T23:59:59Z'),
   }))
 
   assert.deepEqual(rankingData.prizeDistribution, VALID_PRIZES)
@@ -312,8 +315,13 @@ test('usuário FREE não entra na Mesa e não inicia débito', async t => {
 })
 
 test('entrada sem fichas não cria participante nem altera o caixa da Mesa', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
-  t.after(() => { prisma.$transaction = originalTransaction })
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.$transaction = originalTransaction
+  })
+  AssertActiveProUserService.execute = async () => mockProUser()
 
   let participantChanged = false
   let rankingChanged = false

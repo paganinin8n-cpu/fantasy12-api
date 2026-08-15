@@ -4,6 +4,7 @@ import { RankingWindowScoreService } from '../ranking/ranking-window-score.servi
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 import { BolaoEntryPaymentService } from './bolao-entry-payment.service';
 import { BolaoPrizeService } from './bolao-prize.service';
+import { AssertActiveProUserService } from '../subscription/assert-active-pro-user.service';
 
 type JoinBolaoInput = {
   rankingId: string;
@@ -15,6 +16,8 @@ export class JoinBolaoService {
     input: JoinBolaoInput,
     transaction?: Prisma.TransactionClient
   ) {
+    await AssertActiveProUserService.execute(input.userId);
+
     if (transaction) {
       return this.executeInTransaction(transaction, input);
     }

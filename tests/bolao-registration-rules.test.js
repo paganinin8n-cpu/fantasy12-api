@@ -14,9 +14,20 @@ const {
 const {
   CreateBolaoInviteService,
 } = require('../dist/services/bolao/create-bolao-invite.service')
+const {
+  AssertActiveProUserService,
+} = require('../dist/services/subscription/assert-active-pro-user.service')
 
 const REGISTRATION_CLOSED = 'As inscrições para esta competição foram encerradas.'
 const REGISTRATION_NOT_STARTED = 'As inscrições para esta competição ainda não começaram.'
+
+function mockProAccess(t) {
+  const originalAssertPro = AssertActiveProUserService.execute
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+  })
+  AssertActiveProUserService.execute = async userId => ({ id: userId })
+}
 
 test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t => {
   const originalFindUnique = prisma.user.findUnique
@@ -110,6 +121,7 @@ test('bloqueia criacao de Mesa quando o termino das entradas ja passou', async t
 })
 
 test('bloqueia solicitacao antes da data de abertura da Mesa', async t => {
+  mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
@@ -137,6 +149,7 @@ test('bloqueia solicitacao antes da data de abertura da Mesa', async t => {
 })
 
 test('bloqueia solicitacao depois do termino das entradas', async t => {
+  mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
@@ -164,6 +177,7 @@ test('bloqueia solicitacao depois do termino das entradas', async t => {
 })
 
 test('nao limita a quantidade de participantes da Mesa', async t => {
+  mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
@@ -206,6 +220,7 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
 })
 
 test('bloqueia nova solicitacao depois do termino das entradas', async t => {
+  mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
