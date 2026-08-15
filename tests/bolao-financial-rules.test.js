@@ -209,7 +209,7 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   assert.equal(walletTouched, false)
 })
 
-test('acesso à Mesa é imediato e depende somente do saldo de tampinhas', async t => {
+test('acesso à Mesa exige assinatura PRO ativa e saldo de tampinhas', async t => {
   const originalAssertPro = AssertActiveProUserService.execute
   const originalTransaction = prisma.$transaction
   t.after(() => {
@@ -217,8 +217,10 @@ test('acesso à Mesa é imediato e depende somente do saldo de tampinhas', async
     prisma.$transaction = originalTransaction
   })
 
-  AssertActiveProUserService.execute = async () => {
-    throw new Error('entrada não deve exigir assinatura PRO')
+  let assertedUserId
+  AssertActiveProUserService.execute = async userId => {
+    assertedUserId = userId
+    return mockProUser()
   }
 
   let participantData
@@ -265,6 +267,7 @@ test('acesso à Mesa é imediato e depende somente do saldo de tampinhas', async
   })
 
   assert.equal(result.status, 'APPROVED')
+  assert.equal(assertedUserId, 'user-2')
   assert.equal(participantData.status, 'APPROVED')
   assert.equal(participantData.entryFeePaid, 11)
   assert.ok(participantData.entryPaidAt instanceof Date)
@@ -272,6 +275,40 @@ test('acesso à Mesa é imediato e depende somente do saldo de tampinhas', async
   assert.deepEqual(rankingUpdates[0].grossCollected, { increment: 11 })
   assert.equal(rankingUpdates[1].platformFee, 2)
   assert.equal(rankingUpdates[1].prizePool, 20)
+})
+
+test('usuário FREE não entra na Mesa e não inicia débito', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.$transaction = originalTransaction
+  })
+
+  AssertActiveProUserService.execute = async () => {
+    const error = new Error(
+      'Este recurso é exclusivo para usuários com assinatura PRO ativa.'
+    )
+    error.code = 'pro_subscription_required'
+    error.statusCode = 403
+    throw error
+  }
+
+  let transactionStarted = false
+  prisma.$transaction = async () => {
+    transactionStarted = true
+    throw new Error('a transação não deve iniciar para usuário FREE')
+  }
+
+  await assert.rejects(
+    JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'free-user' }),
+    error => {
+      assert.equal(error.code, 'pro_subscription_required')
+      assert.equal(error.statusCode, 403)
+      return true
+    }
+  )
+  assert.equal(transactionStarted, false)
 })
 
 test('entrada sem fichas não cria participante nem altera o caixa da Mesa', async t => {

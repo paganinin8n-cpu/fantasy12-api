@@ -10,6 +10,9 @@ const {
 const {
   UseBolaoInviteService,
 } = require('../dist/services/bolao/use-bolao-invite.service')
+const {
+  AssertActiveProUserService,
+} = require('../dist/services/subscription/assert-active-pro-user.service')
 
 function activeInvite(overrides = {}) {
   return {
@@ -110,6 +113,88 @@ test('repetição por participante aprovado é idempotente e não consome convit
   assert.equal(result.participantId, 'participant-1')
   assert.equal(reservationCalled, false)
   assert.equal(joinCalled, false)
+})
+
+test('convite não permite nova entrada FREE e reverte a reserva', async t => {
+  const originalTransaction = prisma.$transaction
+  const originalAssertPro = AssertActiveProUserService.execute
+  t.after(() => {
+    prisma.$transaction = originalTransaction
+    AssertActiveProUserService.execute = originalAssertPro
+  })
+
+  AssertActiveProUserService.execute = async () => {
+    const error = new Error(
+      'Este recurso é exclusivo para usuários com assinatura PRO ativa.'
+    )
+    error.code = 'pro_subscription_required'
+    error.statusCode = 403
+    throw error
+  }
+
+  let usedCount = 0
+  let participantCreated = false
+  const tx = {
+    bolaoInvite: { findUnique: async () => activeInvite({ usedCount }) },
+    ranking: {
+      findUnique: async () => ({
+        id: 'ranking-1',
+        type: 'BOLAO',
+        status: 'ACTIVE',
+        entryFee: 10,
+        accessCost: 10,
+        currentParticipants: 0,
+        createdByUserId: 'creator-1',
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        entryEndDate: new Date('2099-01-01T00:00:00Z'),
+      }),
+      update: async ({ data }) => data.grossCollected
+        ? { grossCollected: 10 }
+        : data,
+    },
+    rankingParticipant: {
+      findUnique: async () => null,
+      create: async ({ data }) => {
+        participantCreated = true
+        return { id: 'participant-1', ...data }
+      },
+    },
+    wallet: {
+      findUnique: async () => ({ id: 'wallet-1', balance: 20 }),
+      updateMany: async () => ({ count: 1 }),
+    },
+    walletLedger: { create: async ({ data }) => data },
+    user: { findUnique: async () => ({ scoreTotal: 0 }) },
+    userScoreHistory: { findFirst: async () => null },
+    auditLog: { create: async ({ data }) => data },
+    $queryRaw: async () => {
+      usedCount += 1
+      return [{ usedCount }]
+    },
+  }
+  prisma.$transaction = async callback => {
+    const before = usedCount
+    try {
+      return await callback(tx)
+    } catch (error) {
+      usedCount = before
+      throw error
+    }
+  }
+
+  await assert.rejects(
+    UseBolaoInviteService.execute({
+      code: 'invite-code',
+      userId: 'free-user',
+    }),
+    error => {
+      assert.equal(error.code, 'pro_subscription_required')
+      assert.equal(error.statusCode, 403)
+      return true
+    }
+  )
+  assert.equal(usedCount, 0)
+  assert.equal(participantCreated, false)
 })
 
 test('reserva é compare-and-increment condicional no PostgreSQL', () => {
