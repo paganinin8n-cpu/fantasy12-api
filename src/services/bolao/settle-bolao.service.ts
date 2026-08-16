@@ -1,10 +1,13 @@
-import { Prisma } from '@prisma/client'
+import { MesaCategory, Prisma } from '@prisma/client'
 import { RankingWindowRow } from '../ranking/ranking-window-score.service'
 import { BolaoPrizeService } from './bolao-prize.service'
+import { MesaCategoryRules } from './mesa-category-rules'
 
 type SettlementRanking = {
   id: string
   grossCollected: number
+  category?: MesaCategory
+  sponsorPrizePool?: number
   prizeDistribution: Prisma.JsonValue | null
   settledAt: Date | null
 }
@@ -13,22 +16,50 @@ export class SettleBolaoService {
   static async execute(
     tx: Prisma.TransactionClient,
     ranking: SettlementRanking,
-    rows: RankingWindowRow[]
+    rows: RankingWindowRow[],
+    settledAt = new Date()
   ) {
     if (ranking.settledAt) return
 
     const prizeDistribution = BolaoPrizeService.fromJson(
       ranking.prizeDistribution
     )
-    const totals = BolaoPrizeService.calculatePool(ranking.grossCollected)
+    const sponsored = MesaCategoryRules.isSponsored(ranking)
+    const totals = sponsored
+      ? {
+          grossCollected: 0,
+          platformFee: 0,
+          prizePool: ranking.sponsorPrizePool ?? 0,
+        }
+      : BolaoPrizeService.calculatePool(ranking.grossCollected)
     const payouts = BolaoPrizeService.calculatePayouts({
       prizePool: totals.prizePool,
       prizeDistribution,
       rows: rows.map(row => ({ userId: row.userId, position: row.position })),
     })
-    const settledAt = new Date()
+    let eligiblePayouts = payouts
+    let withheldPayouts: typeof payouts = []
+    if (sponsored && payouts.length > 0) {
+      const users = await tx.user.findMany({
+        where: { id: { in: payouts.map(payout => payout.userId) } },
+        select: {
+          id: true,
+          subscription: { select: { startAt: true, endAt: true } },
+        },
+      })
+      const eligibleUserIds = new Set(users
+        .filter(user => {
+          const subscription = user.subscription
+          return !!subscription
+            && subscription.startAt <= settledAt
+            && (!subscription.endAt || subscription.endAt > settledAt)
+        })
+        .map(user => user.id))
+      eligiblePayouts = payouts.filter(payout => eligibleUserIds.has(payout.userId))
+      withheldPayouts = payouts.filter(payout => !eligibleUserIds.has(payout.userId))
+    }
 
-    for (const payout of payouts) {
+    for (const payout of eligiblePayouts) {
       const wallet = await tx.wallet.upsert({
         where: { userId: payout.userId },
         update: {},
@@ -70,6 +101,8 @@ export class SettleBolaoService {
           ...totals,
           prizeDistribution,
           payouts,
+          eligiblePayouts,
+          withheldPayouts,
           settledAt: settledAt.toISOString(),
         },
       },

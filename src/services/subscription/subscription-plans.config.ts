@@ -10,6 +10,8 @@ export type SubscriptionPlanOffer = {
   installments: number
   installmentCents: number | null
   totalCents: number
+  /** A vigência pertence ao pacote comprado, não ao meio/valor do pagamento. */
+  validityMonths: 1 | 12
   badge: string | null
   benefits: string[]
   checkoutEnabled: boolean
@@ -27,13 +29,13 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     installments: 1,
     installmentCents: null,
     totalCents: 2490,
+    validityMonths: 1,
     badge: null,
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com tampinhas',
-      'Participe de Mesas Exclusivas',
-      'Ranking PRO exclusivo',
+      'Participação em Mesas exclusivas',
+      'Participação no Ranking PRO',
     ],
     checkoutEnabled: true,
   },
@@ -47,13 +49,13 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     installments: 1,
     installmentCents: null,
     totalCents: 9900,
-    badge: 'Pague 10 meses e receba 12',
+    validityMonths: 12,
+    badge: '12 meses de acesso',
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com tampinhas',
-      'Mesas Exclusivas + criar mesas',
-      'Ranking PRO exclusivo',
+      'Participação em Mesas exclusivas',
+      'Participação no Ranking PRO',
       'Economize mais de 65%',
     ],
     checkoutEnabled: true,
@@ -68,13 +70,13 @@ export const SUBSCRIPTION_PLAN_OFFERS: SubscriptionPlanOffer[] = [
     installments: 12,
     installmentCents: 990,
     totalCents: 11880,
+    validityMonths: 12,
     badge: null,
     benefits: [
       '4 Duplas grátis por rodada',
       '2 Super Duplas grátis por rodada',
-      'Compra de Duplas e Super Duplas com tampinhas',
-      'Mesas Exclusivas + criar mesas',
-      'Ranking PRO exclusivo',
+      'Participação em Mesas exclusivas',
+      'Participação no Ranking PRO',
     ],
     checkoutEnabled: true,
   },

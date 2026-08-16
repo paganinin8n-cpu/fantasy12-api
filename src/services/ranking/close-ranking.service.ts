@@ -25,6 +25,8 @@ export class CloseRankingService {
           description: true,
           entryFee: true,
           accessCost: true,
+          category: true,
+          sponsorPrizePool: true,
           platformFee: true,
           prizePool: true,
           rewardPool: true,
@@ -102,7 +104,7 @@ export class CloseRankingService {
       }
 
       if (isBolao) {
-        await SettleBolaoService.execute(tx, ranking, rows);
+        await SettleBolaoService.execute(tx, ranking, rows, new Date());
       }
 
       /**

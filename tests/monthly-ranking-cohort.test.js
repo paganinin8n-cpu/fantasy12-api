@@ -87,7 +87,49 @@ test('cria rankings Geral e PRO do mes com primeira rodada e snapshots da coorte
   assert.equal(result.registrationOpen, true)
 })
 
-test('nao admite novos participantes depois que a primeira rodada fecha', async t => {
+test('assinatura iniciada depois do dia 1 nao entra mesmo antes do fechamento da primeira rodada', async t => {
+  const originalTransaction = prisma.$transaction
+  t.after(() => { prisma.$transaction = originalTransaction })
+
+  const participantBatches = []
+  prisma.$transaction = async callback => callback({
+    round: {
+      findFirst: async () => ({
+        id: 'round-20', number: 20, status: 'OPEN',
+        closeAt: new Date('2026-08-20T12:00:00Z'),
+      }),
+    },
+    ranking: {
+      findMany: async () => [],
+      upsert: async ({ create }) => create,
+    },
+    rankingRound: { upsert: async ({ create }) => create },
+    user: {
+      findMany: async () => [user(
+        'pro-after-cutoff',
+        10,
+        activeSubscription({ startAt: new Date('2026-08-02T00:00:00Z') })
+      )],
+    },
+    rankingParticipant: {
+      createMany: async ({ data }) => {
+        participantBatches.push(data)
+        return { count: data.length }
+      },
+    },
+    auditLog: { create: async () => ({}) },
+  })
+
+  await EnsureMonthlyRankingsService.execute({
+    periodRef: '2026-08',
+    now: new Date('2026-08-15T12:00:00Z'),
+  })
+
+  assert.equal(participantBatches[0].length, 1)
+  assert.equal(participantBatches[1].length, 0)
+})
+
+test('assinatura paga no dia 15, depois do corte, entra no Ranking PRO apenas no mes seguinte', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => {
     prisma.$transaction = originalTransaction
@@ -131,7 +173,7 @@ test('nao admite novos participantes depois que a primeira rodada fecha', async 
 
   const result = await EnsureMonthlyRankingsService.execute({
     periodRef: '2026-08',
-    now: new Date('2026-08-06T12:00:00Z'),
+    now: new Date('2026-08-15T12:00:00Z'),
   })
 
   assert.equal(result.registrationOpen, false)
@@ -323,10 +365,11 @@ function user(id, scoreTotal, subscription) {
   }
 }
 
-function activeSubscription() {
+function activeSubscription(overrides = {}) {
   return {
     status: 'ACTIVE',
     startAt: new Date('2026-07-01T00:00:00Z'),
     endAt: new Date('2027-01-01T00:00:00Z'),
+    ...overrides,
   }
 }

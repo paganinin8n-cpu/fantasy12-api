@@ -106,6 +106,28 @@ test('diagnóstico de Mesa identifica configuração financeira e pagamentos leg
   ])
 })
 
+test('integridade aceita participantes sem débito em Mesa FREE patrocinada', () => {
+  const issues = MesaIntegrityService.inspect({
+    id: 'mesa-free',
+    category: 'SPONSORED_FREE',
+    description: 'Premiação patrocinada integral para o primeiro colocado.',
+    entryFee: 0,
+    accessCost: 0,
+    sponsorPrizePool: 100,
+    prizeDistribution: [{ position: 1, percentage: 100 }],
+    grossCollected: 0,
+    platformFee: 0,
+    prizePool: 100,
+    rewardPool: 100,
+    settledAt: null,
+    participants: [
+      { status: 'APPROVED', entryFeePaid: 0, entryPaidAt: null },
+    ],
+  })
+
+  assert.deepEqual(issues, [])
+})
+
 test('banco possui defesa final para impedir duas rodadas OPEN', () => {
   const baseline = require('../prisma/migration-baseline-cutover-v2.json')
   const migration = path.join(

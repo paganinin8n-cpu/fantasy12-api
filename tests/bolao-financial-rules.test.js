@@ -40,6 +40,7 @@ function createInput(overrides = {}) {
     entryEndDate: new Date('2026-08-15T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
+    maxParticipants: 50,
     prizeDistribution: VALID_PRIZES,
     createdByUserId: 'creator-1',
     ...overrides,
@@ -151,6 +152,17 @@ test('Mesa exige acesso positivo e uma distribuicao que some 100%', async t => {
   )
 })
 
+test('toda Mesa exige limite de usuarios positivo', async () => {
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ maxParticipants: undefined })),
+    { message: 'Informe um limite de usuários maior que zero' }
+  )
+  await assert.rejects(
+    CreateBolaoService.execute(createInput({ maxParticipants: 0 })),
+    { message: 'Informe um limite de usuários maior que zero' }
+  )
+})
+
 test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
@@ -195,6 +207,7 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
 
   const result = await CreateBolaoService.execute(createInput({
     accessCost: 10,
+    maxParticipants: 80,
     entryFee: undefined,
     startDate: new Date('2099-08-01T00:00:00Z'),
     entryEndDate: new Date('2099-08-15T00:00:00Z'),
@@ -209,7 +222,94 @@ test('admin cria Mesa vazia sem debitar fichas do criador', async t => {
   assert.equal(result.entryFee, 10)
   assert.equal(result.rewardPool, 0)
   assert.equal(result.prizePool, 0)
+  assert.equal(result.maxParticipants, 80)
   assert.equal(walletTouched, false)
+})
+
+test('admin cria Mesa FREE patrocinada sem custo e com premio financiado', async t => {
+  const originalFindUnique = prisma.user.findUnique
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    prisma.user.findUnique = originalFindUnique
+    prisma.$transaction = originalTransaction
+  })
+  prisma.user.findUnique = async () => ({ id: 'creator-1' })
+
+  let rankingData
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      create: async ({ data }) => {
+        rankingData = data
+        return { ...data }
+      },
+    },
+    auditLog: { create: async () => ({}) },
+  })
+
+  const result = await CreateBolaoService.execute(createInput({
+    category: 'SPONSORED_FREE',
+    accessCost: 0,
+    entryFee: undefined,
+    sponsorPrizePool: 100,
+    maxParticipants: 50,
+    entryEndDate: undefined,
+    startDate: new Date('2099-08-01T00:00:00Z'),
+    endDate: new Date('2099-08-31T23:59:59Z'),
+  }))
+
+  assert.equal(rankingData.category, 'SPONSORED_FREE')
+  assert.equal(rankingData.accessCost, 0)
+  assert.equal(rankingData.entryFee, 0)
+  assert.equal(rankingData.entryEndDate, null)
+  assert.equal(rankingData.sponsorPrizePool, 100)
+  assert.equal(rankingData.maxParticipants, 50)
+  assert.equal(rankingData.prizePool, 100)
+  assert.equal(rankingData.rewardPool, 100)
+  assert.equal(result.category, 'SPONSORED_FREE')
+})
+
+test('entrada em Mesa FREE nao debita Tampinhas', async t => {
+  const originalAssertPro = AssertActiveProUserService.execute
+  const originalTransaction = prisma.$transaction
+  t.after(() => {
+    AssertActiveProUserService.execute = originalAssertPro
+    prisma.$transaction = originalTransaction
+  })
+  AssertActiveProUserService.execute = async () => mockProUser()
+
+  let participantData
+  prisma.$transaction = async callback => callback({
+    ranking: {
+      findUnique: async () => ({
+        id: 'mesa-free', type: 'BOLAO', status: 'ACTIVE',
+        category: 'SPONSORED_FREE', entryFee: 0, accessCost: 0,
+        sponsorPrizePool: 100, maxParticipants: 50, currentParticipants: 0,
+        createdByUserId: 'creator-1',
+        startDate: new Date('2020-01-01T00:00:00Z'),
+        entryEndDate: null,
+        endDate: new Date('2099-08-31T00:00:00Z'),
+      }),
+      updateMany: async () => ({ count: 1 }),
+      findUniqueOrThrow: async () => ({ grossCollected: 0 }),
+      update: async () => ({}),
+    },
+    rankingParticipant: {
+      findUnique: async () => null,
+      create: async ({ data }) => {
+        participantData = data
+        return { id: 'participant-free', ...data }
+      },
+    },
+    wallet: { findUnique: async () => { throw new Error('não deve consultar carteira') } },
+    user: { findUnique: async () => ({ scoreTotal: 0 }) },
+    userScoreHistory: { findFirst: async () => null },
+    auditLog: { create: async () => ({}) },
+  })
+
+  await JoinBolaoService.execute({ rankingId: 'mesa-free', userId: 'pro-user' })
+
+  assert.equal(participantData.entryFeePaid, 0)
+  assert.equal(participantData.entryPaidAt, null)
 })
 
 test('acesso à Mesa exige assinatura PRO ativa e saldo de tampinhas', async t => {
@@ -360,6 +460,7 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
   t.after(() => { prisma.$transaction = originalTransaction })
 
   let participantUpdate
+  let capacityReservation
   const rankingUpdates = []
   let debitCalls = 0
   let ledgerData
@@ -369,6 +470,10 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
         id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
         maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
       }),
+      updateMany: async ({ data }) => {
+        capacityReservation = data
+        return { count: 1 }
+      },
       update: async ({ data }) => {
         rankingUpdates.push(data)
         return data.grossCollected
@@ -402,6 +507,7 @@ test('aprovação debita uma única vez e atualiza o caixa financeiro', async t 
   assert.equal(ledgerData.idempotencyKey, 'bolao:entry:mesa-1:user-2')
   assert.equal(participantUpdate.entryFeePaid, 11)
   assert.ok(participantUpdate.entryPaidAt instanceof Date)
+  assert.deepEqual(capacityReservation.currentParticipants, { increment: 1 })
   assert.deepEqual(rankingUpdates[0].grossCollected, { increment: 11 })
   assert.equal(rankingUpdates[1].platformFee, 2)
   assert.equal(rankingUpdates[1].prizePool, 20)

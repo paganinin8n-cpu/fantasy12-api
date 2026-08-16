@@ -38,6 +38,9 @@ export class CreateBolaoInviteService {
         createdByUserId: true,
         startDate: true,
         entryEndDate: true,
+        endDate: true,
+        currentParticipants: true,
+        maxParticipants: true,
       },
     })
 
@@ -48,6 +51,12 @@ export class CreateBolaoInviteService {
     }
 
     BolaoRegistrationWindowService.assertNotClosed(ranking)
+    if (
+      ranking.maxParticipants != null
+      && ranking.currentParticipants >= ranking.maxParticipants
+    ) {
+      throw new Error('Esta Mesa atingiu o limite de participantes')
+    }
 
     if (ranking.createdByUserId !== createdByUserId) {
       throw new Error('Apenas o dono da Mesa pode gerar convites')

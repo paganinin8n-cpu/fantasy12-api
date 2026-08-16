@@ -9,6 +9,8 @@ const { GrantPaidBenefitService } = require('../dist/services/benefits/grant-pai
 const { GrantRoundBenefitsService } = require('../dist/services/benefits/grant-round-benefits.service')
 const { CloseRoundService } = require('../dist/services/round/close-round.service')
 const { RoundRepository } = require('../dist/repositories/round.repository')
+const { PurchaseBenefitsService } = require('../dist/services/benefits/purchase-benefits.service')
+const { WalletService } = require('../dist/services/wallet/wallet.service')
 
 function createTransaction({ freeDoubles = 0, freeSuperDoubles = 0, inventory = 0 } = {}) {
   const state = {
@@ -88,6 +90,36 @@ test('permite consumir estoque pago mesmo sem benefício grátis da rodada', asy
   assert.equal(result.freeUsed, 0)
   assert.equal(result.inventoryUsed, 2)
   assert.equal(state.inventory.quantity, 0)
+})
+
+test('usuário FREE pode comprar Duplas sem assinatura PRO', async t => {
+  const originalTransaction = prisma.$transaction
+  const originalDebit = WalletService.debit
+  t.after(() => {
+    prisma.$transaction = originalTransaction
+    WalletService.debit = originalDebit
+  })
+
+  let debited = null
+  WalletService.debit = async (userId, amount) => {
+    debited = { userId, amount }
+  }
+  prisma.$transaction = async callback => callback({
+    userBenefitInventory: {
+      upsert: async () => ({ id: 'inventory-free-user', quantity: 1 }),
+    },
+    wallet: { findUnique: async () => ({ balance: 6 }) },
+    auditLog: { create: async () => ({}) },
+  })
+
+  const result = await PurchaseBenefitsService.execute({
+    userId: 'free-user',
+    packageId: 'double_single',
+  })
+
+  assert.deepEqual(debited, { userId: 'free-user', amount: 4 })
+  assert.equal(result.type, 'DOUBLE')
+  assert.equal(result.inventoryQuantity, 1)
 })
 
 test('rejeita o envio quando grátis mais pagas não cobrem a quantidade', async () => {

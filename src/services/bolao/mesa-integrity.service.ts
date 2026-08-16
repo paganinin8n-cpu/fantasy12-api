@@ -1,5 +1,6 @@
-import { Prisma } from '@prisma/client'
+import { MesaCategory, Prisma } from '@prisma/client'
 import { BolaoPrizeService } from './bolao-prize.service'
+import { MesaCategoryRules } from './mesa-category-rules'
 
 export type MesaIntegrityIssue = {
   code: string
@@ -18,6 +19,8 @@ export type InspectableMesa = {
   description: string | null
   entryFee: number
   accessCost?: number | null
+  category?: MesaCategory
+  sponsorPrizePool?: number
   prizeDistribution: Prisma.JsonValue | null
   grossCollected: number
   platformFee: number
@@ -42,6 +45,7 @@ export class MesaIntegrityService {
     const issues: MesaIntegrityIssue[] = []
     const accessCost = mesa.accessCost ?? mesa.entryFee
     const rewardPool = mesa.rewardPool ?? mesa.prizePool
+    const sponsored = MesaCategoryRules.isSponsored(mesa)
 
     if (mesa.accessCost != null && mesa.accessCost !== mesa.entryFee) {
       issues.push({
@@ -69,7 +73,7 @@ export class MesaIntegrityService {
     }
 
     const approved = mesa.participants.filter(item => item.status === 'APPROVED')
-    const unpaid = approved.filter(item =>
+    const unpaid = sponsored ? [] : approved.filter(item =>
       !item.entryPaidAt || item.entryFeePaid !== accessCost
     )
     if (unpaid.length > 0) {
@@ -80,7 +84,7 @@ export class MesaIntegrityService {
       })
     }
 
-    const expectedGross = approved
+    const expectedGross = sponsored ? 0 : approved
       .filter(item => item.entryPaidAt && item.entryFeePaid === accessCost)
       .reduce((total, item) => total + item.entryFeePaid, 0)
     if (mesa.grossCollected !== expectedGross) {
@@ -91,7 +95,9 @@ export class MesaIntegrityService {
       })
     }
 
-    const totals = BolaoPrizeService.calculatePool(mesa.grossCollected)
+    const totals = sponsored
+      ? { platformFee: 0, prizePool: mesa.sponsorPrizePool ?? 0 }
+      : BolaoPrizeService.calculatePool(mesa.grossCollected)
     if (mesa.platformFee !== totals.platformFee || rewardPool !== totals.prizePool) {
       issues.push({
         code: 'PRIZE_TOTALS_MISMATCH',
@@ -112,7 +118,8 @@ export class MesaIntegrityService {
       where: { type: 'BOLAO' },
       select: {
         id: true, name: true, status: true, endDate: true,
-        description: true, entryFee: true, accessCost: true, prizeDistribution: true,
+        description: true, entryFee: true, accessCost: true, category: true,
+        sponsorPrizePool: true, prizeDistribution: true,
         grossCollected: true, platformFee: true, prizePool: true, rewardPool: true, settledAt: true,
         participants: {
           select: { status: true, entryFeePaid: true, entryPaidAt: true },

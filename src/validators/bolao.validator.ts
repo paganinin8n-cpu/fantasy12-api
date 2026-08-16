@@ -9,15 +9,18 @@ const CreateMesaBaseSchema = z.object({
   name: z.string().trim().min(3).max(120),
   description: z.string().trim().min(1).max(2000),
   startDate: z.iso.datetime(),
-  entryEndDate: z.iso.datetime(),
+  entryEndDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime(),
-  accessCost: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-  entryFee: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  category: z.enum(['PAID', 'SPONSORED_FREE']).default('PAID'),
+  accessCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  entryFee: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  sponsorPrizePool: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  maxParticipants: z.number().int().positive().max(1_000_000),
   prizeDistribution: z.array(PrizeDistributionItemSchema).min(1).max(100),
 }).strict()
 
 export const CreateMesaSchema = CreateMesaBaseSchema.superRefine((input, ctx) => {
-  if (input.accessCost == null && input.entryFee == null) {
+  if (input.category === 'PAID' && input.accessCost == null && input.entryFee == null) {
     ctx.addIssue({
       code: 'custom',
       path: ['accessCost'],
@@ -25,6 +28,16 @@ export const CreateMesaSchema = CreateMesaBaseSchema.superRefine((input, ctx) =>
     })
   }
 
+  const accessCost = input.accessCost ?? input.entryFee ?? 0
+  if (input.category === 'PAID' && accessCost <= 0) {
+    ctx.addIssue({ code: 'custom', path: ['accessCost'], message: 'Informe o custo de acesso da Mesa' })
+  }
+  if (input.category !== 'PAID' && accessCost !== 0) {
+    ctx.addIssue({ code: 'custom', path: ['accessCost'], message: 'Mesa FREE não pode cobrar Tampinhas' })
+  }
+  if (input.category !== 'PAID' && (input.sponsorPrizePool ?? 0) <= 0) {
+    ctx.addIssue({ code: 'custom', path: ['sponsorPrizePool'], message: 'Informe a premiação patrocinada' })
+  }
   if (
     input.accessCost != null &&
     input.entryFee != null &&

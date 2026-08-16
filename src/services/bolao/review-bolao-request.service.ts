@@ -3,6 +3,7 @@ import { RankingWindowScoreService } from '../ranking/ranking-window-score.servi
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service';
 import { BolaoEntryPaymentService } from './bolao-entry-payment.service';
 import { BolaoPrizeService } from './bolao-prize.service';
+import { MesaCategoryRules } from './mesa-category-rules';
 
 type ReviewBolaoRequestInput = {
   rankingId: string;
@@ -27,10 +28,14 @@ export class ReviewBolaoRequestService {
           status: true,
           entryFee: true,
           accessCost: true,
+          category: true,
+          sponsorPrizePool: true,
           currentParticipants: true,
+          maxParticipants: true,
           createdByUserId: true,
           startDate: true,
           entryEndDate: true,
+          endDate: true,
         },
       });
 
@@ -51,6 +56,7 @@ export class ReviewBolaoRequestService {
       }
 
       const accessCost = bolao.accessCost ?? bolao.entryFee;
+      const isPaid = MesaCategoryRules.isPaid(bolao);
 
       if (status === 'APPROVED') {
         BolaoRegistrationWindowService.assertOpen(bolao);
@@ -106,11 +112,27 @@ export class ReviewBolaoRequestService {
         throw new Error('O acesso desta participação já foi debitado');
       }
 
-      await BolaoEntryPaymentService.debit(tx, {
-        rankingId,
-        userId: participant.userId,
-        amount: accessCost,
-      });
+      if (isPaid) {
+        await BolaoEntryPaymentService.debit(tx, {
+          rankingId,
+          userId: participant.userId,
+          amount: accessCost,
+        });
+      }
+
+      const seatReservedByCapacity = MesaCategoryRules.hasCapacity(bolao);
+      if (seatReservedByCapacity) {
+        const reservation = await tx.ranking.updateMany({
+          where: {
+            id: rankingId,
+            currentParticipants: { lt: bolao.maxParticipants! },
+          },
+          data: { currentParticipants: { increment: 1 } },
+        });
+        if (reservation.count !== 1) {
+          throw new Error('Esta Mesa atingiu o limite de participantes');
+        }
+      }
 
       const approvedAt = new Date();
       const scoreInitial =
@@ -128,30 +150,36 @@ export class ReviewBolaoRequestService {
           approvedAt,
           approvedByUserId: reviewerUserId,
           rejectedAt: null,
-          entryFeePaid: accessCost,
-          entryPaidAt: approvedAt,
+          entryFeePaid: isPaid ? accessCost : 0,
+          entryPaidAt: isPaid ? approvedAt : null,
         },
       });
 
-      const financialRanking = await tx.ranking.update({
-        where: { id: rankingId },
-        data: {
-          currentParticipants: { increment: 1 },
-          grossCollected: { increment: accessCost },
-        },
-        select: { grossCollected: true },
-      });
-      const financialTotals = BolaoPrizeService.calculatePool(
-        financialRanking.grossCollected
-      );
-      await tx.ranking.update({
-        where: { id: rankingId },
-        data: {
-          platformFee: financialTotals.platformFee,
-          prizePool: financialTotals.prizePool,
-          rewardPool: financialTotals.prizePool,
-        },
-      });
+      if (!seatReservedByCapacity || isPaid) {
+        const financialRanking = await tx.ranking.update({
+          where: { id: rankingId },
+          data: {
+            ...(!seatReservedByCapacity
+              ? { currentParticipants: { increment: 1 } }
+              : {}),
+            ...(isPaid ? { grossCollected: { increment: accessCost } } : {}),
+          },
+          select: { grossCollected: true },
+        });
+        if (isPaid) {
+          const financialTotals = BolaoPrizeService.calculatePool(
+            financialRanking.grossCollected
+          );
+          await tx.ranking.update({
+            where: { id: rankingId },
+            data: {
+              platformFee: financialTotals.platformFee,
+              prizePool: financialTotals.prizePool,
+              rewardPool: financialTotals.prizePool,
+            },
+          });
+        }
+      }
 
       const currentParticipants = bolao.currentParticipants + 1;
 
@@ -168,6 +196,7 @@ export class ReviewBolaoRequestService {
             scoreInitial,
             currentParticipants,
             accessCost,
+            category: MesaCategoryRules.category(bolao),
             minimumChips: accessCost,
           },
         },

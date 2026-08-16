@@ -59,6 +59,11 @@ enum RankingParticipantStatus {
   REJECTED
 }
 
+enum MesaCategory {
+  PAID
+  SPONSORED_FREE
+}
+
 enum SubscriptionPlan {
   MONTHLY
   ANNUAL
@@ -341,6 +346,8 @@ model Ranking {
 
   entryFee            Int  @default(0)
   accessCost          Int? @default(0)
+  category            MesaCategory @default(PAID)
+  sponsorPrizePool    Int @default(0)
   maxParticipants     Int?
   currentParticipants Int  @default(0)
   durationDays        Int?
@@ -497,6 +504,7 @@ model Subscription {
   provider               PaymentProvider?
   externalSubscriptionId String?
   externalCustomerId     String?
+  subscriptionPackageId  String? @db.Text
 
   packageId String?         @db.Text
   package   PaymentPackage? @relation(fields: [packageId], references: [id])
@@ -645,6 +653,8 @@ model Payment {
   package   PaymentPackage? @relation(fields: [packageId], references: [id])
 
   subscriptionPlan SubscriptionPlan?
+  subscriptionPackageId String? @db.Text
+  subscriptionValidityMonths Int?
 
   amountCents Int
   coinsAmount Int

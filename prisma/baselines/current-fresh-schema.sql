@@ -20,6 +20,9 @@ CREATE TYPE "RankingStatus" AS ENUM ('DRAFT', 'ACTIVE', 'CLOSED');
 CREATE TYPE "RankingParticipantStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 
 -- CreateEnum
+CREATE TYPE "MesaCategory" AS ENUM ('PAID', 'SPONSORED_FREE');
+
+-- CreateEnum
 CREATE TYPE "SubscriptionPlan" AS ENUM ('MONTHLY', 'ANNUAL');
 
 -- CreateEnum
@@ -173,6 +176,8 @@ CREATE TABLE "rankings" (
     "periodRef" TEXT,
     "entryFee" INTEGER NOT NULL DEFAULT 0,
     "accessCost" INTEGER DEFAULT 0,
+    "category" "MesaCategory" NOT NULL DEFAULT 'PAID',
+    "sponsorPrizePool" INTEGER NOT NULL DEFAULT 0,
     "maxParticipants" INTEGER,
     "currentParticipants" INTEGER NOT NULL DEFAULT 0,
     "durationDays" INTEGER,
@@ -266,6 +271,7 @@ CREATE TABLE "subscriptions" (
     "provider" "PaymentProvider",
     "externalSubscriptionId" TEXT,
     "externalCustomerId" TEXT,
+    "subscriptionPackageId" TEXT,
     "packageId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -348,6 +354,8 @@ CREATE TABLE "payments" (
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "packageId" TEXT,
     "subscriptionPlan" "SubscriptionPlan",
+    "subscriptionPackageId" TEXT,
+    "subscriptionValidityMonths" INTEGER,
     "amountCents" INTEGER NOT NULL,
     "coinsAmount" INTEGER NOT NULL,
     "bonusCoins" INTEGER NOT NULL DEFAULT 0,
@@ -811,4 +819,3 @@ ALTER TABLE "AdminAuditLog" ADD CONSTRAINT "AdminAuditLog_adminId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "user_benefit_inventory" ADD CONSTRAINT "user_benefit_inventory_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

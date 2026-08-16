@@ -70,6 +70,7 @@ test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t
     entryEndDate: new Date('2099-08-04T12:00:00Z'),
     endDate: new Date('2099-08-31T23:59:59Z'),
     accessCost: 10,
+    maxParticipants: 100,
     prizeDistribution: [{ position: 1, percentage: 100 }],
     createdByUserId: 'admin-1',
   })
@@ -77,7 +78,7 @@ test('criacao da Mesa nao vincula rodada e nao auto-inscreve o criador', async t
   assert.equal(rankingRoundCreated, false)
   assert.equal(participantCreated, false)
   assert.equal(rankingData.status, 'ACTIVE')
-  assert.equal(rankingData.maxParticipants, null)
+  assert.equal(rankingData.maxParticipants, 100)
   assert.equal(rankingData.currentParticipants, 0)
   assert.equal(rankingData.grossCollected, 0)
   assert.equal(rankingData.accessCost, 10)
@@ -110,6 +111,7 @@ test('bloqueia criacao de Mesa quando o termino das entradas ja passou', async t
       entryEndDate: new Date('2020-07-02T00:00:00Z'),
       endDate: new Date('2020-07-31T23:59:59Z'),
       entryFee: 10,
+      maxParticipants: 50,
       prizeDistribution: [{ position: 1, percentage: 100 }],
       createdByUserId: 'admin-1',
     }),
@@ -176,7 +178,7 @@ test('bloqueia solicitacao depois do termino das entradas', async t => {
   )
 })
 
-test('nao limita a quantidade de participantes da Mesa', async t => {
+test('Mesa FREE patrocinada bloqueia entrada quando atinge a capacidade', async t => {
   mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
@@ -187,15 +189,16 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
     ranking: {
       findUnique: async () => ({
         ...openBolao(),
+        category: 'SPONSORED_FREE',
         startDate: new Date('2020-01-01T00:00:00Z'),
-        entryEndDate: new Date('2099-08-02T00:00:00Z'),
+        entryEndDate: null,
+        endDate: new Date('2099-08-02T00:00:00Z'),
         maxParticipants: 50,
-        currentParticipants: 500,
+        currentParticipants: 50,
         entryFee: 0,
+        accessCost: 0,
       }),
-      update: async ({ data }) => data.grossCollected
-        ? { grossCollected: 0 }
-        : data,
+      updateMany: async () => ({ count: 0 }),
     },
     rankingParticipant: {
       findUnique: async () => null,
@@ -211,12 +214,10 @@ test('nao limita a quantidade de participantes da Mesa', async t => {
     auditLog: { create: async () => ({}) },
   })
 
-  const result = await JoinBolaoService.execute({
-    rankingId: 'mesa-1',
-    userId: 'user-501',
-  })
-
-  assert.equal(result.status, 'APPROVED')
+  await assert.rejects(
+    JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'user-501' }),
+    { message: 'Esta Mesa atingiu o limite de participantes' }
+  )
 })
 
 test('bloqueia nova solicitacao depois do termino das entradas', async t => {
@@ -327,7 +328,7 @@ function openBolao() {
     type: 'BOLAO',
     status: 'ACTIVE',
     entryFee: 0,
-    maxParticipants: null,
+    maxParticipants: 1000,
     currentParticipants: 500,
     createdByUserId: 'creator-1',
     startDate: new Date('2020-01-01T00:00:00Z'),

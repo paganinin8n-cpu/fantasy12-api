@@ -6,6 +6,7 @@ export const COMPETITION_REGISTRATION_NOT_STARTED =
 type BolaoRegistrationWindow = {
   startDate?: Date | null
   entryEndDate?: Date | null
+  endDate?: Date | null
 }
 
 /**
@@ -14,7 +15,8 @@ type BolaoRegistrationWindow = {
  */
 export class BolaoRegistrationWindowService {
   static assertNotClosed(bolao: BolaoRegistrationWindow, now = new Date()) {
-    if (bolao.entryEndDate != null && bolao.entryEndDate <= now) {
+    const closesAt = bolao.entryEndDate ?? bolao.endDate
+    if (closesAt != null && closesAt <= now) {
       throw new Error(COMPETITION_REGISTRATION_CLOSED)
     }
   }

@@ -139,6 +139,7 @@ export class EnsureMonthlyRankingsService {
       }
 
       const eligibilityDate = registrationOpen ? now : firstRound.closeAt
+      const proEligibilityDate = start
       const users = await tx.user.findMany({
         where: {
           createdAt: { lt: eligibilityDate },
@@ -184,7 +185,8 @@ export class EnsureMonthlyRankingsService {
           : scoreAtCutoff.get(user.id) ?? 0
       const generalUsers = users
       const proUsers = users.filter(user =>
-        this.isProAt(user.subscription, eligibilityDate)
+        user.createdAt <= proEligibilityDate
+        && this.isProAt(user.subscription, proEligibilityDate)
       )
 
       const generalResult = await tx.rankingParticipant.createMany({
@@ -220,6 +222,7 @@ export class EnsureMonthlyRankingsService {
               periodRef,
               firstRoundId: firstRound.id,
               registrationOpen,
+              proEligibilityDate: proEligibilityDate.toISOString(),
               generalAdded: generalResult.count,
               proAdded: proResult.count,
             },
@@ -242,7 +245,6 @@ export class EnsureMonthlyRankingsService {
     date: Date
   ) {
     if (!subscription) return false
-    if (subscription.status === SubscriptionStatus.EXPIRED) return false
     if (subscription.startAt > date) return false
     return !subscription.endAt || subscription.endAt > date
   }

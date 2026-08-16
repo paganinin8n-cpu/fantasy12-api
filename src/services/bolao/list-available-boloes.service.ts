@@ -39,6 +39,8 @@ export class ListAvailableBoloesService {
         status: bolao.status,
         entryFee: bolao.entryFee,
         accessCost: bolao.accessCost,
+        category: bolao.category,
+        sponsorPrizePool: bolao.sponsorPrizePool,
         prizeDistribution: bolao.prizeDistribution,
         grossCollected: bolao.grossCollected,
         platformFee: bolao.platformFee,

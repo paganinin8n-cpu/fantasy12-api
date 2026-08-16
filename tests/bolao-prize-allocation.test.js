@@ -113,3 +113,53 @@ test('fechamento credita os vencedores, persiste totais e não liquida duas veze
   assert.ok(rankingUpdates[0].settledAt instanceof Date)
   assert.equal(audits.length, 1)
 })
+
+test('Mesa FREE patrocinada premia somente vencedores PRO no encerramento', async () => {
+  const ledgers = []
+  const tx = {
+    user: {
+      findMany: async () => [
+        {
+          id: 'a',
+          subscription: {
+            startAt: new Date('2026-01-01T00:00:00Z'),
+            endAt: new Date('2027-01-01T00:00:00Z'),
+          },
+        },
+        {
+          id: 'b',
+          subscription: {
+            startAt: new Date('2026-01-01T00:00:00Z'),
+            endAt: new Date('2026-08-10T00:00:00Z'),
+          },
+        },
+      ],
+    },
+    wallet: {
+      upsert: async ({ where }) => ({ id: `wallet-${where.userId}` }),
+      update: async () => ({}),
+    },
+    walletLedger: {
+      create: async ({ data }) => { ledgers.push(data); return data },
+    },
+    ranking: { update: async ({ data }) => data },
+    auditLog: { create: async () => ({}) },
+  }
+
+  await SettleBolaoService.execute(tx, {
+    id: 'mesa-free',
+    category: 'SPONSORED_FREE',
+    grossCollected: 0,
+    sponsorPrizePool: 100,
+    prizeDistribution: [
+      { position: 1, percentage: 70 },
+      { position: 2, percentage: 30 },
+    ],
+    settledAt: null,
+  }, [
+    { userId: 'a', position: 1 },
+    { userId: 'b', position: 2 },
+  ], new Date('2026-08-20T00:00:00Z'))
+
+  assert.deepEqual(ledgers.map(item => item.amount), [70])
+})

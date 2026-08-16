@@ -8,6 +8,7 @@ import {
 import { MercadoPagoClient } from '../../lib/mercado-pago.client'
 import { prisma } from '../../lib/prisma'
 import { RenewSubscriptionFromPaymentService } from '../subscription/renew-subscription-from-payment.service'
+import { getSubscriptionPlanOffer } from '../subscription/subscription-plans.config'
 import { WalletService } from '../wallet/wallet.service'
 import {
   normalizeMercadoPagoPaymentEvent,
@@ -154,8 +155,30 @@ export class ProcessMercadoPagoWebhookService {
         if (!payment.subscriptionPlan) {
           throw new Error(`Pagamento ${payment.id} sem plano de assinatura`)
         }
+        const subscriptionPackage = payment.subscriptionPackageId
+          ? getSubscriptionPlanOffer(payment.subscriptionPackageId)
+          : null
+        // Compatibilidade para checkouts pendentes criados antes da migração.
+        const validityMonths = payment.subscriptionValidityMonths
+          ?? (payment.subscriptionPlan === 'MONTHLY' ? 1 : 12)
+        const packageId = subscriptionPackage?.id
+          ?? payment.subscriptionPackageId
+          ?? `legacy_${payment.subscriptionPlan.toLowerCase()}`
+
+        if (validityMonths !== 1 && validityMonths !== 12) {
+          throw new Error(`Pagamento ${payment.id} com vigência de assinatura inválida`)
+        }
+        if (subscriptionPackage && subscriptionPackage.validityMonths !== validityMonths) {
+          throw new Error(`Pagamento ${payment.id} diverge do pacote de assinatura`)
+        }
+
         await RenewSubscriptionFromPaymentService.execute(
-          { userId: payment.userId, plan: payment.subscriptionPlan },
+          {
+            userId: payment.userId,
+            plan: payment.subscriptionPlan,
+            packageId,
+            validityMonths,
+          },
           tx
         )
       }
@@ -186,6 +209,8 @@ export class ProcessMercadoPagoWebhookService {
             status: PaymentStatus.APPROVED,
             purpose: payment.purpose,
             amountCents: payment.amountCents,
+            subscriptionPackageId: payment.subscriptionPackageId ?? null,
+            subscriptionValidityMonths: payment.subscriptionValidityMonths ?? null,
           },
         },
       })

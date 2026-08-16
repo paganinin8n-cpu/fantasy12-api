@@ -141,6 +141,8 @@ export class CreateSubscriptionCheckoutService {
           purpose: PaymentPurpose.SUBSCRIPTION,
           status: PaymentStatus.PENDING,
           subscriptionPlan: plan.plan,
+          subscriptionPackageId: plan.id,
+          subscriptionValidityMonths: plan.validityMonths,
           amountCents: plan.totalCents,
           coinsAmount: 0,
           bonusCoins: 0,
@@ -156,6 +158,7 @@ export class CreateSubscriptionCheckoutService {
           metadata: {
             planId: plan.id,
             plan: plan.plan,
+            validityMonths: plan.validityMonths,
             method,
             amountCents: plan.totalCents,
             externalReference,
@@ -234,6 +237,7 @@ export class CreateSubscriptionCheckoutService {
     return {
       checkoutId,
       planId: plan.id,
+      validityMonths: plan.validityMonths,
       provider: 'MERCADO_PAGO',
       checkoutUrl,
       preferenceId: String(preference.id),

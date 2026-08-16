@@ -80,7 +80,11 @@ export class MonthlyRankingController {
           userName: participant.user.name,
           points: row.score,
           position: row.position,
-          isPro: hasActiveProSubscription(participant.user.subscription),
+          // No Ranking PRO, o selo representa pertencimento à coorte mensal.
+          // A assinatura pode expirar durante o mês sem reescrever a coorte histórica.
+          isPro: scope === 'pro'
+            ? true
+            : hasActiveProSubscription(participant.user.subscription),
         };
       });
 

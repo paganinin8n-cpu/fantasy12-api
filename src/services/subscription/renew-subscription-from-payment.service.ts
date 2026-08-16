@@ -4,11 +4,28 @@ import { Prisma, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 type Input = {
   userId: string;
   plan: SubscriptionPlan;
+  packageId: string;
+  validityMonths: 1 | 12;
 };
+
+/** Soma meses de calendário sem deixar datas como 31/jan saltarem março. */
+export function addSubscriptionValidityMonths(date: Date, months: number) {
+  const result = new Date(date)
+  const originalDay = result.getUTCDate()
+  result.setUTCDate(1)
+  result.setUTCMonth(result.getUTCMonth() + months)
+  const lastDay = new Date(Date.UTC(
+    result.getUTCFullYear(),
+    result.getUTCMonth() + 1,
+    0,
+  )).getUTCDate()
+  result.setUTCDate(Math.min(originalDay, lastDay))
+  return result
+}
 
 export class RenewSubscriptionFromPaymentService {
   static async execute(
-    { userId, plan }: Input,
+    { userId, plan, packageId, validityMonths }: Input,
     tx?: Prisma.TransactionClient
   ): Promise<void> {
     const db = tx ?? prisma;
@@ -18,12 +35,9 @@ export class RenewSubscriptionFromPaymentService {
 
     const now = new Date();
 
-    const periodDays =
-      plan === SubscriptionPlan.MONTHLY ? 30 : 365;
-
-    const newEndAt = subscription?.endAt && subscription.endAt > now
-      ? new Date(subscription.endAt.getTime() + periodDays * 86400000)
-      : new Date(now.getTime() + periodDays * 86400000);
+    const extendsActivePeriod = !!subscription?.endAt && subscription.endAt > now
+    const validityBase = extendsActivePeriod ? subscription!.endAt! : now
+    const newEndAt = addSubscriptionValidityMonths(validityBase, validityMonths)
 
     if (!subscription) {
       await db.subscription.create({
@@ -34,6 +48,7 @@ export class RenewSubscriptionFromPaymentService {
           startAt: now,
           endAt: newEndAt,
           provider: 'MERCADO_PAGO',
+          subscriptionPackageId: packageId,
         },
       });
       return;
@@ -44,8 +59,10 @@ export class RenewSubscriptionFromPaymentService {
       data: {
         plan,
         status: SubscriptionStatus.ACTIVE,
+        ...(!extendsActivePeriod ? { startAt: now } : {}),
         endAt: newEndAt,
         provider: 'MERCADO_PAGO',
+        subscriptionPackageId: packageId,
       },
     });
   }
