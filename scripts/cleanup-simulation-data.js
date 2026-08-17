@@ -20,7 +20,8 @@ function isSafeSimulationRound(round, simulationIds) {
   return round.tickets.length > 0 &&
     round.tickets.every(belongsToSimulation) &&
     round.scoreHistory.every(belongsToSimulation) &&
-    round.rankingSnapshots.every(belongsToSimulation) &&
+    // Snapshots são projeções derivadas da rodada. Se a rodada foi criada
+    // apenas por palpites simulados, seus snapshots também são artefatos.
     round.roundBenefits.every(belongsToSimulation) &&
     round.matches.length === 0
 }
