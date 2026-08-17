@@ -1,0 +1,56 @@
+name: Cleanup production simulation data
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: DRY_RUN inventories data; APPLY creates and verifies a backup before deletion
+        required: true
+        type: choice
+        options:
+          - DRY_RUN
+          - APPLY
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Inventory or clean simulation data
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Execute guarded cleanup in production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          command_timeout: 12m
+          script: |
+            set -eu
+            API_CONTAINER="$(docker ps --filter 'name=f12-prd_api' --format '{{.ID}}' | head -n 1)"
+            DB_CONTAINER="$(docker ps --filter 'name=f12-prd_postgres' --format '{{.ID}}' | head -n 1)"
+
+            test -n "$API_CONTAINER"
+            test -n "$DB_CONTAINER"
+
+            if [ "${{ inputs.mode }}" = "APPLY" ]; then
+              BACKUP_DIR=/var/backups/fantasy12/simulation-cleanup
+              BACKUP_FILE="$BACKUP_DIR/fantasy12-pre-simulation-cleanup-${{ github.run_id }}-${{ github.run_attempt }}.dump"
+              mkdir -p "$BACKUP_DIR"
+              docker exec "$DB_CONTAINER" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$BACKUP_FILE"
+              test -s "$BACKUP_FILE"
+              docker exec -i "$DB_CONTAINER" pg_restore -l < "$BACKUP_FILE" >/dev/null
+              sha256sum "$BACKUP_FILE"
+              docker exec \
+                -e F12_SIMULATION_CLEANUP_CONFIRMATION=DELETE_SIMULATION_DATA \
+                -e "F12_SIMULATION_CLEANUP_BACKUP=$BACKUP_FILE" \
+                "$API_CONTAINER" \
+                node /app/scripts/cleanup-simulation-data.js --apply
+            else
+              docker exec "$API_CONTAINER" node /app/scripts/cleanup-simulation-data.js
+            fi
