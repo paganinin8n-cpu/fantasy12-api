@@ -46,5 +46,9 @@ test('rodada so pode ser removida quando todas as referencias pertencem a simula
     ...safe,
     scoreHistory: [...safe.scoreHistory, { userId: 'real-user' }],
   }, simulationIds), false)
+  assert.equal(isSafeSimulationRound({
+    ...safe,
+    rankingSnapshots: [{ userId: 'real-user' }],
+  }, simulationIds), true)
   assert.equal(isSafeSimulationRound({ ...safe, matches: [{ id: 'match-1' }] }, simulationIds), false)
 })
