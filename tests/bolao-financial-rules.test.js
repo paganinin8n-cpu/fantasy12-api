@@ -37,7 +37,6 @@ function createInput(overrides = {}) {
     name: 'Mesa Financeira',
     description: 'Recompensa: 60/30/10 da recompensa líquida após taxa da plataforma.',
     startDate: new Date('2026-08-01T00:00:00Z'),
-    entryEndDate: new Date('2026-08-15T00:00:00Z'),
     endDate: new Date('2026-08-31T23:59:59Z'),
     entryFee: 10,
     maxParticipants: 50,
@@ -85,7 +84,7 @@ test('Mesa exige observacoes/regras da recompensa obrigatorias', async t => {
   )
 })
 
-test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t => {
+test('Mesa exige data de fim posterior à data de início', async t => {
   const originalFindUnique = prisma.user.findUnique
   const originalTransaction = prisma.$transaction
   t.after(() => {
@@ -99,23 +98,9 @@ test('Mesa exige abertura anterior ao termino das entradas e ao fim', async t =>
 
   await assert.rejects(
     CreateBolaoService.execute(createInput({
-      entryEndDate: new Date('invalid'),
+      endDate: new Date('2026-08-01T00:00:00Z'),
     })),
-    { message: 'Informe uma data válida para o término dos acessos' }
-  )
-
-  await assert.rejects(
-    CreateBolaoService.execute(createInput({
-      entryEndDate: new Date('2026-08-01T00:00:00Z'),
-    })),
-    { message: 'A data de término dos acessos deve ser posterior à data de início' }
-  )
-
-  await assert.rejects(
-    CreateBolaoService.execute(createInput({
-      entryEndDate: new Date('2026-09-01T00:00:00Z'),
-    })),
-    { message: 'A data de término dos acessos deve ser anterior ou igual à data de fim da Mesa' }
+    { message: 'A data de fim deve ser posterior à data de início' }
   )
 })
 
@@ -328,18 +313,24 @@ test('acesso à Mesa exige assinatura PRO ativa e saldo de tampinhas', async t =
 
   let participantData
   let ledgerData
+  let capacityReservation
   const rankingUpdates = []
   prisma.$transaction = async callback => callback({
     ranking: {
       findUnique: async () => ({
         id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
-        currentParticipants: 1, createdByUserId: 'creator-1',
+        maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
       }),
+      findUniqueOrThrow: async () => ({ grossCollected: 22 }),
+      updateMany: async ({ data }) => {
+        capacityReservation = data
+        return { count: 1 }
+      },
       update: async ({ data }) => {
         rankingUpdates.push(data)
-        return data.grossCollected ? { grossCollected: 22 } : data
+        return data
       },
     },
     rankingParticipant: {
@@ -375,9 +366,10 @@ test('acesso à Mesa exige assinatura PRO ativa e saldo de tampinhas', async t =
   assert.equal(participantData.entryFeePaid, 11)
   assert.ok(participantData.entryPaidAt instanceof Date)
   assert.equal(ledgerData.idempotencyKey, 'bolao:entry:mesa-1:user-2')
-  assert.deepEqual(rankingUpdates[0].grossCollected, { increment: 11 })
-  assert.equal(rankingUpdates[1].platformFee, 2)
-  assert.equal(rankingUpdates[1].prizePool, 20)
+  assert.deepEqual(capacityReservation.currentParticipants, { increment: 1 })
+  assert.deepEqual(capacityReservation.grossCollected, { increment: 11 })
+  assert.equal(rankingUpdates[0].platformFee, 2)
+  assert.equal(rankingUpdates[0].prizePool, 20)
 })
 
 test('usuário FREE não entra na Mesa e não inicia débito', async t => {
@@ -429,7 +421,7 @@ test('entrada sem fichas não cria participante nem altera o caixa da Mesa', asy
     ranking: {
       findUnique: async () => ({
         id: 'mesa-1', type: 'BOLAO', status: 'ACTIVE', entryFee: 11,
-        currentParticipants: 1, createdByUserId: 'creator-1',
+        maxParticipants: 50, currentParticipants: 1, createdByUserId: 'creator-1',
         startDate: new Date('2020-01-01T00:00:00Z'),
         entryEndDate: new Date('2099-08-02T00:00:00Z'),
       }),
