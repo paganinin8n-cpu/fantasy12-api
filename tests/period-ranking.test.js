@@ -116,6 +116,41 @@ test('ranking mensal exibe delta canonico da coorte persistida', async t => {
   assert.equal(payload.participants[0].points, 2)
 })
 
+test('consulta publica do ranking mensal nao sincroniza nem altera a coorte', async t => {
+  const originalFindRanking = prisma.ranking.findFirst
+  const originalEnsure = EnsureMonthlyRankingsService.execute
+  const originalBuildRows = RankingWindowScoreService.buildRows
+  t.after(() => {
+    prisma.ranking.findFirst = originalFindRanking
+    EnsureMonthlyRankingsService.execute = originalEnsure
+    RankingWindowScoreService.buildRows = originalBuildRows
+  })
+
+  EnsureMonthlyRankingsService.execute = async () => {
+    throw new Error('GET publico tentou escrever no banco')
+  }
+  prisma.ranking.findFirst = async () => ({
+    id: 'global-august',
+    name: 'Agosto',
+    type: 'GLOBAL',
+    status: 'ACTIVE',
+    startDate: new Date('2026-08-01T03:00:00Z'),
+    endDate: new Date('2026-09-01T02:59:59.999Z'),
+    periodRef: '2026-08',
+    createdAt: new Date('2026-08-01T03:00:00Z'),
+    participants: [],
+  })
+  RankingWindowScoreService.buildRows = async () => []
+
+  let payload = null
+  const req = { query: { scope: 'general', period: '2026-08' }, session: {} }
+  const res = { json: value => { payload = value; return res } }
+  await MonthlyRankingController.handle(req, res, error => { throw error })
+
+  assert.equal(payload.periodRef, '2026-08')
+  assert.deepEqual(payload.participants, [])
+})
+
 function mockHistory(t) {
   const originalHistory = prisma.userScoreHistory.findMany
   const originalSnapshots = prisma.rankingSnapshot.findMany

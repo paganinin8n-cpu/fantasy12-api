@@ -129,6 +129,49 @@ test('assinatura iniciada depois do dia 1 nao entra mesmo antes do fechamento da
   assert.equal(participantBatches[1].length, 0)
 })
 
+test('coorte PRO rejeita EXPIRED e preserva CANCELLED valido na data de corte', async t => {
+  const originalTransaction = prisma.$transaction
+  t.after(() => { prisma.$transaction = originalTransaction })
+
+  const participantBatches = []
+  prisma.$transaction = async callback => callback({
+    round: {
+      findFirst: async () => ({
+        id: 'round-20', number: 20, status: 'OPEN',
+        closeAt: new Date('2026-08-20T12:00:00Z'),
+      }),
+    },
+    ranking: {
+      findMany: async () => [],
+      upsert: async ({ create }) => create,
+    },
+    rankingRound: { upsert: async ({ create }) => create },
+    user: {
+      findMany: async () => [
+        user('expired-with-future-end', 10, activeSubscription({ status: 'EXPIRED' })),
+        user('cancelled-still-valid', 20, activeSubscription({ status: 'CANCELLED' })),
+      ],
+    },
+    rankingParticipant: {
+      createMany: async ({ data }) => {
+        participantBatches.push(data)
+        return { count: data.length }
+      },
+    },
+    auditLog: { create: async () => ({}) },
+  })
+
+  await EnsureMonthlyRankingsService.execute({
+    periodRef: '2026-08',
+    now: new Date('2026-08-02T12:00:00Z'),
+  })
+
+  assert.deepEqual(
+    participantBatches[1].map(item => item.userId),
+    ['cancelled-still-valid']
+  )
+})
+
 test('assinatura paga no dia 15, depois do corte, entra no Ranking PRO apenas no mes seguinte', async t => {
   const originalTransaction = prisma.$transaction
   t.after(() => {

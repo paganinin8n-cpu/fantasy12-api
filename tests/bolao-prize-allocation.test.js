@@ -122,6 +122,7 @@ test('Mesa FREE patrocinada premia somente vencedores PRO no encerramento', asyn
         {
           id: 'a',
           subscription: {
+            status: 'ACTIVE',
             startAt: new Date('2026-01-01T00:00:00Z'),
             endAt: new Date('2027-01-01T00:00:00Z'),
           },
@@ -129,6 +130,7 @@ test('Mesa FREE patrocinada premia somente vencedores PRO no encerramento', asyn
         {
           id: 'b',
           subscription: {
+            status: 'ACTIVE',
             startAt: new Date('2026-01-01T00:00:00Z'),
             endAt: new Date('2026-08-10T00:00:00Z'),
           },
@@ -162,4 +164,40 @@ test('Mesa FREE patrocinada premia somente vencedores PRO no encerramento', asyn
   ], new Date('2026-08-20T00:00:00Z'))
 
   assert.deepEqual(ledgers.map(item => item.amount), [70])
+})
+
+test('Mesa FREE patrocinada nao premia assinatura EXPIRED com validade futura', async () => {
+  const ledgers = []
+  const tx = {
+    user: {
+      findMany: async () => [{
+        id: 'expired-winner',
+        subscription: {
+          status: 'EXPIRED',
+          startAt: new Date('2026-01-01T00:00:00Z'),
+          endAt: new Date('2027-01-01T00:00:00Z'),
+        },
+      }],
+    },
+    wallet: {
+      upsert: async ({ where }) => ({ id: `wallet-${where.userId}` }),
+      update: async () => ({}),
+    },
+    walletLedger: {
+      create: async ({ data }) => { ledgers.push(data); return data },
+    },
+    ranking: { update: async ({ data }) => data },
+    auditLog: { create: async () => ({}) },
+  }
+
+  await SettleBolaoService.execute(tx, {
+    id: 'mesa-free-expired',
+    category: 'SPONSORED_FREE',
+    grossCollected: 0,
+    sponsorPrizePool: 100,
+    prizeDistribution: [{ position: 1, percentage: 100 }],
+    settledAt: null,
+  }, [{ userId: 'expired-winner', position: 1 }], new Date('2026-08-20T00:00:00Z'))
+
+  assert.deepEqual(ledgers, [])
 })
