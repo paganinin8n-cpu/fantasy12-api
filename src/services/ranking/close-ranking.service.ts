@@ -30,6 +30,8 @@ export class CloseRankingService {
           platformFee: true,
           prizePool: true,
           rewardPool: true,
+          maxParticipants: true,
+          currentParticipants: true,
           participants: {
             select: { status: true, entryFeePaid: true, entryPaidAt: true },
           },

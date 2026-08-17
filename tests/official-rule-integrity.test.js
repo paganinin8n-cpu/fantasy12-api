@@ -93,7 +93,7 @@ test('mês oficial respeita meia-noite de São Paulo', () => {
 
 test('diagnóstico de Mesa identifica configuração financeira e pagamentos legados inválidos', () => {
   const issues = MesaIntegrityService.inspect({
-    id: 'mesa-1', description: ' ', entryFee: 10, prizeDistribution: null,
+    id: 'mesa-1', category: 'PAID', description: ' ', entryFee: 10, prizeDistribution: null,
     maxParticipants: 10, currentParticipants: 2,
     grossCollected: 30, platformFee: 3, prizePool: 27, settledAt: null,
     participants: [

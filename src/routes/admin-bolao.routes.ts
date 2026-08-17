@@ -8,6 +8,16 @@ import { AdminBolaoController } from '../controllers/bolao/admin-bolao.controlle
 const router = Router()
 
 router.get(
+  '/api/admin/mesas/integrity',
+  authMiddleware,
+  authorize('COMPETITION_READ', {
+    audit: true,
+    entity: 'BOLAO_INTEGRITY',
+  }),
+  AdminBolaoController.integrity
+)
+
+router.get(
   '/api/admin/mesas',
   authMiddleware,
   authorize('COMPETITION_READ'),

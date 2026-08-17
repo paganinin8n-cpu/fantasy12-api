@@ -3,8 +3,17 @@ import { CreateBolaoService } from '../../services/bolao/create-bolao.service'
 import { AppError } from '../../errors/AppError'
 import { prisma } from '../../lib/prisma'
 import { withMesaFinancialNames } from '../../services/bolao/mesa-financial-names'
+import { MesaIntegrityService } from '../../services/bolao/mesa-integrity.service'
 
 export class AdminBolaoController {
+  static async integrity(_req: Request, res: Response, next: NextFunction) {
+    try {
+      return res.json(await MesaIntegrityService.diagnose(prisma))
+    } catch (error) {
+      return next(error)
+    }
+  }
+
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const boloes = await prisma.ranking.findMany({

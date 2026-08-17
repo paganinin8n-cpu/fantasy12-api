@@ -27,6 +27,8 @@ export type InspectableMesa = {
   prizePool: number
   rewardPool?: number | null
   settledAt: Date | null
+  maxParticipants: number | null
+  currentParticipants: number
   participants: MesaParticipant[]
 }
 
@@ -46,6 +48,39 @@ export class MesaIntegrityService {
     const accessCost = mesa.accessCost ?? mesa.entryFee
     const rewardPool = mesa.rewardPool ?? mesa.prizePool
     const sponsored = MesaCategoryRules.isSponsored(mesa)
+    const approved = mesa.participants.filter(item => item.status === 'APPROVED')
+
+    if (mesa.maxParticipants == null) {
+      issues.push({
+        code: 'MISSING_PARTICIPANT_LIMIT',
+        message: 'Limite obrigatório de participantes ausente',
+      })
+    } else if (!Number.isInteger(mesa.maxParticipants) || mesa.maxParticipants <= 0) {
+      issues.push({
+        code: 'INVALID_PARTICIPANT_LIMIT',
+        message: 'Limite de participantes inválido',
+        details: { maxParticipants: mesa.maxParticipants },
+      })
+    }
+
+    if (mesa.currentParticipants !== approved.length) {
+      issues.push({
+        code: 'PARTICIPANT_COUNT_MISMATCH',
+        message: 'Contador de participantes diverge dos acessos aprovados',
+        details: { recorded: mesa.currentParticipants, approved: approved.length },
+      })
+    }
+
+    if (mesa.maxParticipants != null && mesa.currentParticipants > mesa.maxParticipants) {
+      issues.push({
+        code: 'CAPACITY_EXCEEDED',
+        message: 'Quantidade de participantes excede o limite da Mesa',
+        details: {
+          currentParticipants: mesa.currentParticipants,
+          maxParticipants: mesa.maxParticipants,
+        },
+      })
+    }
 
     if (mesa.accessCost != null && mesa.accessCost !== mesa.entryFee) {
       issues.push({
@@ -72,7 +107,6 @@ export class MesaIntegrityService {
       issues.push({ code: 'INVALID_PRIZE_DISTRIBUTION', message: 'Distribuição de vencedores inválida' })
     }
 
-    const approved = mesa.participants.filter(item => item.status === 'APPROVED')
     const unpaid = sponsored ? [] : approved.filter(item =>
       !item.entryPaidAt || item.entryFeePaid !== accessCost
     )
@@ -121,6 +155,7 @@ export class MesaIntegrityService {
         description: true, entryFee: true, accessCost: true, category: true,
         sponsorPrizePool: true, prizeDistribution: true,
         grossCollected: true, platformFee: true, prizePool: true, rewardPool: true, settledAt: true,
+        maxParticipants: true, currentParticipants: true,
         participants: {
           select: { status: true, entryFeePaid: true, entryPaidAt: true },
         },
@@ -139,6 +174,7 @@ export class MesaIntegrityService {
       inspected: records.length,
       affected: records.filter(record => record.issues.length > 0).length,
       expiredUnsettled: records.filter(record => record.expiredUnsettled).length,
+      checkedAt: new Date().toISOString(),
       records: records.filter(record => record.issues.length > 0 || record.expiredUnsettled),
     }
   }
