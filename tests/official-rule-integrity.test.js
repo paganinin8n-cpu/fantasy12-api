@@ -6,6 +6,10 @@ const path = require('node:path')
 const { OfficialRoundScheduleService } = require('../dist/services/round/official-round-schedule.service')
 const { SaoPauloPeriodService } = require('../dist/services/time/sao-paulo-period.service')
 const { MesaIntegrityService } = require('../dist/services/bolao/mesa-integrity.service')
+const { CreateMesaSchema } = require('../dist/validators/bolao.validator')
+const {
+  BolaoRegistrationWindowService,
+} = require('../dist/services/bolao/bolao-registration-window.service')
 
 function matches(first, remaining = '2026-07-15T20:00:00-03:00') {
   return Array.from({ length: 12 }, (_, index) => ({
@@ -170,6 +174,67 @@ test('diagnóstico de Mesa detecta divergência de participantes e capacidade', 
     currentParticipants: 2,
   })
   assert.ok(missing.some(issue => issue.code === 'MISSING_PARTICIPANT_LIMIT'))
+})
+
+test('diagnóstico rejeita combinações inválidas de categoria, acesso e prêmio', () => {
+  const base = {
+    id: 'mesa-termos',
+    description: 'Premiação integral conforme regras publicadas.',
+    prizeDistribution: [{ position: 1, percentage: 100 }],
+    grossCollected: 0,
+    platformFee: 0,
+    prizePool: 0,
+    rewardPool: 0,
+    settledAt: null,
+    maxParticipants: 10,
+    currentParticipants: 0,
+    participants: [],
+  }
+
+  const paid = MesaIntegrityService.inspect({
+    ...base,
+    category: 'PAID',
+    entryFee: 0,
+    accessCost: 0,
+    sponsorPrizePool: 10,
+  })
+  assert.ok(paid.some(issue => issue.code === 'INVALID_PAID_ACCESS_COST'))
+  assert.ok(paid.some(issue => issue.code === 'INVALID_PAID_SPONSOR_POOL'))
+
+  const sponsored = MesaIntegrityService.inspect({
+    ...base,
+    category: 'SPONSORED_FREE',
+    entryFee: 5,
+    accessCost: 5,
+    sponsorPrizePool: 0,
+  })
+  assert.ok(sponsored.some(issue => issue.code === 'INVALID_SPONSORED_ACCESS_COST'))
+  assert.ok(sponsored.some(issue => issue.code === 'INVALID_SPONSORED_PRIZE_POOL'))
+})
+
+test('nova criação rejeita data final de inscrição legada', () => {
+  const result = CreateMesaSchema.safeParse({
+    name: 'Mesa sem conflito de janela',
+    description: 'Premiação integral conforme regras publicadas.',
+    startDate: '2099-01-01T00:00:00.000Z',
+    entryEndDate: '2099-01-15T00:00:00.000Z',
+    endDate: '2099-02-01T00:00:00.000Z',
+    category: 'PAID',
+    accessCost: 10,
+    sponsorPrizePool: 0,
+    maxParticipants: 50,
+    prizeDistribution: [{ position: 1, percentage: 100 }],
+  })
+
+  assert.equal(result.success, false)
+})
+
+test('data legada de inscrição não antecipa o fechamento da Mesa', () => {
+  assert.doesNotThrow(() => BolaoRegistrationWindowService.assertOpen({
+    startDate: new Date('2026-01-01T00:00:00.000Z'),
+    entryEndDate: new Date('2026-01-15T00:00:00.000Z'),
+    endDate: new Date('2099-02-01T00:00:00.000Z'),
+  }, new Date('2026-01-16T00:00:00.000Z')))
 })
 
 test('diagnóstico administrativo informa execução e Mesas vencidas sem liquidação', async () => {

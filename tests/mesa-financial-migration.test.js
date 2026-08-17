@@ -37,3 +37,17 @@ test('ponte de compatibilidade sincroniza nomes antigos e canonicos', () => {
   assert.match(sql, /NEW\."rewardPool" := NEW\."prizePool"/)
   assert.doesNotMatch(sql, /DROP COLUMN/i)
 })
+
+test('backfill de capacidade fica separado da constraint obrigatória', () => {
+  const backfill = migration('20260817010000_backfill_mesa_capacity')
+  const constraint = migration('20260817011000_require_mesa_capacity')
+
+  assert.match(backfill, /WHERE "type" = 'BOLAO' AND "maxParticipants" IS NULL/)
+  assert.match(backfill, /GREATEST\("currentParticipants", 50\)/)
+  assert.doesNotMatch(backfill, /ALTER TABLE/i)
+
+  assert.match(constraint, /"type" <> 'BOLAO'/)
+  assert.match(constraint, /"maxParticipants" IS NOT NULL/)
+  assert.match(constraint, /VALIDATE CONSTRAINT/)
+  assert.doesNotMatch(constraint, /UPDATE "rankings"/i)
+})
