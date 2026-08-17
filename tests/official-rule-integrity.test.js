@@ -94,6 +94,7 @@ test('mês oficial respeita meia-noite de São Paulo', () => {
 test('diagnóstico de Mesa identifica configuração financeira e pagamentos legados inválidos', () => {
   const issues = MesaIntegrityService.inspect({
     id: 'mesa-1', description: ' ', entryFee: 10, prizeDistribution: null,
+    maxParticipants: 10, currentParticipants: 2,
     grossCollected: 30, platformFee: 3, prizePool: 27, settledAt: null,
     participants: [
       { status: 'APPROVED', entryFeePaid: 10, entryPaidAt: new Date() },
@@ -114,6 +115,8 @@ test('integridade aceita participantes sem débito em Mesa FREE patrocinada', ()
     entryFee: 0,
     accessCost: 0,
     sponsorPrizePool: 100,
+    maxParticipants: 10,
+    currentParticipants: 1,
     prizeDistribution: [{ position: 1, percentage: 100 }],
     grossCollected: 0,
     platformFee: 0,
@@ -126,6 +129,94 @@ test('integridade aceita participantes sem débito em Mesa FREE patrocinada', ()
   })
 
   assert.deepEqual(issues, [])
+})
+
+test('diagnóstico de Mesa detecta divergência de participantes e capacidade', () => {
+  const base = {
+    id: 'mesa-capacidade',
+    category: 'PAID',
+    description: 'Premiação integral conforme regras publicadas.',
+    entryFee: 10,
+    accessCost: 10,
+    prizeDistribution: [{ position: 1, percentage: 100 }],
+    grossCollected: 20,
+    platformFee: 2,
+    prizePool: 18,
+    rewardPool: 18,
+    settledAt: null,
+    participants: [
+      { status: 'APPROVED', entryFeePaid: 10, entryPaidAt: new Date() },
+      { status: 'APPROVED', entryFeePaid: 10, entryPaidAt: new Date() },
+    ],
+  }
+
+  const mismatch = MesaIntegrityService.inspect({
+    ...base,
+    maxParticipants: 10,
+    currentParticipants: 3,
+  })
+  assert.ok(mismatch.some(issue => issue.code === 'PARTICIPANT_COUNT_MISMATCH'))
+
+  const exceeded = MesaIntegrityService.inspect({
+    ...base,
+    maxParticipants: 1,
+    currentParticipants: 2,
+  })
+  assert.ok(exceeded.some(issue => issue.code === 'CAPACITY_EXCEEDED'))
+
+  const missing = MesaIntegrityService.inspect({
+    ...base,
+    maxParticipants: null,
+    currentParticipants: 2,
+  })
+  assert.ok(missing.some(issue => issue.code === 'MISSING_PARTICIPANT_LIMIT'))
+})
+
+test('diagnóstico administrativo informa execução e Mesas vencidas sem liquidação', async () => {
+  const now = Date.now()
+  const report = await MesaIntegrityService.diagnose({
+    ranking: {
+      findMany: async () => [{
+        id: 'mesa-vencida',
+        name: 'Mesa vencida',
+        status: 'ACTIVE',
+        endDate: new Date(now - 60_000),
+        description: 'Premiação integral conforme regras publicadas.',
+        entryFee: 0,
+        accessCost: 0,
+        category: 'SPONSORED_FREE',
+        sponsorPrizePool: 100,
+        prizeDistribution: [{ position: 1, percentage: 100 }],
+        grossCollected: 0,
+        platformFee: 0,
+        prizePool: 100,
+        rewardPool: 100,
+        settledAt: null,
+        maxParticipants: 10,
+        currentParticipants: 1,
+        participants: [{ status: 'APPROVED', entryFeePaid: 0, entryPaidAt: null }],
+      }],
+    },
+  })
+
+  assert.equal(report.inspected, 1)
+  assert.equal(report.affected, 0)
+  assert.equal(report.expiredUnsettled, 1)
+  assert.equal(report.records.length, 1)
+  assert.equal(report.records[0].expiredUnsettled, true)
+  assert.match(report.checkedAt, /^\d{4}-\d{2}-\d{2}T/)
+})
+
+test('rota de diagnóstico de Mesas exige leitura administrativa e auditoria', () => {
+  const source = fs.readFileSync(path.join(
+    __dirname, '..', 'src', 'routes', 'admin-bolao.routes.ts'
+  ), 'utf8')
+
+  assert.match(source, /['"]\/api\/admin\/mesas\/integrity['"]/)
+  assert.match(
+    source,
+    /\/api\/admin\/mesas\/integrity[\s\S]+?authorize\(['"]COMPETITION_READ['"],[\s\S]+?audit:\s*true[\s\S]+?AdminBolaoController\.integrity/
+  )
 })
 
 test('banco possui defesa final para impedir duas rodadas OPEN', () => {
