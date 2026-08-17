@@ -1,4 +1,5 @@
 import { MesaCategory, Prisma } from '@prisma/client'
+import { hasActiveProSubscriptionAt } from '../../domain/subscription'
 import { RankingWindowRow } from '../ranking/ranking-window-score.service'
 import { BolaoPrizeService } from './bolao-prize.service'
 import { MesaCategoryRules } from './mesa-category-rules'
@@ -44,16 +45,11 @@ export class SettleBolaoService {
         where: { id: { in: payouts.map(payout => payout.userId) } },
         select: {
           id: true,
-          subscription: { select: { startAt: true, endAt: true } },
+          subscription: { select: { status: true, startAt: true, endAt: true } },
         },
       })
       const eligibleUserIds = new Set(users
-        .filter(user => {
-          const subscription = user.subscription
-          return !!subscription
-            && subscription.startAt <= settledAt
-            && (!subscription.endAt || subscription.endAt > settledAt)
-        })
+        .filter(user => hasActiveProSubscriptionAt(user.subscription, settledAt))
         .map(user => user.id))
       eligiblePayouts = payouts.filter(payout => eligibleUserIds.has(payout.userId))
       withheldPayouts = payouts.filter(payout => !eligibleUserIds.has(payout.userId))

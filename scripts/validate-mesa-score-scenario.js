@@ -8,6 +8,10 @@
  *
  * Uso: npm run build && node scripts/validate-mesa-score-scenario.js
  */
+const { assertSimulationEnvironment } = require('./simulation-environment-guard')
+
+assertSimulationEnvironment()
+
 const { randomUUID } = require('node:crypto')
 const { prisma } = require('../dist/lib/prisma')
 const {

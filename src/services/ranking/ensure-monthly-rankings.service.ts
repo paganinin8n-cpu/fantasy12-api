@@ -1,4 +1,5 @@
-import { RankingType, RoundStatus, SubscriptionStatus } from '@prisma/client'
+import { RankingType, RoundStatus } from '@prisma/client'
+import { hasActiveProSubscriptionAt } from '../../domain/subscription'
 import { prisma } from '../../lib/prisma'
 import { SaoPauloPeriodService } from '../time/sao-paulo-period.service'
 
@@ -6,12 +7,6 @@ type EnsureMonthlyRankingsInput = {
   periodRef: string
   now?: Date
 }
-
-type SubscriptionAtCutoff = {
-  status: SubscriptionStatus
-  startAt: Date
-  endAt: Date | null
-} | null
 
 export class EnsureMonthlyRankingsService {
   static async execute({
@@ -186,7 +181,7 @@ export class EnsureMonthlyRankingsService {
       const generalUsers = users
       const proUsers = users.filter(user =>
         user.createdAt <= proEligibilityDate
-        && this.isProAt(user.subscription, proEligibilityDate)
+        && hasActiveProSubscriptionAt(user.subscription, proEligibilityDate)
       )
 
       const generalResult = await tx.rankingParticipant.createMany({
@@ -240,12 +235,4 @@ export class EnsureMonthlyRankingsService {
     })
   }
 
-  private static isProAt(
-    subscription: SubscriptionAtCutoff,
-    date: Date
-  ) {
-    if (!subscription) return false
-    if (subscription.startAt > date) return false
-    return !subscription.endAt || subscription.endAt > date
-  }
 }

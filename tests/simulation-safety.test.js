@@ -21,6 +21,7 @@ test('simulacao recusa banco remoto fora de producao', () => {
   assert.throws(
     () => assertSimulationEnvironment({
       NODE_ENV: 'test',
+      F12_SIMULATION_CONFIRMATION: 'local-isolated',
       DATABASE_URL: 'postgresql://user:secret@database.internal:5432/f12',
     }),
     /banco local isolado/

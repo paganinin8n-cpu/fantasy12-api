@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../lib/prisma';
 import { hasActiveProSubscription } from '../../domain/subscription';
-import { EnsureMonthlyRankingsService } from '../../services/ranking/ensure-monthly-rankings.service';
 import { RankingWindowScoreService } from '../../services/ranking/ranking-window-score.service';
 import { SaoPauloPeriodService } from '../../services/time/sao-paulo-period.service';
 
@@ -16,7 +15,9 @@ export class MonthlyRankingController {
         ? req.query.period
         : defaultPeriod;
 
-      await EnsureMonthlyRankingsService.execute({ periodRef, now });
+      // A rota pública é estritamente de leitura. Criação e sincronização da
+      // coorte mensal pertencem aos jobs internos de abertura/reconciliação.
+      SaoPauloPeriodService.parse(periodRef);
 
       const ranking = await prisma.ranking.findFirst({
         where: {

@@ -1,5 +1,9 @@
 const assert = require('node:assert/strict')
 const { randomUUID } = require('node:crypto')
+const { assertSimulationEnvironment } = require('./simulation-environment-guard')
+
+assertSimulationEnvironment()
+
 const { prisma } = require('../dist/lib/prisma')
 const {
   CalculateTicketScoreService,
