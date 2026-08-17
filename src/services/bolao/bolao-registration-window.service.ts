@@ -15,7 +15,9 @@ type BolaoRegistrationWindow = {
  */
 export class BolaoRegistrationWindowService {
   static assertNotClosed(bolao: BolaoRegistrationWindow, now = new Date()) {
-    const closesAt = bolao.entryEndDate ?? bolao.endDate
+    // entryEndDate é apenas compatibilidade de leitura para registros antigos.
+    // A regra atual encerra entradas pelo fim da Mesa ou pela capacidade.
+    const closesAt = bolao.endDate
     if (closesAt != null && closesAt <= now) {
       throw new Error(COMPETITION_REGISTRATION_CLOSED)
     }

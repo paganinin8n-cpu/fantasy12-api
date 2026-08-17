@@ -150,34 +150,6 @@ test('bloqueia solicitacao antes da data de abertura da Mesa', async t => {
   )
 })
 
-test('bloqueia solicitacao depois do termino das entradas', async t => {
-  mockProAccess(t)
-  const originalTransaction = prisma.$transaction
-  t.after(() => {
-    prisma.$transaction = originalTransaction
-  })
-
-  prisma.$transaction = async callback => callback({
-    ranking: {
-      findUnique: async () => ({
-        ...openBolao(),
-        startDate: new Date('2020-01-01T00:00:00Z'),
-        entryEndDate: new Date('2020-01-02T00:00:00Z'),
-      }),
-    },
-    rankingParticipant: {
-      findUnique: async () => null,
-      create: async () => ({ id: 'participant-2' }),
-    },
-    auditLog: { create: async () => ({}) },
-  })
-
-  await assert.rejects(
-    JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'user-2' }),
-    { message: REGISTRATION_CLOSED }
-  )
-})
-
 test('Mesa FREE patrocinada bloqueia entrada quando atinge a capacidade', async t => {
   mockProAccess(t)
   const originalTransaction = prisma.$transaction
@@ -220,7 +192,7 @@ test('Mesa FREE patrocinada bloqueia entrada quando atinge a capacidade', async 
   )
 })
 
-test('bloqueia nova solicitacao depois do termino das entradas', async t => {
+test('bloqueia Mesa legada sem limite antes de reservar entrada', async t => {
   mockProAccess(t)
   const originalTransaction = prisma.$transaction
   t.after(() => {
@@ -228,99 +200,19 @@ test('bloqueia nova solicitacao depois do termino das entradas', async t => {
   })
 
   prisma.$transaction = async callback => callback({
-    ranking: { findUnique: async () => closedEntriesBolao() },
-    rankingParticipant: {
-      findUnique: async () => null,
-      create: async () => ({ id: 'participant-2' }),
+    ranking: {
+      findUnique: async () => ({
+        ...openBolao(),
+        maxParticipants: null,
+      }),
     },
-    auditLog: { create: async () => ({}) },
   })
 
   await assert.rejects(
     JoinBolaoService.execute({ rankingId: 'mesa-1', userId: 'user-2' }),
-    { message: REGISTRATION_CLOSED }
+    { message: 'Esta Mesa precisa de um limite de participantes válido' }
   )
 })
-
-test('bloqueia aprovacao pendente depois do termino das entradas', async t => {
-  const originalTransaction = prisma.$transaction
-  t.after(() => {
-    prisma.$transaction = originalTransaction
-  })
-
-  prisma.$transaction = async callback => callback({
-    ranking: {
-      findUnique: async () => closedEntriesBolao(),
-      update: async () => ({}),
-    },
-    rankingParticipant: {
-      findUnique: async () => ({
-        id: 'participant-2',
-        rankingId: 'mesa-1',
-        userId: 'user-2',
-        status: 'PENDING',
-      }),
-      update: async ({ data }) => ({ id: 'participant-2', ...data }),
-    },
-    userScoreHistory: { findFirst: async () => null },
-    user: { findUnique: async () => ({ scoreTotal: 0 }) },
-    auditLog: { create: async () => ({}) },
-  })
-
-  await assert.rejects(
-    ReviewBolaoRequestService.execute({
-      rankingId: 'mesa-1',
-      participantId: 'participant-2',
-      reviewerUserId: 'creator-1',
-      status: 'APPROVED',
-    }),
-    { message: REGISTRATION_CLOSED }
-  )
-})
-
-test('bloqueia a criacao de convite depois do termino das entradas', async t => {
-  const originalFindUnique = prisma.ranking.findUnique
-  const originalInviteCreate = prisma.bolaoInvite.create
-  const originalAuditCreate = prisma.auditLog.create
-  t.after(() => {
-    prisma.ranking.findUnique = originalFindUnique
-    prisma.bolaoInvite.create = originalInviteCreate
-    prisma.auditLog.create = originalAuditCreate
-  })
-
-  prisma.ranking.findUnique = async () => closedEntriesBolao()
-  prisma.bolaoInvite.create = async ({ data }) => ({
-    id: 'invite-1',
-    code: data.code,
-    maxUses: null,
-    expiresAt: null,
-    isActive: true,
-    createdAt: new Date(),
-  })
-  prisma.auditLog.create = async () => ({})
-
-  await assert.rejects(
-    CreateBolaoInviteService.execute({
-      rankingId: 'mesa-1',
-      createdByUserId: 'creator-1',
-    }),
-    { message: REGISTRATION_CLOSED }
-  )
-})
-
-function closedEntriesBolao() {
-  return {
-    id: 'mesa-1',
-    type: 'BOLAO',
-    status: 'ACTIVE',
-    entryFee: 0,
-    maxParticipants: 50,
-    currentParticipants: 1,
-    createdByUserId: 'creator-1',
-    startDate: new Date('2020-01-01T00:00:00Z'),
-    entryEndDate: new Date('2020-06-01T00:00:00Z'),
-  }
-}
 
 function openBolao() {
   return {

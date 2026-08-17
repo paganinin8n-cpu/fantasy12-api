@@ -60,6 +60,7 @@ export class ReviewBolaoRequestService {
 
       if (status === 'APPROVED') {
         BolaoRegistrationWindowService.assertOpen(bolao);
+        MesaCategoryRules.assertCapacity(bolao);
       }
 
       const participant = await tx.rankingParticipant.findUnique({
@@ -120,7 +121,7 @@ export class ReviewBolaoRequestService {
         });
       }
 
-      const seatReservedByCapacity = MesaCategoryRules.hasCapacity(bolao);
+      const seatReservedByCapacity = true;
       if (seatReservedByCapacity) {
         const reservation = await tx.ranking.updateMany({
           where: {

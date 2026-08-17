@@ -50,6 +50,38 @@ export class MesaIntegrityService {
     const sponsored = MesaCategoryRules.isSponsored(mesa)
     const approved = mesa.participants.filter(item => item.status === 'APPROVED')
 
+    if (!sponsored) {
+      if (!Number.isInteger(accessCost) || accessCost <= 0) {
+        issues.push({
+          code: 'INVALID_PAID_ACCESS_COST',
+          message: 'Mesa com Tampinhas deve possuir custo de acesso positivo',
+          details: { accessCost },
+        })
+      }
+      if ((mesa.sponsorPrizePool ?? 0) !== 0) {
+        issues.push({
+          code: 'INVALID_PAID_SPONSOR_POOL',
+          message: 'Mesa com Tampinhas não pode possuir prêmio patrocinado',
+          details: { sponsorPrizePool: mesa.sponsorPrizePool ?? 0 },
+        })
+      }
+    } else {
+      if (accessCost !== 0) {
+        issues.push({
+          code: 'INVALID_SPONSORED_ACCESS_COST',
+          message: 'Mesa FREE patrocinada não pode cobrar Tampinhas',
+          details: { accessCost },
+        })
+      }
+      if (!Number.isInteger(mesa.sponsorPrizePool) || (mesa.sponsorPrizePool ?? 0) <= 0) {
+        issues.push({
+          code: 'INVALID_SPONSORED_PRIZE_POOL',
+          message: 'Mesa FREE patrocinada deve possuir prêmio patrocinado positivo',
+          details: { sponsorPrizePool: mesa.sponsorPrizePool ?? 0 },
+        })
+      }
+    }
+
     if (mesa.maxParticipants == null) {
       issues.push({
         code: 'MISSING_PARTICIPANT_LIMIT',

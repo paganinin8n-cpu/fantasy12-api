@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { randomUUID } from 'crypto'
 import { BolaoRegistrationWindowService } from './bolao-registration-window.service'
+import { MesaCategoryRules } from './mesa-category-rules'
 
 type CreateInviteInput = {
   rankingId: string
@@ -51,12 +52,7 @@ export class CreateBolaoInviteService {
     }
 
     BolaoRegistrationWindowService.assertNotClosed(ranking)
-    if (
-      ranking.maxParticipants != null
-      && ranking.currentParticipants >= ranking.maxParticipants
-    ) {
-      throw new Error('Esta Mesa atingiu o limite de participantes')
-    }
+    MesaCategoryRules.assertCapacity(ranking)
 
     if (ranking.createdByUserId !== createdByUserId) {
       throw new Error('Apenas o dono da Mesa pode gerar convites')

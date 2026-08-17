@@ -15,7 +15,6 @@ type CreateBolaoInput = {
   name: string
   description: string
   startDate: Date
-  entryEndDate?: Date
   endDate: Date
   category?: MesaCategory
   accessCost?: number
@@ -37,7 +36,6 @@ export class CreateBolaoService {
       name,
       description: rawDescription,
       startDate,
-      entryEndDate,
       endDate,
       prizeDistribution,
       createdByUserId,
@@ -69,25 +67,12 @@ export class CreateBolaoService {
       throw new Error('A data de fim deve ser posterior à data de início')
     }
 
-    if (entryEndDate !== undefined) {
-      if (!(entryEndDate instanceof Date) || Number.isNaN(entryEndDate.getTime())) {
-        throw new Error('Informe uma data válida para o término dos acessos')
-      }
-      if (entryEndDate <= startDate) {
-        throw new Error('A data de término dos acessos deve ser posterior à data de início')
-      }
-      if (entryEndDate > endDate) {
-        throw new Error('A data de término dos acessos deve ser anterior ou igual à data de fim da Mesa')
-      }
-    }
-
     const validatedPrizeDistribution =
       BolaoPrizeService.validateDistribution(prizeDistribution)
 
     try {
       BolaoRegistrationWindowService.assertNotClosed({
         startDate,
-        entryEndDate,
         endDate,
       })
     } catch (error) {
@@ -128,7 +113,7 @@ export class CreateBolaoService {
             ? terms.sponsorPrizePool
             : emptyPool.prizePool,
           startDate,
-          entryEndDate: entryEndDate ?? null,
+          entryEndDate: null,
           endDate,
           createdByUserId,
         },
@@ -150,7 +135,7 @@ export class CreateBolaoService {
             maxParticipants: terms.maxParticipants,
             durationDays,
             startDate: startDate.toISOString(),
-            entryEndDate: entryEndDate?.toISOString() ?? null,
+            entryEndDate: null,
             endDate: endDate.toISOString(),
             prizeDistribution: validatedPrizeDistribution,
             createdByAdmin: true,

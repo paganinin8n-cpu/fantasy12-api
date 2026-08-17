@@ -9,7 +9,6 @@ const CreateMesaBaseSchema = z.object({
   name: z.string().trim().min(3).max(120),
   description: z.string().trim().min(1).max(2000),
   startDate: z.iso.datetime(),
-  entryEndDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime(),
   category: z.enum(['PAID', 'SPONSORED_FREE']).default('PAID'),
   accessCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),

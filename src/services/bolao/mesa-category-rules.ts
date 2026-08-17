@@ -58,10 +58,10 @@ export class MesaCategoryRules {
   }
 
   static assertCapacity(value: MesaCategoryTerms & { currentParticipants: number }) {
-    if (
-      value.maxParticipants != null
-      && value.currentParticipants >= value.maxParticipants
-    ) {
+    if (!Number.isInteger(value.maxParticipants) || value.maxParticipants! <= 0) {
+      throw new Error('Esta Mesa precisa de um limite de participantes válido')
+    }
+    if (value.currentParticipants >= value.maxParticipants!) {
       throw new Error('Esta Mesa atingiu o limite de participantes')
     }
   }

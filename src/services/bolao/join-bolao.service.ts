@@ -65,6 +65,7 @@ export class JoinBolaoService {
       const isPaid = MesaCategoryRules.isPaid(bolao);
 
       BolaoRegistrationWindowService.assertOpen(bolao);
+      MesaCategoryRules.assertCapacity(bolao);
 
       if (bolao.createdByUserId === userId) {
         throw new Error('O criador já administra esta Mesa');
@@ -102,7 +103,7 @@ export class JoinBolaoService {
         });
       }
 
-      const seatReservedByCapacity = MesaCategoryRules.hasCapacity(bolao);
+      const seatReservedByCapacity = true;
       if (seatReservedByCapacity) {
         const reservation = await tx.ranking.updateMany({
           where: {
